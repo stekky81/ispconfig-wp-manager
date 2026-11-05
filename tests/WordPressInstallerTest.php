@@ -79,6 +79,32 @@ final class WordPressInstallerTest extends TestCase
         self::assertLessThan(strpos($all, "'core' 'download'"), strpos($all, 'standard_index.html'));
     }
 
+    // Regression: without a certificate the site was installed with an https URL that nothing
+    // answered, so wp-login redirected to a dead port.
+    public function testSiteUrlUsesHttpWithoutACertificate(): void
+    {
+        $log = $this->installer(['site_defaults' => ['ssl' => 'y', 'ssl_letsencrypt' => 'n']])
+            ->install($this->site(), new Runner(true));
+
+        self::assertStringContainsString("'--url=http://shop.example.com'", implode("\n", $log));
+    }
+
+    public function testSiteUrlUsesHttpsWithALetsEncryptCertificate(): void
+    {
+        $log = $this->installer(['site_defaults' => ['ssl' => 'y', 'ssl_letsencrypt' => 'y']])
+            ->install($this->site(), new Runner(true));
+
+        self::assertStringContainsString("'--url=https://shop.example.com'", implode("\n", $log));
+    }
+
+    public function testSiteUrlUsesHttpWhenSslIsOff(): void
+    {
+        $log = $this->installer(['site_defaults' => ['ssl' => 'n', 'ssl_letsencrypt' => 'y']])
+            ->install($this->site(), new Runner(true));
+
+        self::assertStringContainsString("'--url=http://shop.example.com'", implode("\n", $log));
+    }
+
     public function testRefusesNonEmptyWebRoot(): void
     {
         file_put_contents($this->root . '/client3/web7/web/index.php', '<?php // existing site');

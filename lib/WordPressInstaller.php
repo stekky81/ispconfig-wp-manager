@@ -41,7 +41,7 @@ final class WordPressInstaller
         $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
         $wpCfg = $this->config->get('wordpress');
         $domain = Validator::domain((string)$site['domain']);
-        $scheme = $this->config->get('site_defaults.ssl') === 'y' ? 'https' : 'http';
+        $scheme = $this->siteScheme();
 
         // ISPConfig placeholder pages: they could shadow index.php and must not stay public
         foreach (['index.html', 'standard_index.html'] as $placeholder) {
@@ -72,5 +72,12 @@ final class WordPressInstaller
         }
 
         return $runner->log();
+    }
+
+    /** https only when a certificate will exist: nothing answers on 443 without one. */
+    private function siteScheme(): string
+    {
+        $d = $this->config->get('site_defaults');
+        return $d['ssl'] === 'y' && $d['ssl_letsencrypt'] === 'y' ? 'https' : 'http';
     }
 }
