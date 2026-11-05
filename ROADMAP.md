@@ -47,6 +47,10 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 ## 0.5 — Clone and staging
 
 - [ ] Clone a site to a new domain or subdomain (files, DB, `search-replace`)
+- [ ] Clone: replace the old domain everywhere in the database, **including serialized fields**, as
+      Duplicator does on restore (`wp search-replace`, every table of the site, `guid` left alone). Also cover
+      what is not PHP serialization: JSON with escaped slashes (page builders), URL-encoded values, `http` and
+      `https`, `www`; report what could not be replaced, such as base64 values
 - [ ] Clone across nodes
 - [ ] Staging copy with "push to production" (with backup first)
 
