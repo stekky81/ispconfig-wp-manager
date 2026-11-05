@@ -16,7 +16,36 @@ Every bug found in manual testing must get a regression test here first.
 
 ## 2. Test environment
 
-Never test on the production nodes. Use two disposable VMs that mirror production:
+Never test on the production nodes. Use two disposable VMs that mirror production.
+
+### Quick start on macOS: Multipass
+
+```bash
+brew install --cask multipass
+UBUNTU=24.04 WEB=apache ./dev/test-env.sh create   # same Ubuntu and web server as production
+./dev/test-env.sh info                             # panel URL and IP
+./dev/test-env.sh reset                            # back to the clean snapshot after each test
+./dev/test-env.sh destroy                          # delete everything
+```
+
+The project folder is mounted in the VM at `/opt/ispconfig-wp-manager`, so local changes are
+available immediately.
+
+What it does **not** touch on the Mac:
+
+- The VMs have their own IP address: a local Apache/PHP on the Mac keeps working and there are
+  no port conflicts (nothing is forwarded to `localhost`).
+- No system files are changed. The only manual step is adding test domains to `/etc/hosts`;
+  use a dedicated suffix (e.g. `sito1.ispc.test`) so they never clash with local virtual hosts.
+- The only Mac folder the VMs can write to is the mounted project folder (the installer creates
+  the git-ignored `config.php` there).
+
+Full removal: `./dev/test-env.sh destroy` deletes the VMs and frees their disk space;
+`brew uninstall --cask multipass` removes Multipass; finally remove the test lines from `/etc/hosts`.
+
+### Generic setup
+
+Any VM tool works (UTM, Parallels, VMware Fusion, Proxmox, Incus):
 
 - **VM A**: ISPConfig master + web node (same OS and ISPConfig version as production)
 - **VM B**: ISPConfig slave web node (to test multiserver)
