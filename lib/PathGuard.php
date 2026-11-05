@@ -12,7 +12,7 @@ final class PathGuard
 {
     /** Files ISPConfig puts into a fresh web/ folder; anything else means "not empty". */
     public const ISPCONFIG_DEFAULT_ENTRIES = [
-        'index.html', 'favicon.ico', 'robots.txt', 'stats', 'error', '.well-known',
+        'index.html', 'standard_index.html', 'favicon.ico', 'robots.txt', 'stats', 'error', '.well-known',
     ];
 
     public function __construct(private readonly string $root = '/var/www/clients')

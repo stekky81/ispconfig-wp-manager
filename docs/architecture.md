@@ -40,7 +40,8 @@ command inside `server.sh` would block every other change on the node.
   without executing it, and stores no record, so no job reaches the worker.
   Default in `config.example.php` is `true`.
 - **Empty target only**: the worker refuses to install into a `web/` directory that contains anything
-  other than the files ISPConfig creates (`index.html`, `favicon.ico`, `robots.txt`, `stats/`, `error/`).
+  other than the files ISPConfig creates (`index.html`, `standard_index.html`, `favicon.ico`, `robots.txt`,
+  `stats/`, `error/`, `.well-known/`).
 - **Path guard**: every path used by the worker must resolve inside `/var/www/clients/`.
 - **Run as site user**: WP-CLI always runs as the site's `webN` user, never as root.
 - **No half-installs overwritten**: a failed install is retried only while `web/` is still pristine.

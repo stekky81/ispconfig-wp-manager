@@ -33,6 +33,16 @@ final class PathGuardTest extends TestCase
         self::assertTrue((new PathGuard($this->root))->isPristineWebRoot($web));
     }
 
+    // Regression: ISPConfig 3.3 creates standard_index.html, not index.html, in a new web root.
+    public function testIspconfig33StandardIndexIsPristine(): void
+    {
+        $web = $this->root . '/client1/web1/web';
+        foreach (['standard_index.html', 'favicon.ico', 'robots.txt'] as $f) {
+            touch("{$web}/{$f}");
+        }
+        self::assertTrue((new PathGuard($this->root))->isPristineWebRoot($web));
+    }
+
     public function testAnyOtherFileMakesItNotPristine(): void
     {
         $web = $this->root . '/client1/web1/web';

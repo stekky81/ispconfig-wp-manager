@@ -69,6 +69,16 @@ final class WordPressInstallerTest extends TestCase
         self::assertFileExists($this->root . '/client3/web7/web/index.html', 'dry-run must not delete files');
     }
 
+    public function testPlaceholderPagesAreRemovedBeforeTheInstall(): void
+    {
+        touch($this->root . '/client3/web7/web/standard_index.html');
+        $all = implode("\n", $this->installer()->install($this->site(), new Runner(true)));
+
+        self::assertStringContainsString("/web/index.html'", $all);
+        self::assertStringContainsString("/web/standard_index.html'", $all);
+        self::assertLessThan(strpos($all, "'core' 'download'"), strpos($all, 'standard_index.html'));
+    }
+
     public function testRefusesNonEmptyWebRoot(): void
     {
         file_put_contents($this->root . '/client3/web7/web/index.php', '<?php // existing site');

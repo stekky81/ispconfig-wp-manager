@@ -43,8 +43,8 @@ final class WordPressInstaller
         $domain = Validator::domain((string)$site['domain']);
         $scheme = $this->config->get('site_defaults.ssl') === 'y' ? 'https' : 'http';
 
-        // ISPConfig placeholder page would shadow index.php on some setups
-        foreach (['index.html'] as $placeholder) {
+        // ISPConfig placeholder pages: they could shadow index.php and must not stay public
+        foreach (['index.html', 'standard_index.html'] as $placeholder) {
             if (is_file($webRoot . '/' . $placeholder)) {
                 $runner->mustRun(new Command(['rm', '-f', '--', $webRoot . '/' . $placeholder], (string)$site['system_user']));
             }
