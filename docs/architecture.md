@@ -44,7 +44,7 @@ command inside `server.sh` would block every other change on the node.
   `stats/`, `error/`, `.well-known/`).
 - **Path guard**: every path used by the worker must resolve inside `/var/www/clients/`.
 - **Run as site user**: WP-CLI always runs as the site's `webN` user, never as root.
-- **No half-installs overwritten**: a failed install is retried only while `web/` is still pristine.
+- **No half-installs overwritten**: a failed install is retried, after 5 and then 30 minutes, only while `web/` is still pristine.
   If WP-CLI already wrote files, the job ends in `error` and needs a manual look — never an automatic cleanup.
 - **Passwords shown once**: the site detail page decrypts the WP admin and SFTP/FTP passwords on request,
   after clearing them from `wpm_site`. Encrypted copies stay in `sys_datalog` until ISPConfig prunes it.

@@ -72,7 +72,7 @@ final class Runner
     {
         $result = $this->run($command);
         if ($result['exit'] !== 0) {
-            $msg = trim($result['stderr'] ?: $result['stdout']);
+            $msg = self::failureText($result['stderr'] ?: $result['stdout']);
             foreach ($this->secrets as $s) {
                 if ($s !== '') {
                     $msg = str_replace($s, '********', $msg);
@@ -81,6 +81,14 @@ final class Runner
             throw new \RuntimeException("Command failed ({$result['exit']}): {$msg}");
         }
         return $result['stdout'];
+    }
+
+    /** The output of a failed command without the warnings that come before the real error. */
+    public static function failureText(string $output): string
+    {
+        $lines = preg_split('/\R/', trim($output)) ?: [];
+        $rest = array_filter($lines, static fn(string $line): bool => !str_starts_with($line, 'Warning: '));
+        return implode("\n", $rest === [] ? $lines : $rest);
     }
 
     /** @return list<string> */

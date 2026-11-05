@@ -29,6 +29,7 @@ use WpManager\Config;
 use WpManager\Crypto;
 use WpManager\JobQueue;
 use WpManager\PathGuard;
+use WpManager\RetryPolicy;
 use WpManager\WordPressInstaller;
 
 // ISPConfig server environment, for $app->dbmaster and $app->log.
@@ -66,6 +67,10 @@ foreach ($queue->pending() as $name) {
         continue;
     }
 
+    if (!RetryPolicy::isDue($job, time())) {
+        continue;
+    }
+
     if (!$installer->isReady($site)) {
         if (time() - (int)$job['created'] > WPM_MAX_WAIT) {
             $report($siteId, 'error', 'The website was not created on this node within one hour.');
@@ -87,7 +92,9 @@ foreach ($queue->pending() as $name) {
             $report($siteId, 'error', $e->getMessage());
             $queue->remove($name);
         } else {
-            $report($siteId, 'queued', 'Attempt ' . $job['attempts'] . ' failed: ' . $e->getMessage());
+            $delay = RetryPolicy::delayAfter($job['attempts']);
+            $job['not_before'] = time() + $delay;
+            $report($siteId, 'queued', 'Attempt ' . $job['attempts'] . ' failed, next try in ' . intdiv($delay, 60) . ' minutes: ' . $e->getMessage());
             $queue->update($name, $job);
         }
     }
