@@ -9,7 +9,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] Unit tests (47) and CI (PHP 8.1–8.4, shellcheck)
 - [x] Multipass test environment (`dev/test-env.sh`)
 - [x] Module installs on ISPConfig 3.3.2 and appears in the panel menu
-- [ ] List and form pages load without errors in the panel
+- [x] List and form pages load without errors in the panel
 - [ ] Verify everything marked `VERIFY` in the code against ISPConfig 3.3.x
       (tform/listform flow, templates, `paging_tpl`, Remote API parameters)
 - [ ] Installer: run twice in a row, run after an ISPConfig update, `--uninstall`
