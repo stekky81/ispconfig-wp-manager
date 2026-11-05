@@ -54,7 +54,7 @@ Any VM tool works (UTM, Parallels, VMware Fusion, Proxmox, Incus):
 
 ## 3. Manual test checklist
 
-Run each case first with `dry_run = true` (check the log), then with `dry_run = false`.
+Run each case first with `dry_run = true` (check the calls listed on the form), then with `dry_run = false`.
 
 ### Install
 

@@ -74,8 +74,10 @@ class page_action extends tform_actions
         }
 
         if ($config->isDryRun()) {
-            $app->log('wpmanager dry-run: ' . json_encode($api->calls()), LOGLEVEL_DEBUG);
-            $app->tform->errorMessage .= 'Dry-run: nothing was created. API calls written to the ISPConfig log.<br />';
+            $app->tform->errorMessage .= 'Dry-run: nothing was created. These Remote API calls would be made:<br />';
+            foreach (\WpManager\DryRunReport::lines($api->calls()) as $line) {
+                $app->tform->errorMessage .= htmlspecialchars($line, ENT_QUOTES) . '<br />';
+            }
             $this->onError();
             return;
         }

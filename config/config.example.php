@@ -6,7 +6,7 @@
 
 return [
     // Keep true until the test plan in docs/testing.md has passed on your setup.
-    // In dry-run mode every API call and command is logged but nothing is changed.
+    // In dry-run mode the form lists every Remote API call, but nothing is changed.
     'dry_run' => true,
 
     'remote_api' => [

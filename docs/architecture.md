@@ -33,7 +33,8 @@ command inside `server.sh` would block every other change on the node.
 
 ## Safety rules (enforced in code)
 
-- **Dry-run**: `config.php` → `dry_run = true` logs every API call and command without executing it.
+- **Dry-run**: `config.php` → `dry_run = true` lists every Remote API call on the form (passwords masked)
+  without executing it, and stores no record, so no job reaches the worker.
   Default in `config.example.php` is `true`.
 - **Empty target only**: the worker refuses to install into a `web/` directory that contains anything
   other than the files ISPConfig creates (`index.html`, `favicon.ico`, `robots.txt`, `stats/`, `error/`).
