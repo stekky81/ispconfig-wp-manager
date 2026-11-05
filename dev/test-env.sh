@@ -102,14 +102,13 @@ cmd_create() {
     launch "$MASTER"
 
     info "Installing ISPConfig on $MASTER (10-20 minutes)"
-    # shellcheck disable=SC2046  # flags are intentionally split
-    multipass exec "$MASTER" -- sudo bash -c \
-        "set -o pipefail; wget -qO - https://get.ispconfig.org | sh -s -- $(ai_flags) 2>&1 | tee /root/ispconfig-install.log" \
+    # The autoinstaller needs a terminal: `script` provides one even when our own
+    # output is piped (e.g. into tee) and also keeps a full log inside the VM.
+    multipass exec "$MASTER" -- sudo script -qefc \
+        "wget -qO - https://get.ispconfig.org | sh -s -- $(ai_flags)" \
+        /root/ispconfig-install.log \
         || die "ISPConfig installation failed: see the output above (log in the VM: /root/ispconfig-install.log)"
-    # The autoinstaller may exit 0 after logging an error: check for it explicitly.
-    if multipass exec "$MASTER" -- sudo grep -q '^\[ERROR\]' /root/ispconfig-install.log; then
-        die "ISPConfig installation reported errors: see the output above"
-    fi
+    verify_ispconfig "$MASTER"
 
     install_wpcli "$MASTER"
 
@@ -124,10 +123,25 @@ cmd_create() {
     multipass exec "$MASTER" -- sudo grep -i "admin password" /root/ispconfig-install.log || true
 }
 
+# The autoinstaller can stop without a non-zero exit code: check the result itself.
+verify_ispconfig() {
+    local name=$1
+    if multipass exec "$name" -- sudo grep -qE '^\[ERROR\]|cannot open /dev' /root/ispconfig-install.log \
+        || ! multipass exec "$name" -- test -f /usr/local/ispconfig/server/lib/config.inc.php; then
+        die "ISPConfig is not installed on $name: see the output above (log in the VM: /root/ispconfig-install.log)"
+    fi
+    info "ISPConfig installed on $name"
+}
+
 ensure_mount() {
     local name=$1
     if ! multipass info "$name" | grep -q "$MOUNT_POINT"; then
-        info "Mounting the project at $MOUNT_POINT in $name (first time: a few minutes)"
+        info "Preparing mount support in $name (first time: a few minutes)"
+        # On first boot snapd is still seeding and multipass gives up after 15 s:
+        # wait for it and install the sshfs helper ourselves, without a timeout.
+        multipass exec "$name" -- sudo snap wait system seed.loaded
+        multipass exec "$name" -- sudo snap install multipass-sshfs
+        info "Mounting the project at $MOUNT_POINT in $name"
         multipass mount "$PROJECT_DIR" "$name:$MOUNT_POINT"
     fi
 }
