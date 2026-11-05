@@ -6,7 +6,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 ## 0.1 — Skeleton (in progress)
 
 - [x] Shared library, installer, interface module, server plugin, node worker
-- [x] Unit tests (47) and CI (PHP 8.1–8.4, shellcheck)
+- [x] Unit tests and CI (PHP 8.1–8.4, shellcheck)
 - [x] Multipass test environment (`dev/test-env.sh`)
 - [x] Module installs on ISPConfig 3.3.2 and appears in the panel menu
 - [x] List and form pages load without errors in the panel
@@ -16,13 +16,13 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 
 ## 0.2 — Usable MVP: new WordPress site
 
-- [ ] End-to-end create flow in the VM: dry-run, then real
+- [x] End-to-end create flow in the VM: dry-run, then real
 - [x] **One-time reveal of the generated credentials** (WP admin, SFTP/FTP) in a site detail page,
       then clear them from the database
 - [ ] Optional email of the generated credentials to the admin
 - [x] Site detail page: status, install log, links to the site, wp-admin and the ISPConfig website
 - [x] Choice of SFTP or FTP access in the form, with password login
-- [ ] Per-site options in the form, pre-filled from the defaults: PHP version, locale, plugins, theme
+- [x] Per-site options in the form, pre-filled from the defaults: PHP version, locale, plugins, theme
 - [ ] Clear status messages for every failure case in `docs/testing.md`
 - [ ] **Detect existing WordPress installs** on every node (scan `/var/www/clients/*/web*/web`
       for `wp-config.php`) and register them in `wpm_site`, linked to the ISPConfig website

@@ -54,33 +54,36 @@ Any VM tool works (UTM, Parallels, VMware Fusion, Proxmox, Incus):
 
 ## 3. Manual test checklist
 
+Ticked items passed on ISPConfig 3.3.2 in the Multipass VM (master node only).
+
 Run each case first with `dry_run = true` (check the calls listed on the form), then with `dry_run = false`.
 
 ### Install
 
-- [ ] Installer runs twice in a row without errors (idempotent)
+- [x] Installer runs twice in a row without errors (idempotent)
 - [ ] Installer after an ISPConfig update restores symlinks
 - [ ] Module visible only to users who have it enabled
 
 ### New site — happy path
 
-- [ ] Site on master node: website, DB user, DB (linked to the site), SFTP user created
-- [ ] Same with FTP access: FTP user created instead of the SFTP user, login works
+- [x] Site on master node: website, DB user, DB (linked to the site), SFTP user created
+- [x] Same with FTP access: FTP user created instead of the SFTP user, login works
 - [ ] Site on slave node (VM B)
-- [ ] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
-- [ ] Secrets cleared from `wpm_site` after install (DB password) and after the reveal (the other two)
-- [ ] Passwords shown once on the site detail page, and they work
+- [x] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
+- [x] Secrets cleared from `wpm_site` after install (DB password) and after the reveal (the other two)
+- [x] Passwords shown once on the site detail page, and they work
 - [ ] Defaults applied (PHP version, SSL, plugins)
 
 ### New site — failure cases
 
-- [ ] Domain already exists in ISPConfig → clear error, nothing created
+- [x] Domain already exists in ISPConfig → clear error, nothing created
 - [ ] Client over quota → clear error, nothing created
-- [ ] API fails halfway (e.g. wrong DB server id) → error lists created objects
-- [ ] `web/` not empty → worker refuses, status `error`, no files touched
-- [ ] WP-CLI missing on node → status `error` with message
+- [x] API fails halfway (e.g. missing permission) → clear error, created objects rolled back
+- [x] Wrong `database_server_id` → clear error, nothing created
+- [x] `web/` not empty → worker refuses, status `error`, no files touched
+- [x] WP-CLI missing on node → status `error` with message
 - [ ] Node offline for 10 minutes → job runs when it is back
-- [ ] Two sites created at the same moment → both installed, no mix-up
+- [x] Two sites created at the same moment → both installed, no mix-up
 
 ### Regression on existing sites
 

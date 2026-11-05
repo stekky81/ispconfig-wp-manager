@@ -64,12 +64,13 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - Install our module in the VM:
   `multipass exec ispc-master -- sudo /opt/ispconfig-wp-manager/install/install.sh --role=master --role=node`
 - Panel PHP errors: `multipass exec ispc-master -- sudo tail -50 /var/log/apache2/error.log`
-- With the Tunnelblick VPN connected the VM reaches the Mac and resolves names, but has no internet access:
-  WP-CLI downloads time out, so run those tests with the VPN off. The VM clock also falls behind.
-- Without the VPN, the home network resets TLS connections that offer the post-quantum key share
+- Network: the home connection resets TLS connections that offer the post-quantum key share
   (`openssl s_client -groups X25519MLKEM768`) to some hosts, including `api.anthropic.com` and
-  `api.wordpress.org`; X25519 works. Claude Code drops with ECONNRESET there, so it needs the VPN: WordPress
-  install tests are run by hand with the VPN off. What resets them is not known yet.
+  `api.wordpress.org`, so Claude Code drops with ECONNRESET. The Mac is not the cause: the same test passes on
+  a phone hotspot. With the Tunnelblick VPN Claude Code works but the VM has no internet access, so work on
+  the phone hotspot, without VPN.
+- On the hotspot DNS through the Mac is unreliable and WP-CLI times out at 10 seconds: the VM uses public DNS,
+  from `/etc/systemd/resolved.conf.d/90-wpm-test.conf` (`DNS=1.1.1.1 8.8.8.8`, `Domains=~.`).
 - `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
   The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
 - Do not change the VM clock from `multipass exec` with `date -s`: the client can hang. Kill it if it does.
@@ -96,15 +97,12 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 
 ## Current status (2026-11-05)
 
-- Done: panel pages, list filter and sorting, dry-run report, real creation with SFTP or FTP, site detail
-  page with one-time passwords, `--uninstall`. A real WordPress install worked (`my.ispc.test`, 7.1.4).
-  See [ROADMAP.md](ROADMAP.md).
-- **Next immediate step**: create a new site with the VPN off and check what that install could not cover:
-  http URL without a certificate, WordPress version in the list, plugins and theme from the form. Then tick
-  "End-to-end create flow" and "Per-site options" in the roadmap.
+- Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
+  with one-time passwords; spaced retries; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  in `docs/testing.md`.
+- **Next**: the open items of milestone 0.2 in the roadmap.
 - The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has
-  `dry_run => false`. To start clean: `./dev/test-env.sh reset`, then redo that setup.
-- Then go through `docs/testing.md` (checklist) and write down results.
+  `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
 
 ## Known open issues / roadmap
 

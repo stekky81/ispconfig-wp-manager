@@ -76,6 +76,12 @@ class page_action extends tform_actions
                 (string)($this->dataRecord['wp_theme'] ?? ''),
                 $this->dataRecord['server_php_id'] ?? '0',
             );
+            // The Remote API accepts any server id, so a typo would create a site with no database.
+            $dbServerId = $config->get('site_defaults.database_server_id') ?? $request->serverId;
+            if (!is_array($app->db->queryOneRecord('SELECT server_id FROM server WHERE server_id = ? AND db_server = 1', $dbServerId))) {
+                throw new \WpManager\ValidationException("Server {$dbServerId} is not a database server: check database_server_id in config.php");
+            }
+
             $transport = $config->isDryRun() ? new \WpManager\DryRunTransport() : null;
             $api = \WpManager\IspconfigApi::fromConfig($config, $transport);
             $provisioner = new \WpManager\SiteProvisioner(
