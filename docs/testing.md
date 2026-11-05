@@ -77,6 +77,8 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 ### New site — failure cases
 
 - [x] Domain already exists in ISPConfig → clear error, nothing created
+- [x] Database, database user or SFTP/FTP user name already taken → clear error, nothing created
+- [x] Two long domains with the same beginning → different names, both created
 - [ ] Client over quota → clear error, nothing created
 - [x] API fails halfway (e.g. missing permission) → clear error, created objects rolled back
 - [x] Wrong `database_server_id` → clear error, nothing created

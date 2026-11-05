@@ -117,7 +117,12 @@ final class Validator
     /** Derive a safe database name fragment from a domain: example-shop.com → example_shop_com */
     public static function dbNameFromDomain(string $domain): string
     {
-        $name = preg_replace('/[^a-z0-9]+/', '_', self::domain($domain));
-        return self::dbName(substr(trim((string)$name, '_'), 0, 24));
+        $domain = self::domain($domain);
+        $name = trim((string)preg_replace('/[^a-z0-9]+/', '_', $domain), '_');
+        if (strlen($name) > 24) {
+            // A plain cut would give the same name to long domains with the same beginning.
+            $name = rtrim(substr($name, 0, 17), '_') . '_' . substr(sha1($domain), 0, 6);
+        }
+        return self::dbName($name);
     }
 }

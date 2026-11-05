@@ -215,4 +215,38 @@ final class SiteProvisionerTest extends TestCase
             'ssl off' => ['n', 'y', 'http://shop.example.com'],
         ];
     }
+
+    /** @dataProvider takenNames */
+    public function testATakenNameStopsBeforeCreatingAnything(string $getMethod, string $accessType, string $message): void
+    {
+        $t = new DryRunTransport();
+        $t->existingRecords = [$getMethod];
+        $req = new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', $accessType);
+
+        try {
+            $this->provisioner($t)->provision($req);
+            self::fail('expected a ValidationException');
+        } catch (ValidationException $e) {
+            self::assertStringContainsString($message, $e->getMessage());
+        }
+        self::assertSame([], array_filter($t->received, fn($m) => str_ends_with($m, '_add')));
+    }
+
+    public static function takenNames(): array
+    {
+        return [
+            'database' => ['sites_database_get', 'sftp', 'database c3_shop_example_com'],
+            'database user' => ['sites_database_user_get', 'sftp', 'database user c3_shop_example_comu'],
+            'sftp user' => ['sites_shell_user_get', 'sftp', 'SFTP user c3_shop_example_comf'],
+            'ftp user' => ['sites_ftp_user_get', 'ftp', 'FTP user c3_shop_example_comf'],
+        ];
+    }
+
+    public function testTheCheckFollowsTheChosenAccessType(): void
+    {
+        $t = new DryRunTransport();
+        $t->existingRecords = ['sites_ftp_user_get'];
+
+        self::assertSame('sftp', $this->provisioner($t)->provision($this->request())['access_type']);
+    }
 }

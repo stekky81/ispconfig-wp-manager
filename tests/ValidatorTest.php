@@ -79,6 +79,24 @@ final class ValidatorTest extends TestCase
         }
     }
 
+    // Regression: two long domains with the same beginning got the same database and user names,
+    // so the second site could not be created.
+    public function testLongDomainsGetDifferentNames(): void
+    {
+        $one = Validator::dbNameFromDomain('questo-dominio-e-lunghissimo-primo.ispc.test');
+        $two = Validator::dbNameFromDomain('questo-dominio-e-lunghissimo-secondo.ispc.test');
+
+        self::assertNotSame($one, $two);
+        self::assertLessThanOrEqual(24, strlen($one));
+        self::assertSame($one, Validator::dbNameFromDomain('questo-dominio-e-lunghissimo-primo.ispc.test'));
+        self::assertStringStartsWith('questo_dominio_e_', $one);
+    }
+
+    public function testShortDomainsKeepAReadableName(): void
+    {
+        self::assertSame('sito1_ispc_test', Validator::dbNameFromDomain('sito1.ispc.test'));
+    }
+
     public function testDbNameFromDomain(): void
     {
         self::assertSame('my_shop_example_com', Validator::dbNameFromDomain('my-shop.example.com'));

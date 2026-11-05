@@ -16,6 +16,8 @@ final class DryRunTransport
     private array $domains = [];
     /** @var list<string> */
     public array $received = [];
+    /** @var list<string> *_get methods that answer as if the record exists */
+    public array $existingRecords = [];
 
     /** @param list<string> $existingDomains */
     public function __construct(
@@ -39,6 +41,7 @@ final class DryRunTransport
             $method === 'logout' => $this->ok(true),
             $method === 'sites_web_domain_get' => $this->ok($this->domainGet($payload['primary_id'] ?? null)),
             $method === 'sites_web_domain_add' => $this->ok($this->domainAdd($payload['params'] ?? [])),
+            str_ends_with($method, '_get') => $this->ok(in_array($method, $this->existingRecords, true) ? [['id' => 1]] : []),
             str_ends_with($method, '_add') => $this->ok($this->nextId++),
             str_ends_with($method, '_delete') => $this->ok(1),
             default => ['code' => 'remote_fault', 'message' => "not simulated: {$method}", 'response' => false],

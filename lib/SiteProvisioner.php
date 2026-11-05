@@ -46,6 +46,9 @@ final class SiteProvisioner
         $dbName = Validator::dbName(substr($prefix . $base, 0, 32));
         $dbUser = Validator::dbName(substr($prefix . $base, 0, 30) . 'u');
         $accessUser = Validator::dbName(substr($prefix . $base, 0, 30) . 'f');
+        $dbServerId = $d['database_server_id'] ?? $req->serverId;
+
+        $this->assertNamesAreFree($req, $dbServerId, $dbName, $dbUser, $accessUser);
 
         try {
             $domainId = (int)$this->step('sites_web_domain_add', 'sites_web_domain_delete', [
@@ -83,8 +86,6 @@ final class SiteProvisioner
             if ($documentRoot === '' || $systemGroup === '') {
                 throw new ApiException('sites_web_domain_get', 'website has no document root or group');
             }
-
-            $dbServerId = $d['database_server_id'] ?? $req->serverId;
 
             $dbUserId = (int)$this->step('sites_database_user_add', 'sites_database_user_delete', [
                 'client_id' => $req->clientId,
@@ -188,6 +189,24 @@ final class SiteProvisioner
         $existing = $this->api->call('sites_web_domain_get', ['primary_id' => ['domain' => $domain]]);
         if (!empty($existing)) {
             throw new ValidationException("The domain {$domain} already exists in ISPConfig");
+        }
+    }
+
+    /** ISPConfig would refuse these too, but only after the website was created. */
+    private function assertNamesAreFree(SiteRequest $req, mixed $dbServerId, string $dbName, string $dbUser, string $accessUser): void
+    {
+        $filter = fn(string $field, string $value, array $more = []): array => ['primary_id' => [$field => $value] + $more];
+        $checks = [
+            ["database {$dbName}", 'sites_database_get', $filter('database_name', $dbName, ['server_id' => $dbServerId])],
+            ["database user {$dbUser}", 'sites_database_user_get', $filter('database_user', $dbUser)],
+            $req->accessType === 'ftp'
+                ? ["FTP user {$accessUser}", 'sites_ftp_user_get', $filter('username', $accessUser)]
+                : ["SFTP user {$accessUser}", 'sites_shell_user_get', $filter('username', $accessUser)],
+        ];
+        foreach ($checks as [$label, $method, $params]) {
+            if (!empty($this->api->call($method, $params))) {
+                throw new ValidationException("The {$label} already exists in ISPConfig");
+            }
         }
     }
 
