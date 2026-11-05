@@ -41,7 +41,7 @@ final class WpCli
         return $this->cmd(['core', 'download', '--locale=' . $locale]);
     }
 
-    public function configCreate(string $dbName, string $dbUser, string $dbPassword, string $dbHost): Command
+    public function configCreate(string $dbName, string $dbUser, string $dbPassword, string $dbHost, string $dbPrefix = 'wp_'): Command
     {
         Validator::dbName($dbName);
         Validator::dbName($dbUser);
@@ -50,8 +50,36 @@ final class WpCli
             '--dbname=' . $dbName,
             '--dbuser=' . $dbUser,
             '--dbhost=' . $dbHost,
+            '--dbprefix=' . $dbPrefix,
             '--prompt=dbpass',
         ], $dbPassword . "\n");
+    }
+
+    public function configGet(string $name): Command
+    {
+        return $this->cmd(['config', 'get', $name]);
+    }
+
+    public function optionGet(string $name): Command
+    {
+        return $this->cmd(['option', 'get', $name, '--skip-plugins', '--skip-themes']);
+    }
+
+    /** Regex mode: every value is unserialized, replaced and serialized again. Prints the count. */
+    public function searchReplace(string $pattern, string $replacement): Command
+    {
+        return $this->cmd([
+            'search-replace', $pattern, $replacement,
+            '--regex', '--regex-delimiter=#', '--regex-flags=i',
+            '--all-tables', '--skip-columns=guid', '--format=count',
+            '--skip-plugins', '--skip-themes',
+        ]);
+    }
+
+    /** Read-only: one line for each value holding the text. */
+    public function dbSearch(string $text): Command
+    {
+        return $this->cmd(['db', 'search', $text, '--all-tables', '--one_line', '--skip-plugins', '--skip-themes']);
     }
 
     public function coreInstall(string $url, string $title, string $adminUser, string $adminPassword, string $adminEmail): Command

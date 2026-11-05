@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `client_id` int(11) unsigned NOT NULL DEFAULT 0,
   `domain_id` int(11) unsigned NOT NULL DEFAULT 0,
   `origin` enum('created','detected') NOT NULL DEFAULT 'created',
+  `clone_of` int(11) unsigned NOT NULL DEFAULT 0,
   `domain` varchar(255) NOT NULL DEFAULT '',
   `site_url` varchar(255) NOT NULL DEFAULT '',
   `system_user` varchar(64) NOT NULL DEFAULT '',
@@ -74,6 +75,17 @@ CREATE TABLE IF NOT EXISTS `wpm_setting` (
   `setting_value` mediumtext,
   PRIMARY KEY (`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Upgrade from the versions without clones.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` ADD `clone_of` int(11) unsigned NOT NULL DEFAULT 0 AFTER `origin`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'clone_of'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
 
 -- Upgrade from the versions that always included the uploads in backups.
 SET @wpm_sql = (

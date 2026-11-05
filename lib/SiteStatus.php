@@ -13,7 +13,7 @@ final class SiteStatus
     /** What went wrong in the last action on the site, on one line. Finished actions show nothing. */
     public static function actionProblem(string $status, ?string $message, int $maxLength = 200): string
     {
-        return in_array($status, ['rolled_back', 'rollback_failed', 'refused', 'failed'], true)
+        return in_array($status, ['rolled_back', 'rollback_failed', 'refused', 'failed', 'warning'], true)
             ? self::summary('error', $message, $maxLength)
             : '';
     }

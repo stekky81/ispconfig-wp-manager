@@ -9,6 +9,7 @@
         <a class="btn btn-default formbutton-default" href="{tmpl_var name='site_url'}/" target="_blank" rel="noopener">{tmpl_var name='open_site_txt'}</a>
         <a class="btn btn-default formbutton-default" href="{tmpl_var name='site_url'}/wp-admin/" target="_blank" rel="noopener">{tmpl_var name='open_admin_txt'}</a>
         </tmpl_if>
+        <tmpl_if name="is_installed"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_clone.php?id={tmpl_var name='id'}">{tmpl_var name='clone_txt'}</button></tmpl_if>
         <a class="btn btn-default formbutton-default" href="#" onclick="ISPConfig.capp('sites', '{tmpl_var name='website_redirect'}'); return false;">{tmpl_var name='open_website_txt'}</a>
     </p>
 
@@ -107,8 +108,8 @@
         <div class="alert alert-warning">{tmpl_var name='credentials_once_txt'}</div>
         <table class="table">
             <tbody>
-                <tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td><code id="wp_admin_user">{tmpl_var name='wp_admin_user'}</code></td></tr>
-                <tr><th>{tmpl_var name='wp_password_txt'}</th><td><code id="wp_password">{tmpl_var name='wp_password'}</code></td></tr>
+                <tmpl_if name="wp_password"><tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td><code id="wp_admin_user">{tmpl_var name='wp_admin_user'}</code></td></tr></tmpl_if>
+                <tmpl_if name="wp_password"><tr><th>{tmpl_var name='wp_password_txt'}</th><td><code id="wp_password">{tmpl_var name='wp_password'}</code></td></tr></tmpl_if>
                 <tr><th>{tmpl_var name='access_txt'}</th><td><code id="access_user">{tmpl_var name='access_user'}</code></td></tr>
                 <tr><th>{tmpl_var name='access_password_txt'}</th><td><code id="access_password">{tmpl_var name='access_password'}</code></td></tr>
             </tbody>

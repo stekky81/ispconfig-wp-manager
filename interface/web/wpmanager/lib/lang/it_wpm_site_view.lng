@@ -41,6 +41,7 @@ $wb['uploads_on_txt'] = 'I backup includono wp-content/uploads.';
 $wb['uploads_off_txt'] = 'I backup escludono wp-content/uploads: più veloci e leggeri, e il ripristino lascia quella cartella com\'è. I media caricati dopo il backup restano su disco ma non compaiono più in Libreria media.';
 $wb['uploads_turn_off_txt'] = 'Escludi uploads';
 $wb['uploads_turn_on_txt'] = 'Includi uploads';
+$wb['clone_txt'] = 'Clona';
 $wb['credentials_txt'] = 'Password generate';
 $wb['credentials_available_txt'] = 'Le password si possono vedere una sola volta. Poi vengono cancellate dal pannello.';
 $wb['credentials_unavailable_txt'] = 'Non disponibili: già mostrate, oppure installazione ancora in corso.';

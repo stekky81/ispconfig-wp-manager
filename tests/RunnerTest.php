@@ -30,6 +30,57 @@ final class RunnerTest extends TestCase
         self::assertSame("sudo: unknown user\nsecond line", Runner::failureText("sudo: unknown user\nsecond line\n"));
     }
 
+    public function testPipeCarriesTheDataBetweenTwoCommands(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'wpm-pipe');
+        $runner = new Runner(false);
+        $runner->pipe(
+            new Command(['/bin/sh', '-c', 'echo hello']),
+            new Command(['/bin/sh', '-c', 'cat > ' . escapeshellarg($file)]),
+        );
+
+        self::assertSame("hello\n", file_get_contents($file));
+        unlink($file);
+    }
+
+    public function testPipeCarriesMoreThanAPipeBuffer(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'wpm-pipe');
+        (new Runner(false))->pipe(
+            new Command(['/bin/sh', '-c', 'head -c 3000000 /dev/zero']),
+            new Command(['/bin/sh', '-c', 'cat > ' . escapeshellarg($file)]),
+        );
+
+        self::assertSame(3000000, filesize($file));
+        unlink($file);
+    }
+
+    public function testPipeFailsWhenTheFirstCommandFails(): void
+    {
+        $this->expectExceptionMessageMatches('/Command failed \(4\): Error: source broken/');
+        (new Runner(false))->pipe(
+            new Command(['/bin/sh', '-c', 'echo "Error: source broken" >&2; exit 4']),
+            new Command(['/bin/sh', '-c', 'cat > /dev/null']),
+        );
+    }
+
+    public function testPipeFailsWhenTheSecondCommandFails(): void
+    {
+        $this->expectExceptionMessageMatches('/Command failed \(5\): target broken/');
+        (new Runner(false))->pipe(
+            new Command(['/bin/sh', '-c', 'echo data']),
+            new Command(['/bin/sh', '-c', 'cat > /dev/null; echo "target broken" >&2; exit 5']),
+        );
+    }
+
+    public function testPipeDoesNothingInDryRun(): void
+    {
+        $runner = new Runner(true);
+        $runner->pipe(new Command(['false']), new Command(['false']));
+
+        self::assertStringContainsString("[dry-run] 'false' | 'false'", implode("\n", $runner->log()));
+    }
+
     public function testMustRunReportsTheRealErrorWithoutSecrets(): void
     {
         $runner = new Runner(false, ['S3cret']);

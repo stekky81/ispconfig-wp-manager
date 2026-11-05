@@ -41,6 +41,17 @@ final class SiteCredentialsTest extends TestCase
         ], (new SiteCredentials($this->crypto))->reveal($this->site()));
     }
 
+    // A clone keeps the logins of its source: only the file access password is new.
+    public function testAClonedSiteRevealsOnlyTheAccessPassword(): void
+    {
+        $credentials = new SiteCredentials($this->crypto);
+        $site = $this->site(['secret_wp' => null, 'wp_admin_user' => '']);
+
+        self::assertTrue($credentials->canReveal($site));
+        self::assertSame('', $credentials->reveal($site)['wp_password']);
+        self::assertSame('AccessPw789', $credentials->reveal($site)['access_password']);
+    }
+
     public function testAvailableOnceTheWorkerIsDone(): void
     {
         $credentials = new SiteCredentials($this->crypto);
@@ -55,7 +66,6 @@ final class SiteCredentialsTest extends TestCase
     {
         $credentials = new SiteCredentials($this->crypto);
 
-        self::assertFalse($credentials->canReveal($this->site(['secret_wp' => null])));
         self::assertFalse($credentials->canReveal($this->site(['secret_access' => ''])));
     }
 

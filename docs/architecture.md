@@ -76,6 +76,20 @@ a different version appears, otherwise a broken update would break the site agai
 site list. The panel has no bulk update on purpose. A new branch of WordPress is only installed from its own button on the
 site page, with the same checks and rollback.
 
+## Clone
+
+A clone is a new website of the same node, created like any other site, whose job copies a site instead of installing
+WordPress. The source is only read, as its own user, and the clone is written as its own user: data travels through
+a pipe between the two, so root never opens a file a site owner controls. `wp-config.php` is not copied, because it
+would point the clone to the database of the source, and before any write the worker checks which database the
+new one points to.
+
+The old address is replaced with `wp search-replace --regex --all-tables`, which unserializes every value and serializes
+it again, so lengths stay right. The rules in `SearchReplacePlan` cover http and https, `www`, addresses without a scheme,
+JSON with escaped slashes, URL encoding and paths on disk, and they require the end of the host name, so `old.com`
+does not match `old.company.it`. `guid` stays as it is, and so do email addresses and bare domains in a text. What is left
+is reported, including what looks like the old host inside base64 values, which no replace can reach.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

@@ -38,6 +38,7 @@ use WpManager\PathGuard;
 use WpManager\RetryPolicy;
 use WpManager\Settings;
 use WpManager\SiteBackup;
+use WpManager\SiteCloner;
 use WpManager\SiteInventory;
 use WpManager\SiteScanner;
 use WpManager\SiteUpdater;
@@ -56,6 +57,7 @@ $installer = new WordPressInstaller(
     new PathGuard($config->get('web_root_base')),
 );
 
+$cloner = new SiteCloner($config, Crypto::fromFile($config->get('key_file')), new PathGuard($config->get('web_root_base')));
 $backups = new SiteBackup($config, new PathGuard($config->get('web_root_base')));
 $updater = new SiteUpdater($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
 
@@ -131,7 +133,23 @@ foreach ($queue->pending() as $name) {
 
     $report($siteId, 'installing', '');
     try {
-        $log = $installer->install($site);
+        if ((int)($site['clone_of'] ?? 0) > 0) {
+            $origin = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $site['clone_of']);
+            if (!is_array($origin)) {
+                throw new \RuntimeException('Refusing to install: the site to clone no longer exists');
+            }
+            $log = $cloner->clone($site, $origin);
+            $warnings = array_values(array_filter($log, static fn(string $line): bool => str_starts_with($line, 'Warning: ')));
+            if ($warnings !== [] && !$config->isDryRun()) {
+                $app->dbmaster->query(
+                    "UPDATE wpm_site SET action_status = 'warning', action_message = ? WHERE wpm_site_id = ?",
+                    implode(' ', $warnings),
+                    $siteId,
+                );
+            }
+        } else {
+            $log = $installer->install($site);
+        }
         $report($siteId, 'installed', implode("\n", $log), true, $installer->installedVersion($site));
         $queue->remove($name);
     } catch (\Throwable $e) {

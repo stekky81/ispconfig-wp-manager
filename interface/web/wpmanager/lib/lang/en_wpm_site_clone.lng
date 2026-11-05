@@ -1,0 +1,10 @@
+<?php
+$wb['clone_head_txt'] = 'Clone';
+$wb['clone_desc_txt'] = 'A new website with a copy of files and database, on the same node. The source is only read. The old address is replaced everywhere in the database, serialized data included. The clone keeps the logins of the source and it is public as soon as it is ready.';
+$wb['domain_txt'] = 'New domain';
+$wb['client_txt'] = 'Client';
+$wb['access_type_txt'] = 'File access';
+$wb['clone_btn_txt'] = 'Clone';
+$wb['cancel_txt'] = 'Cancel';
+$wb['source_not_found_txt'] = 'Only an installed site can be cloned.';
+$wb['domain_taken_txt'] = 'This domain is already managed by the WordPress module.';

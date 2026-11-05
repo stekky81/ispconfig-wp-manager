@@ -18,7 +18,6 @@ final class SiteCredentials
     public function canReveal(array $site): bool
     {
         return in_array($site['status'] ?? '', ['installed', 'error'], true)
-            && (string)($site['secret_wp'] ?? '') !== ''
             && (string)($site['secret_access'] ?? '') !== '';
     }
 
@@ -30,7 +29,8 @@ final class SiteCredentials
         }
         return [
             'wp_admin_user' => (string)$site['wp_admin_user'],
-            'wp_password' => $this->crypto->decrypt((string)$site['secret_wp']),
+            // A clone has no password of its own: it keeps the logins of the source.
+            'wp_password' => (string)($site['secret_wp'] ?? '') === '' ? '' : $this->crypto->decrypt((string)$site['secret_wp']),
             'access_type' => (string)$site['access_type'],
             'access_user' => (string)$site['access_user'],
             'access_password' => $this->crypto->decrypt((string)$site['secret_access']),

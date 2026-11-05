@@ -36,6 +36,7 @@ final class SiteStatusTest extends TestCase
         self::assertSame('Still broken', SiteStatus::actionProblem('rollback_failed', 'Still broken'));
         self::assertSame('Not updated', SiteStatus::actionProblem('refused', 'Not updated'));
         self::assertSame('Disk full', SiteStatus::actionProblem('failed', 'Disk full'));
+        self::assertSame('Check base64', SiteStatus::actionProblem('warning', 'Check base64'));
     }
 
     public function testNormalActionsShowNothing(): void
