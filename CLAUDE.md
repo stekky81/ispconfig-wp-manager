@@ -41,6 +41,8 @@ composer install && composer lint && composer test   # PHP unit tests (47 at the
 shellcheck install/install.sh dev/test-env.sh
 ```
 
+`shellcheck` is not on the Mac: run it in the VM after `sync`, with `sudo` (`dev/` is 0700 there).
+
 ## Test environment (Mac, Apple Silicon, macOS 14)
 
 Multipass **1.17.0 or later** is required (1.16.x ships a qemu-img that segfaults).
@@ -74,6 +76,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 5. `/usr/local/ispconfig` is root-only: check it with `sudo`.
 6. The autoinstaller removes snapd (no `multipass mount`), needs a TTY, and an FQDN that survives
    cloud-init's `/etc/hosts` regeneration — all handled in `dev/test-env.sh`.
+7. The panel's opcache rechecks files every 2 seconds: wait a few seconds after the installer,
+   or a test may still run the previous code.
+8. The panel discards `$app->log()` messages below `log_priority` (2 = errors only).
 
 ## Current status (2026-11-05)
 

@@ -41,8 +41,10 @@ final class CryptoTest extends TestCase
     public function testTamperedTokenFails(): void
     {
         $c = $this->crypto();
-        $token = $c->encrypt('x');
-        $tampered = substr($token, 0, -2) . (str_ends_with($token, 'A=') ? 'B=' : 'A=');
+        $raw = base64_decode(substr($c->encrypt('x'), strlen('wpm1:')), true);
+        // Flip a bit of a decoded byte: changing a base64 character can leave the bytes unchanged.
+        $raw[strlen($raw) - 1] = chr(ord($raw[strlen($raw) - 1]) ^ 1);
+        $tampered = 'wpm1:' . base64_encode($raw);
         $this->expectException(\RuntimeException::class);
         $c->decrypt($tampered);
     }
