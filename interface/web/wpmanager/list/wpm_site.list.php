@@ -9,7 +9,6 @@ $liste['records_per_page'] = '15';
 $liste['file'] = 'wpm_site_list.php';
 $liste['edit_file'] = 'wpm_site_edit.php';
 $liste['delete_file'] = 'wpm_site_del.php';
-$liste['paging_tpl'] = 'templates/paging.tpl.htm';
 $liste['auth'] = 'yes';
 
 $liste['item'][] = [
