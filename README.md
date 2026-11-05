@@ -31,15 +31,21 @@ across one or more ISPConfig nodes — a free, open source alternative to commer
 
 ## How it works
 
-```
-ISPConfig panel (master)                       Each web node
-┌─────────────────────────────┐                ┌──────────────────────────────┐
-│ interface/web/wpmanager      │  sys_datalog   │ wpmanager_plugin (server.sh) │
-│  form "New WordPress site"   │ ─────────────► │  queues the job              │
-│  → Remote API: site, DB,     │                │ wpm-worker.php (cron, 1 min) │
-│    DB user, SFTP user        │ ◄───────────── │  waits for the vhost, runs   │
-│  → wpm_site record           │   status       │  WP-CLI as the site user     │
-└─────────────────────────────┘                └──────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph panel["ISPConfig panel (master)"]
+        form["Form: New WordPress site"]
+        api["Remote API:<br/>website, DB, DB user, SFTP user"]
+        rec["wpm_site record"]
+        form --> api --> rec
+    end
+    subgraph webnode["Each web node"]
+        plugin["wpmanager_plugin<br/>(server.sh): queues the job"]
+        worker["wpm-worker.php (cron, 1 min):<br/>waits for the vhost,<br/>runs WP-CLI as the site user"]
+        plugin --> worker
+    end
+    rec -- sys_datalog --> plugin
+    worker -- status --> rec
 ```
 
 Details in [docs/architecture.md](docs/architecture.md).
