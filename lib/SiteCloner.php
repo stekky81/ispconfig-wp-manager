@@ -78,6 +78,9 @@ final class SiteCloner
             $report[] = "Replaced {$changed} values: {$pattern}";
         }
 
+        // A clone is public but must not compete with its source in search engines.
+        $runner->mustRun($to->optionUpdate('blog_public', '0'));
+
         $left = $this->remaining($to, $plan, $runner);
         // The summary first: the status message keeps only the beginning of a long log.
         return array_merge($report, $left, $runner->log());

@@ -90,6 +90,8 @@ JSON with escaped slashes, URL encoding and paths on disk, and they require the 
 does not match `old.company.it`. `guid` stays as it is, and so do email addresses and bare domains in a text. What is left
 is reported, including what looks like the old host inside base64 values, which no replace can reach.
 
+A clone is public, with "Discourage search engines" turned on so that it does not compete with its source.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

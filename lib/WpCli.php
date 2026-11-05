@@ -65,6 +65,11 @@ final class WpCli
         return $this->cmd(['option', 'get', $name, '--skip-plugins', '--skip-themes']);
     }
 
+    public function optionUpdate(string $name, string $value): Command
+    {
+        return $this->cmd(['option', 'update', $name, $value, '--skip-plugins', '--skip-themes']);
+    }
+
     /** Regex mode: every value is unserialized, replaced and serialized again. Prints the count. */
     public function searchReplace(string $pattern, string $replacement): Command
     {

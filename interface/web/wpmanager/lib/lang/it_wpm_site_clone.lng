@@ -1,6 +1,6 @@
 <?php
 $wb['clone_head_txt'] = 'Clona';
-$wb['clone_desc_txt'] = 'Un nuovo sito con una copia di file e database, sullo stesso nodo. Il sito di origine viene solo letto. Il vecchio indirizzo viene sostituito in tutto il database, compresi i dati serializzati. Il clone conserva i login del sito di origine ed è pubblico appena pronto.';
+$wb['clone_desc_txt'] = 'Un nuovo sito con una copia di file e database, sullo stesso nodo. Il sito di origine viene solo letto. Il vecchio indirizzo viene sostituito in tutto il database, compresi i dati serializzati. Il clone conserva i login del sito di origine. È pubblico appena pronto, con "Scoraggia i motori di ricerca" attivo.';
 $wb['domain_txt'] = 'Nuovo dominio';
 $wb['client_txt'] = 'Cliente';
 $wb['access_type_txt'] = 'Accesso ai file';

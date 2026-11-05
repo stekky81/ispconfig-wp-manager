@@ -119,6 +119,18 @@ final class SiteClonerTest extends TestCase
         self::assertStringStartsWith('Replaced ', $log[0]);
     }
 
+    // After the replace, so that nothing can turn it back on; only on the clone.
+    public function testTheCloneDiscouragesSearchEngines(): void
+    {
+        $log = $this->log();
+        $at = strpos($log, "'option' 'update' 'blog_public' '0'");
+
+        self::assertNotFalse($at);
+        self::assertGreaterThan(strrpos($log, "'search-replace'"), $at);
+        $line = (string)current(array_filter(explode("\n", $log), static fn(string $l): bool => str_contains($l, 'blog_public')));
+        self::assertStringContainsString("'-u' 'web9'", $line);
+    }
+
     public function testNoSecretInTheLog(): void
     {
         self::assertStringNotContainsString('DbPw123', $this->log());
