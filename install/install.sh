@@ -52,20 +52,34 @@ fi
 php -r 'exit(PHP_VERSION_ID >= 80100 && extension_loaded("sodium") ? 0 : 1);' \
     || die "PHP 8.1+ with the sodium extension is required"
 
-# Read DB credentials from the ISPConfig config of this machine.
+# Read DB settings from the ISPConfig config of this machine.
+# The ispconfig DB user cannot CREATE tables: use the DB admin account that ISPConfig
+# itself uses to create client databases (server/lib/mysql_clientdb.conf, root only).
 db_conf() {
     # shellcheck disable=SC2016  # PHP code, $ is not a shell variable
     ISP_DIR="$ISP_DIR" php -r '
         $conf = [];
         require getenv("ISP_DIR") . "/server/lib/config.inc.php";
-        echo $conf["db_host"], "\n", $conf["db_user"], "\n", $conf["db_password"], "\n", $conf["db_database"], "\n";
+        require getenv("ISP_DIR") . "/server/lib/mysql_clientdb.conf";
+        echo $clientdb_host, "\n", $clientdb_user, "\n", $clientdb_password, "\n",
+             $conf["db_database"], "\n", $conf["db_user"], "\n";
     '
 }
 
 create_tables() {
     info "Creating tables (if missing)"
-    mapfile -t DB < <(db_conf)
-    MYSQL_PWD="${DB[2]}" mysql -h "${DB[0]}" -u "${DB[1]}" "${DB[3]}" < "$APP_DIR/install/sql/wpmanager.sql"
+    local db=()
+    mapfile -t db < <(db_conf)
+    [[ ${#db[@]} -eq 5 && -n ${db[1]} && -n ${db[3]} ]] || die "cannot read the ISPConfig database settings"
+    local host=${db[0]} admin=${db[1]} pass=${db[2]} name=${db[3]} panel_user=${db[4]}
+
+    MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" "$name" < "$APP_DIR/install/sql/wpmanager.sql"
+
+    # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our table.
+    if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`wpm_site\` TO '$panel_user'@'localhost'"; then
+        echo "WARNING: could not grant access on wpm_site to '$panel_user'@'localhost'; check the grants manually" >&2
+    fi
 }
 
 if [[ $MASTER -eq 1 ]]; then

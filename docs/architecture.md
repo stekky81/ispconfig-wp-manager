@@ -44,6 +44,11 @@ command inside `server.sh` would block every other change on the node.
 
 ## Open questions
 
+- **Multiserver grants (to do before multiserver tests)**: slave nodes reach the master's
+  dbispconfig as `ispcsrvN` users with per-table grants. The worker on a slave updates
+  `wpm_site` on the master, so the master installer must grant UPDATE on `wpm_site` to every
+  `ispcsrvN` user (and to new ones when a node is added).
+
 - Remote API vs internal datalog calls for creating ISPConfig objects (Remote API chosen for 0.2:
   it is the documented, validated path).
 - How to store the shared key on each node (currently a file readable only by root).
