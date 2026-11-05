@@ -89,8 +89,11 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 
 ### Regression on existing sites
 
-- [ ] Before/after checksum of every existing site's `web/` folder on both VMs: unchanged
-- [ ] Existing databases unchanged
+Run `dev/regression.sh snapshot` in the VM before the test and `dev/regression.sh compare` after it.
+
+- [x] Before/after checksum of every existing site's `web/` folder: unchanged (master VM only)
+- [x] Existing databases unchanged (master VM only)
+- [x] Existing vhosts unchanged (master VM only)
 
 ## 4. Pilot on production
 

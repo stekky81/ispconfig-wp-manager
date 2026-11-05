@@ -17,6 +17,8 @@ Read `README.md` and `docs/architecture.md` first.
 - Safety rules in `docs/architecture.md` are not negotiable: dry-run stays the default, no shell strings
   (argument arrays only), no secrets in arguments or logs, never touch a non-empty web root,
   WP-CLI only as the site user.
+- Never break what already exists: any change that can touch sites, databases or the installer is checked in
+  the VM with `dev/regression.sh snapshot` before and `compare` after, around a real run.
 - Every bug found in the VM gets a regression test in `tests/` when the logic lives in `lib/`.
 - Each PHP file starts with `// SPDX-License-Identifier: BSD-3-Clause`.
 - When a change completes an item in `ROADMAP.md`, tick it in the same commit.
@@ -33,13 +35,14 @@ Read `README.md` and `docs/architecture.md` first.
 | `server/bin/wpm-worker.php` | nodes | cron, runs WP-CLI |
 | `install/install.sh` | master + nodes | idempotent; `--role=master`, `--role=node`, `--uninstall` |
 | `dev/test-env.sh` | Mac | Multipass test environment |
+| `dev/regression.sh` | VM | checks that existing sites did not change |
 | `dev/logs/` | Mac | local logs, git-ignored |
 
 ## Checks before every commit
 
 ```bash
 composer install && composer lint && composer test   # PHP unit tests
-shellcheck install/install.sh dev/test-env.sh
+shellcheck install/install.sh dev/test-env.sh dev/regression.sh
 ```
 
 `shellcheck` is not on the Mac: run it in the VM after `sync`, with `sudo` (`dev/` is 0700 there).
@@ -98,7 +101,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 ## Current status (2026-11-05)
 
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
-  with one-time passwords; spaced retries; detection of existing sites; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  with one-time passwords; spaced retries; detection of existing sites; settings page; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
 - **Next**: the open items of milestone 0.2 in the roadmap.
 - The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has
