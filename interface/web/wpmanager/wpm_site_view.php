@@ -34,6 +34,14 @@ $escape = static fn($value): string => $app->functions->htmlentities((string)$va
 $config = \WpManager\Config::load();
 $credentials = new \WpManager\SiteCredentials(\WpManager\Crypto::fromFile($config->get('key_file')));
 
+// A link, not the page form: the form may also carry the reveal field.
+if (isset($_GET['check'])) {
+    $app->auth->csrf_token_check('GET');
+    $app->db->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $id);
+    $site['last_check'] = null;
+    $app->tpl->setVar('check_requested', 1);
+}
+
 if (isset($_POST['reveal'])) {
     $app->auth->csrf_token_check();
     if ($credentials->canReveal($site)) {
@@ -55,6 +63,19 @@ $app->tpl->setVar('status_message', $escape($site['status_message'] ?? ''));
 $app->tpl->setVar('can_reveal', $credentials->canReveal($site) ? 1 : 0);
 $app->tpl->setVar('is_installed', $site['status'] === 'installed' ? 1 : 0);
 $app->tpl->setVar('website_redirect', rawurlencode('sites/web_vhost_domain_edit.php?id=' . (int)$site['domain_id'] . '&type=domain'));
+
+$updates = array_map(
+    static fn(array $item): array => array_map($escape, $item),
+    \WpManager\UpdateOverview::available($site['updates_json']),
+);
+$app->tpl->setLoop('updates', $updates);
+$app->tpl->setVar('has_updates', $updates === [] ? 0 : 1);
+$app->tpl->setVar('update_error', $escape(\WpManager\UpdateOverview::error($site['updates_json'])));
+$app->tpl->setVar('last_check', $escape($site['last_check'] ?? ''));
+
+$check_token = $app->auth->csrf_token_get('wpm_site_check');
+$app->tpl->setVar('check_csrf_id', $check_token['csrf_id']);
+$app->tpl->setVar('check_csrf_key', $check_token['csrf_key']);
 
 $csrf_token = $app->auth->csrf_token_get('wpm_site_view');
 $app->tpl->setVar('_csrf_id', $csrf_token['csrf_id']);

@@ -6,4 +6,5 @@ $wb['domain_txt'] = 'Domain';
 $wb['status_txt'] = 'Status';
 $wb['status_message_txt'] = 'Details';
 $wb['wp_version_txt'] = 'WordPress';
+$wb['updates_txt'] = 'Updates';
 $wb['delete_confirmation'] = 'Remove this site from the WordPress list? The website itself is not deleted.';

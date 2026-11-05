@@ -12,6 +12,8 @@ declare(strict_types=1);
 const WPM_MAX_WAIT = 3600;     // give up if the vhost does not appear within an hour
 const WPM_MAX_ATTEMPTS = 3;    // failed installs are retried at most this many times
 const WPM_SCAN_INTERVAL = 3600; // look for existing WordPress installs once an hour
+const WPM_CHECK_INTERVAL = 86400; // read the updates of each site once a day
+const WPM_CHECKS_PER_RUN = 3;   // keep each run short: jobs wait for the same lock
 
 if (PHP_SAPI !== 'cli' || posix_geteuid() !== 0) {
     fwrite(STDERR, "Run from cron as root.\n");
@@ -31,6 +33,7 @@ use WpManager\Crypto;
 use WpManager\JobQueue;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
+use WpManager\SiteInventory;
 use WpManager\SiteScanner;
 use WpManager\WordPressInstaller;
 
@@ -132,6 +135,37 @@ if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INT
             $app->dbmaster->query("INSERT INTO wpm_site ({$columns}) VALUES ({$marks})", ...array_values($record));
         } catch (\Throwable $e) {
             $app->log("wpmanager: cannot register {$documentRoot}: " . $e->getMessage(), LOGLEVEL_WARN);
+        }
+    }
+}
+
+// Update overview. Read-only: no file changes, and plugin and theme code does not run.
+if (!$config->isDryRun()) {
+    $inventory = new SiteInventory($config, new PathGuard($config->get('web_root_base')));
+    $due = $app->dbmaster->queryAllRecords(
+        "SELECT wpm_site_id, domain, document_root, system_user FROM wpm_site
+         WHERE server_id = ? AND status = 'installed'
+           AND (last_check IS NULL OR last_check < NOW() - INTERVAL " . WPM_CHECK_INTERVAL . ' SECOND)
+         ORDER BY last_check IS NOT NULL, last_check LIMIT ' . WPM_CHECKS_PER_RUN,
+        $conf['server_id'],
+    );
+    foreach ($due as $site) {
+        try {
+            $report = $inventory->collect($site);
+            $app->dbmaster->query(
+                'UPDATE wpm_site SET updates_json = ?, updates_count = ?, last_check = NOW(), wp_version = IF(? = \'\', wp_version, ?) WHERE wpm_site_id = ?',
+                json_encode($report, JSON_THROW_ON_ERROR),
+                SiteInventory::updateCount($report),
+                $report['version'],
+                $report['version'],
+                $site['wpm_site_id'],
+            );
+        } catch (\Throwable $e) {
+            $app->dbmaster->query(
+                'UPDATE wpm_site SET updates_json = ?, updates_count = 0, last_check = NOW() WHERE wpm_site_id = ?',
+                json_encode(['error' => mb_substr($e->getMessage(), 0, 500)]),
+                $site['wpm_site_id'],
+            );
         }
     }
 }

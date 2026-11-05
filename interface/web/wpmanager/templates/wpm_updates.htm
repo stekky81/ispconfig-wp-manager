@@ -1,0 +1,68 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<div class='page-header'>
+    <h1>{tmpl_var name='updates_head_txt'}</h1>
+</div>
+<p class="fieldDescription">{tmpl_var name='updates_desc_txt'}</p>
+
+<div class="table-wrapper marginTop15">
+<table class="table" id="updates_servers">
+    <thead class="dark">
+        <tr>
+            <th>{tmpl_var name='server_txt'}</th>
+            <th>{tmpl_var name='sites_txt'}</th>
+            <th>{tmpl_var name='with_updates_txt'}</th>
+            <th>{tmpl_var name='core_txt'}</th>
+            <th>{tmpl_var name='plugins_txt'}</th>
+            <th>{tmpl_var name='themes_txt'}</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tmpl_loop name="servers">
+        <tr>
+            <td>{tmpl_var name='server_name'}</td>
+            <td>{tmpl_var name='sites'}</td>
+            <td>{tmpl_var name='with_updates'}</td>
+            <td>{tmpl_var name='core'}</td>
+            <td>{tmpl_var name='plugins'}</td>
+            <td>{tmpl_var name='themes'}</td>
+        </tr>
+        </tmpl_loop>
+    </tbody>
+</table>
+</div>
+
+<p>
+    <tmpl_if name="only_updates">
+        <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_updates.php">{tmpl_var name='show_all_txt'}</button>
+    <tmpl_else>
+        <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_updates.php?only_updates=1">{tmpl_var name='show_updates_txt'}</button>
+    </tmpl_if>
+</p>
+
+<div class="table-wrapper marginTop15">
+<table class="table" id="updates_sites">
+    <thead class="dark">
+        <tr>
+            <th>{tmpl_var name='domain_txt'}</th>
+            <th>{tmpl_var name='server_txt'}</th>
+            <th>{tmpl_var name='version_txt'}</th>
+            <th>{tmpl_var name='available_txt'}</th>
+            <th>{tmpl_var name='last_check_txt'}</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tmpl_loop name="sites">
+        <tr>
+            <td><a href="#" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}">{tmpl_var name='domain'}</a></td>
+            <td>{tmpl_var name='server_name'}</td>
+            <td>{tmpl_var name='wp_version'}</td>
+            <td>{tmpl_var name='updates'}{tmpl_var name='error'}</td>
+            <td>{tmpl_var name='last_check'}</td>
+        </tr>
+        </tmpl_loop>
+        <tmpl_unless name="sites">
+        <tr class="tbl_row_noresults"><td colspan="5">{tmpl_var name='no_sites_txt'}</td></tr>
+        </tmpl_unless>
+    </tbody>
+</table>
+</div>

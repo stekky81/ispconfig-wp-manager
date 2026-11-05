@@ -22,6 +22,7 @@ class list_action extends listform_actions
         $rec = parent::prepareDataRow($rec);
         // The core escapes only the fields of the list definition, and this text can come from WP-CLI.
         $rec['status_summary'] = $app->functions->htmlentities($summary);
+        $rec['updates'] = (int)$rec['updates_count'] > 0 ? (int)$rec['updates_count'] : '';
         return $rec;
     }
 }

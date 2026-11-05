@@ -26,6 +26,26 @@
         </tbody>
     </table>
 
+    <tmpl_if name="is_installed">
+    <h2>{tmpl_var name='updates_txt'}</h2>
+    <tmpl_if name="check_requested"><div class="alert alert-success" id="check_requested">{tmpl_var name='check_requested_txt'}</div></tmpl_if>
+    <tmpl_if name="update_error"><div class="alert alert-danger" id="update_error">{tmpl_var name='update_error'}</div></tmpl_if>
+    <tmpl_if name="has_updates">
+        <table class="table" id="site_updates">
+            <tbody>
+                <tmpl_loop name="updates">
+                <tr><td>{tmpl_var name='type'}</td><td>{tmpl_var name='name'}</td><td>{tmpl_var name='version'} → {tmpl_var name='update'}</td></tr>
+                </tmpl_loop>
+            </tbody>
+        </table>
+    <tmpl_else>
+        <p id="no_updates">{tmpl_var name='no_updates_txt'}</p>
+    </tmpl_if>
+    <p>{tmpl_var name='last_check_txt'}: {tmpl_var name='last_check'}
+        <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&check=1&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='check_now_txt'}</button>
+    </p>
+    </tmpl_if>
+
     <h2>{tmpl_var name='credentials_txt'}</h2>
     <tmpl_if name="revealed">
         <div class="alert alert-warning">{tmpl_var name='credentials_once_txt'}</div>

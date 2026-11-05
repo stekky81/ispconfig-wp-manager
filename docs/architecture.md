@@ -34,6 +34,13 @@ absolute path. Re-run the installer after every ISPConfig update and after updat
 The plugin never runs WP-CLI itself: ISPConfig applies datalog entries asynchronously and a slow
 command inside `server.sh` would block every other change on the node.
 
+## Update overview
+
+Once a day, three sites per run, the worker reads core, plugin and theme versions and available updates with
+WP-CLI, as the site user and with `--skip-plugins --skip-themes`. It updates nothing: no file changes, and in the
+site database WordPress only refreshes its own update transients. The output is under the control of the site
+owner, so it is limited on the node and escaped in the panel. The report is stored in `wpm_site.updates_json`.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

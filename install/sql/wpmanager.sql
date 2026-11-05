@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `status_message` text,
   `wp_version` varchar(20) NOT NULL DEFAULT '',
   `updates_json` mediumtext,
+  `updates_count` int(11) unsigned NOT NULL DEFAULT 0,
   `last_check` datetime DEFAULT NULL,
   PRIMARY KEY (`wpm_site_id`),
   UNIQUE KEY `domain` (`domain`),
@@ -62,6 +63,17 @@ CREATE TABLE IF NOT EXISTS `wpm_setting` (
   `setting_value` mediumtext,
   PRIMARY KEY (`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Upgrade from the versions without the update overview.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` ADD `updates_count` int(11) unsigned NOT NULL DEFAULT 0 AFTER `updates_json`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'updates_count'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
 
 -- Upgrade from the versions without the stored site URL.
 SET @wpm_sql = (

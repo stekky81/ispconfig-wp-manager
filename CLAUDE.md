@@ -74,6 +74,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   the phone hotspot, without VPN.
 - On the hotspot DNS through the Mac is unreliable and WP-CLI times out at 10 seconds: the VM uses public DNS,
   from `/etc/systemd/resolved.conf.d/90-wpm-test.conf` (`DNS=1.1.1.1 8.8.8.8`, `Domains=~.`).
+- A manual `wpm-worker.php` exits silently while the cron worker holds the lock: to test it, wait for cron.
 - `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
   The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
 - Do not change the VM clock from `multipass exec` with `date -s`: the client can hang. Kill it if it does.
@@ -97,13 +98,16 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 10. A new web root contains `standard_index.html`, not `index.html`.
 11. Ubuntu cloud images set `PasswordAuthentication no`: to test SFTP logins in the VM, add a file in
     `/etc/ssh/sshd_config.d/` with a name sorting before `60-cloudimg-settings.conf`.
+12. The first full load of WordPress after an install rewrites its `cron` option, as a first visit would.
+
 
 ## Current status (2026-11-05)
 
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
-  with one-time passwords; spaced retries; detection of existing sites; settings page; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  with one-time passwords; spaced retries; detection of existing sites; settings page; update overview;
+  `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: the open items of milestone 0.2 in the roadmap.
+- **Next**: milestone 0.4 (safe updates) in the roadmap. Multiserver is set aside for now.
 - The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has
   `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
 

@@ -108,19 +108,19 @@ final class WpCli
         return $this->cmd(['core', 'version']);
     }
 
-    /** Read-only checks used by the update overview. */
+    /** Read-only checks of the update overview. Plugin and theme code does not run. */
     public function coreCheckUpdate(): Command
     {
-        return $this->cmd(['core', 'check-update', '--format=json']);
+        return $this->cmd(['core', 'check-update', '--format=json', '--skip-plugins', '--skip-themes']);
     }
 
-    public function pluginListUpdates(): Command
+    public function pluginList(): Command
     {
-        return $this->cmd(['plugin', 'list', '--update=available', '--format=json']);
+        return $this->cmd(['plugin', 'list', '--fields=name,status,version,update,update_version', '--format=json', '--skip-plugins', '--skip-themes']);
     }
 
-    public function themeListUpdates(): Command
+    public function themeList(): Command
     {
-        return $this->cmd(['theme', 'list', '--update=available', '--format=json']);
+        return $this->cmd(['theme', 'list', '--fields=name,status,version,update,update_version', '--format=json', '--skip-plugins', '--skip-themes']);
     }
 }

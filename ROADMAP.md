@@ -31,8 +31,8 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 
 ## 0.3 — Inventory and update overview (read-only)
 
-- [ ] Scheduled check (worker): core, plugin and theme versions and available updates
-- [ ] Dashboard: per node and per site, filter "updates available"
+- [x] Scheduled check (worker): core, plugin and theme versions and available updates
+- [x] Dashboard: per node and per site, filter "updates available"
 - [ ] Optional daily/weekly summary email
 - [ ] First pilot on the production nodes (read-only, so no risk to the sites)
 

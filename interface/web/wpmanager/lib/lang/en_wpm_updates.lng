@@ -1,0 +1,16 @@
+<?php
+$wb['updates_head_txt'] = 'WordPress updates';
+$wb['updates_desc_txt'] = 'Read-only overview, refreshed once a day. Nothing is updated from this page.';
+$wb['server_txt'] = 'Server';
+$wb['sites_txt'] = 'Sites';
+$wb['with_updates_txt'] = 'With updates';
+$wb['core_txt'] = 'WordPress';
+$wb['plugins_txt'] = 'Plugins';
+$wb['themes_txt'] = 'Themes';
+$wb['show_all_txt'] = 'Show all sites';
+$wb['show_updates_txt'] = 'Show only sites with updates';
+$wb['domain_txt'] = 'Domain';
+$wb['version_txt'] = 'Version';
+$wb['available_txt'] = 'Available updates';
+$wb['last_check_txt'] = 'Last check';
+$wb['no_sites_txt'] = 'No sites.';

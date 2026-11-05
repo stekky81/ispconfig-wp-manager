@@ -24,6 +24,12 @@ $items[] = [
 ];
 
 $items[] = [
+    'title' => 'Updates',
+    'target' => 'content',
+    'link' => 'wpmanager/wpm_updates.php',
+    'html_id' => 'wpm_updates',
+];
+$items[] = [
     'title' => 'Settings',
     'target' => 'content',
     'link' => 'wpmanager/wpm_settings.php',
