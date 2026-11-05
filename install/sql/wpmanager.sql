@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `server_id` int(11) unsigned NOT NULL DEFAULT 0,
   `client_id` int(11) unsigned NOT NULL DEFAULT 0,
   `domain_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `origin` enum('created','detected') NOT NULL DEFAULT 'created',
   `domain` varchar(255) NOT NULL DEFAULT '',
   `system_user` varchar(64) NOT NULL DEFAULT '',
   `document_root` varchar(255) NOT NULL DEFAULT '',
@@ -49,6 +50,17 @@ SET @wpm_sql = (
        ADD `access_type` enum(\'sftp\',\'ftp\') NOT NULL DEFAULT \'sftp\' AFTER `db_host`')
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'sftp_user'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions without the detection of existing sites.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` ADD `origin` enum(\'created\',\'detected\') NOT NULL DEFAULT \'created\' AFTER `domain_id`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'origin'
 );
 PREPARE wpm_stmt FROM @wpm_sql;
 EXECUTE wpm_stmt;

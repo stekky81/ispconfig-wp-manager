@@ -1,6 +1,6 @@
 <?php
 $wb['list_head_txt'] = 'Siti WordPress';
-$wb['list_desc_txt'] = 'Rimuovere un sito da qui non elimina il sito web, il database o i file.';
+$wb['list_desc_txt'] = 'Rimuovere un sito da qui non elimina il sito web, il database o i file. I siti con WordPress sul nodo ricompaiono alla scansione successiva.';
 $wb['add_new_record_txt'] = 'Nuovo sito WordPress';
 $wb['domain_txt'] = 'Dominio';
 $wb['status_txt'] = 'Stato';

@@ -24,9 +24,9 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] Choice of SFTP or FTP access in the form, with password login
 - [x] Per-site options in the form, pre-filled from the defaults: PHP version, locale, plugins, theme
 - [ ] Clear status messages for every failure case in `docs/testing.md`
-- [ ] **Detect existing WordPress installs** on every node (scan `/var/www/clients/*/web*/web`
+- [x] **Detect existing WordPress installs** on every node (scan `/var/www/clients/*/web*/web`
       for `wp-config.php`) and register them in `wpm_site`, linked to the ISPConfig website
-- [ ] Multiserver: grant UPDATE on `wpm_site` to the `ispcsrvN` users; test with a slave VM
+- [ ] Multiserver: grant INSERT and UPDATE on `wpm_site` to the `ispcsrvN` users; test with a slave VM
 - [ ] Settings page in the panel for the global defaults (instead of editing `config.php`)
 
 ## 0.3 — Inventory and update overview (read-only)

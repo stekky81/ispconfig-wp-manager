@@ -34,6 +34,13 @@ absolute path. Re-run the installer after every ISPConfig update and after updat
 The plugin never runs WP-CLI itself: ISPConfig applies datalog entries asynchronously and a slow
 command inside `server.sh` would block every other change on the node.
 
+## Existing sites
+
+Once an hour the worker looks for `wp-config.php` in `/var/www/clients/client*/web*/web` and adds to `wpm_site`
+the sites ISPConfig knows and the list does not have yet, with `origin = detected` and no secrets. It changes
+nothing in the sites: it only runs `wp core version` as the site user. Removing such a site from the list is
+therefore temporary. On a slave node this needs INSERT on `wpm_site`, see the multiserver note below.
+
 ## Safety rules (enforced in code)
 
 - **Dry-run**: `config.php` → `dry_run = true` lists every Remote API call on the form (passwords masked)
@@ -54,8 +61,8 @@ command inside `server.sh` would block every other change on the node.
 ## Open questions
 
 - **Multiserver grants (to do before multiserver tests)**: slave nodes reach the master's
-  dbispconfig as `ispcsrvN` users with per-table grants. The worker on a slave updates
-  `wpm_site` on the master, so the master installer must grant UPDATE on `wpm_site` to every
+  dbispconfig as `ispcsrvN` users with per-table grants. The worker on a slave writes to
+  `wpm_site` on the master, so the master installer must grant INSERT and UPDATE on `wpm_site` to every
   `ispcsrvN` user (and to new ones when a node is added).
 
 - Remote API vs internal datalog calls for creating ISPConfig objects (Remote API chosen for 0.2:

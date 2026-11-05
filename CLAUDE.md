@@ -98,7 +98,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 ## Current status (2026-11-05)
 
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
-  with one-time passwords; spaced retries; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  with one-time passwords; spaced retries; detection of existing sites; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
 - **Next**: the open items of milestone 0.2 in the roadmap.
 - The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has
@@ -106,6 +106,6 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 
 ## Known open issues / roadmap
 
-- Multiserver: grant UPDATE on `wpm_site` to the `ispcsrvN` users (see `docs/architecture.md`).
+- Multiserver: grant INSERT and UPDATE on `wpm_site` to the `ispcsrvN` users (see `docs/architecture.md`).
 - Admin-only for now; clients/resellers and quota checks later.
 - Planned work, by milestone: see [ROADMAP.md](ROADMAP.md).

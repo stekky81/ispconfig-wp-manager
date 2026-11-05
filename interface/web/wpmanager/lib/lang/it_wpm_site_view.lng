@@ -4,6 +4,7 @@ $wb['open_site_txt'] = 'Apri il sito';
 $wb['open_admin_txt'] = 'Apri wp-admin';
 $wb['open_website_txt'] = 'Sito in ISPConfig';
 $wb['status_txt'] = 'Stato';
+$wb['origin_txt'] = 'Origine';
 $wb['wp_version_txt'] = 'Versione WordPress';
 $wb['wp_admin_user_txt'] = 'Utente amministratore WordPress';
 $wb['wp_password_txt'] = 'Password amministratore WordPress';

@@ -46,7 +46,7 @@ if (isset($_POST['reveal'])) {
     }
 }
 
-foreach (['domain', 'status', 'access_type', 'access_user', 'wp_admin_user', 'wp_version', 'db_name', 'db_user', 'document_root', 'system_user'] as $field) {
+foreach (['domain', 'status', 'origin', 'access_type', 'access_user', 'wp_admin_user', 'wp_version', 'db_name', 'db_user', 'document_root', 'system_user'] as $field) {
     $app->tpl->setVar($field, $escape($site[$field]));
 }
 $app->tpl->setVar('id', $id);

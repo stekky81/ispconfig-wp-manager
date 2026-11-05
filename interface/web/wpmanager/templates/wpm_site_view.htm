@@ -15,10 +15,13 @@
     <table class="table">
         <tbody>
             <tr><th>{tmpl_var name='status_txt'}</th><td id="site_status">{tmpl_var name='status'}</td></tr>
+            <tr><th>{tmpl_var name='origin_txt'}</th><td>{tmpl_var name='origin'}</td></tr>
             <tr><th>{tmpl_var name='wp_version_txt'}</th><td>{tmpl_var name='wp_version'}</td></tr>
+            <tmpl_if name="access_user">
             <tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td>{tmpl_var name='wp_admin_user'}</td></tr>
             <tr><th>{tmpl_var name='access_txt'}</th><td>{tmpl_var name='access_type'}: {tmpl_var name='access_user'}</td></tr>
             <tr><th>{tmpl_var name='database_txt'}</th><td>{tmpl_var name='db_name'} ({tmpl_var name='db_user'})</td></tr>
+            </tmpl_if>
             <tr><th>{tmpl_var name='path_txt'}</th><td>{tmpl_var name='document_root'} ({tmpl_var name='system_user'})</td></tr>
         </tbody>
     </table>

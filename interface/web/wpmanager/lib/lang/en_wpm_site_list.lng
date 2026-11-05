@@ -1,6 +1,6 @@
 <?php
 $wb['list_head_txt'] = 'WordPress sites';
-$wb['list_desc_txt'] = 'Removing a site here does not delete the website, database or files.';
+$wb['list_desc_txt'] = 'Removing a site here does not delete the website, database or files. Sites with WordPress on the node come back at the next scan.';
 $wb['add_new_record_txt'] = 'New WordPress site';
 $wb['domain_txt'] = 'Domain';
 $wb['status_txt'] = 'Status';

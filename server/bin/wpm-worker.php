@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 const WPM_MAX_WAIT = 3600;     // give up if the vhost does not appear within an hour
 const WPM_MAX_ATTEMPTS = 3;    // failed installs are retried at most this many times
+const WPM_SCAN_INTERVAL = 3600; // look for existing WordPress installs once an hour
 
 if (PHP_SAPI !== 'cli' || posix_geteuid() !== 0) {
     fwrite(STDERR, "Run from cron as root.\n");
@@ -30,6 +31,7 @@ use WpManager\Crypto;
 use WpManager\JobQueue;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
+use WpManager\SiteScanner;
 use WpManager\WordPressInstaller;
 
 // ISPConfig server environment, for $app->dbmaster and $app->log.
@@ -96,6 +98,40 @@ foreach ($queue->pending() as $name) {
             $job['not_before'] = time() + $delay;
             $report($siteId, 'queued', 'Attempt ' . $job['attempts'] . ' failed, next try in ' . intdiv($delay, 60) . ' minutes: ' . $e->getMessage());
             $queue->update($name, $job);
+        }
+    }
+}
+
+// Sites not created by this module. Read-only: at most `wp core version` as the site user.
+$scanStamp = $config->get('spool_dir') . '/.last-scan';
+if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INTERVAL) {
+    touch($scanStamp);
+    $guard = new PathGuard($config->get('web_root_base'));
+    foreach ((new SiteScanner($guard, $config->get('web_root_base')))->scan() as $documentRoot) {
+        try {
+            $domain = $app->dbmaster->queryOneRecord(
+                "SELECT * FROM web_domain WHERE document_root = ? AND server_id = ? AND type = 'vhost'",
+                $documentRoot,
+                $conf['server_id'],
+            );
+            if (!is_array($domain)) {
+                continue;
+            }
+            $known = $app->dbmaster->queryOneRecord(
+                'SELECT wpm_site_id FROM wpm_site WHERE domain_id = ? OR domain = ?',
+                $domain['domain_id'],
+                $domain['domain'],
+            );
+            if (is_array($known)) {
+                continue;
+            }
+            $group = $app->dbmaster->queryOneRecord('SELECT client_id FROM sys_group WHERE groupid = ?', $domain['sys_groupid']);
+            $record = SiteScanner::recordFor($domain, (int)($group['client_id'] ?? 0), $installer->installedVersion($domain));
+            $columns = implode(', ', array_map(static fn(string $c): string => "`{$c}`", array_keys($record)));
+            $marks = implode(', ', array_fill(0, count($record), '?'));
+            $app->dbmaster->query("INSERT INTO wpm_site ({$columns}) VALUES ({$marks})", ...array_values($record));
+        } catch (\Throwable $e) {
+            $app->log("wpmanager: cannot register {$documentRoot}: " . $e->getMessage(), LOGLEVEL_WARN);
         }
     }
 }
