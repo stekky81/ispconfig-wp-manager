@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 $module['name'] = 'wpmanager';
-$module['title'] = 'top_menu_wpmanager';
+$module['title'] = 'WordPress';
 $module['template'] = 'module.tpl.htm';
 $module['startpage'] = 'wpmanager/wpm_site_list.php';
 $module['tab_width'] = '';

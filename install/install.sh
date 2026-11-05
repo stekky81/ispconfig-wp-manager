@@ -88,7 +88,13 @@ if [[ $MASTER -eq 1 ]]; then
 
     create_tables
 
-    install -d -m 0700 "$KEY_DIR"
+    # The panel runs as the ispconfig user: it must be able to traverse the key folder
+    # (0710, group ispconfig) without being able to list it.
+    if getent group ispconfig >/dev/null; then
+        install -d -m 0710 -o root -g ispconfig "$KEY_DIR"
+    else
+        install -d -m 0700 "$KEY_DIR"
+    fi
     if [[ ! -f $KEY_FILE ]]; then
         info "Generating shared key $KEY_FILE"
         (umask 077; APP_DIR="$APP_DIR" php -r 'require getenv("APP_DIR") . "/lib/bootstrap.php"; echo WpManager\Crypto::generateKey(), "\n";' > "$KEY_FILE")
