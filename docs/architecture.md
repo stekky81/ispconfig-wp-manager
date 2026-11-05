@@ -6,12 +6,13 @@
 |------|---------|------|
 | `interface/web/wpmanager/` | master (panel) | ISPConfig module: menu, forms, lists |
 | `lib/` | master and nodes | Shared, framework-free classes (unit tested) |
-| `server/plugins-available/wpmanager_plugin.inc.php` | every node | Receives `wpm_site_*` datalog events, queues jobs |
+| `server/mods-available/wpmanager_module.inc.php` | every node | Registers the `wpm_site` table with `server.sh`, raises `wpm_site_*` events |
+| `server/plugins-available/wpmanager_plugin.inc.php` | every node | Receives the `wpm_site_*` events, queues jobs |
 | `server/bin/wpm-worker.php` | every node (cron) | Executes queued jobs with WP-CLI |
 | `install/` | master and nodes | Installer, SQL schema, cron file |
 
 The project lives in `/opt/ispconfig-wp-manager`. The installer **copies** the interface module and the
-server plugin into the ISPConfig tree (a symlink does not work: ISPConfig modules use relative paths
+server module and plugin into the ISPConfig tree (a symlink does not work: ISPConfig modules use relative paths
 that PHP resolves from the symlink target). The shared library stays in `/opt` and is loaded by
 absolute path. Re-run the installer after every ISPConfig update and after updating this project.
 
@@ -24,7 +25,8 @@ absolute path. Re-run the installer after every ISPConfig update and after updat
    A failure stops the sequence and the already-created objects are listed for cleanup.
 3. The `wpm_site` record is saved through the datalog with `status = queued` and the job secrets
    (DB password, WP admin password) **encrypted** with the shared key (`Crypto`, libsodium).
-4. On the target node `server.sh` raises `wpm_site_insert`; the plugin writes a job file to the spool.
+4. On the target node `server.sh` passes the record to `wpmanager_module`, which raises `wpm_site_insert`;
+   the plugin writes a job file to the spool.
 5. `wpm-worker.php` (cron, every minute) picks the job when the vhost directory exists, checks
    that `web/` is empty, runs WP-CLI as the site user, then reports `installed` or `error`
    back to the master and clears the secrets.

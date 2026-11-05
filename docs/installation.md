@@ -36,7 +36,7 @@ cd /opt/ispconfig-wp-manager
 sudo ./install/install.sh --role=node
 ```
 
-This installs the server plugin and the worker cron. WP-CLI must be in `/usr/local/bin/wp`.
+This installs the server module and plugin and the worker cron. WP-CLI must be in `/usr/local/bin/wp`.
 
 ## 4. Database tables
 

@@ -28,6 +28,7 @@ Read `README.md` and `docs/architecture.md` first.
 |------|---------|-------|
 | `lib/` | master + nodes | framework-free, unit tested (`tests/`) |
 | `interface/web/wpmanager/` | panel | ISPConfig module, **copied** into `/usr/local/ispconfig/interface/web/` by the installer |
+| `server/mods-available/wpmanager_module.inc.php` | nodes | copied into ISPConfig, turns `wpm_site` datalog records into events |
 | `server/plugins-available/wpmanager_plugin.inc.php` | nodes | copied into ISPConfig, queues jobs |
 | `server/bin/wpm-worker.php` | nodes | cron, runs WP-CLI |
 | `install/install.sh` | master + nodes | idempotent; `--role=master`, `--role=node`, `--uninstall` |
@@ -79,6 +80,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 7. The panel's opcache rechecks files every 2 seconds: wait a few seconds after the installer,
    or a test may still run the previous code.
 8. The panel discards `$app->log()` messages below `log_priority` (2 = errors only).
+9. `server.sh` ignores datalog records of tables no module registered: a plugin alone gets no events.
 
 ## Current status (2026-11-05)
 

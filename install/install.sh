@@ -4,7 +4,7 @@
 # Installer for ispconfig-wp-manager. Idempotent: run it again after every ISPConfig update.
 #
 #   ./install/install.sh --role=master     # panel: module symlink, tables, shared key
-#   ./install/install.sh --role=node       # web node: server plugin, worker cron, tables
+#   ./install/install.sh --role=node       # web node: server module and plugin, worker cron, tables
 #   ./install/install.sh --role=master --role=node   # single-server setup
 #   ./install/install.sh --uninstall       # remove symlinks and cron (keeps tables and sites)
 
@@ -41,6 +41,8 @@ if [[ $UNINSTALL -eq 1 ]]; then
     info "Removing symlinks and cron"
     # Our own module folder only (a copy, or a symlink from older versions).
     rm -rf "${ISP_DIR:?}/interface/web/wpmanager"
+    rm -f "$ISP_DIR/server/mods-enabled/wpmanager_module.inc.php"
+    rm -f "$ISP_DIR/server/mods-available/wpmanager_module.inc.php"
     rm -f "$ISP_DIR/server/plugins-enabled/wpmanager_plugin.inc.php"
     rm -f "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
     rm -f "$CRON_FILE"
@@ -77,6 +79,15 @@ copy_tree() {
     chmod -R u=rwX,g=rX,o= "$dst.new"
     rm -rf "$dst"
     mv "$dst.new" "$dst"
+}
+
+# Copy a server module or plugin into ISPConfig and enable it. $1 = mods or plugins, $2 = file name.
+install_server_file() {
+    local kind=$1 file=$2 dir="$ISP_DIR/server/$1-available"
+    rm -f "$dir/$file"
+    install -m 0750 -o "$(stat -c %U "$dir")" -g "$(stat -c %G "$dir")" \
+        "$APP_DIR/server/$kind-available/$file" "$dir/$file"
+    ln -sfn "$dir/$file" "$ISP_DIR/server/$kind-enabled/$file"
 }
 
 create_tables() {
@@ -131,11 +142,9 @@ if [[ $NODE -eq 1 ]]; then
     [[ -x /usr/local/bin/wp ]] || echo "WARNING: WP-CLI not found in /usr/local/bin/wp"
     [[ -f $KEY_FILE ]] || echo "WARNING: $KEY_FILE missing: copy it from the master"
 
-    info "Installing server plugin"
-    rm -f "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
-    install -m 0750 -o "$(stat -c %U "$ISP_DIR/server/plugins-available")" -g "$(stat -c %G "$ISP_DIR/server/plugins-available")" \
-        "$APP_DIR/server/plugins-available/wpmanager_plugin.inc.php" "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
-    ln -sfn "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php" "$ISP_DIR/server/plugins-enabled/wpmanager_plugin.inc.php"
+    info "Installing server module and plugin"
+    install_server_file mods wpmanager_module.inc.php
+    install_server_file plugins wpmanager_plugin.inc.php
 
     # On a slave node the replicated tables live in the local dbispconfig as well.
     [[ $MASTER -eq 1 ]] || create_tables
