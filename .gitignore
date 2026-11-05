@@ -13,3 +13,6 @@
 .vscode/
 *.swp
 .DS_Store
+
+# Local test logs
+/dev/logs/
