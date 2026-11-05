@@ -170,7 +170,7 @@ sync_project() {
 set -euo pipefail
 dst=$1 new="$1.new"
 rm -rf "$new" && mkdir -p "$new"
-tar -xzf /tmp/wpm-sync.tgz -C "$new" --no-same-owner
+tar -xzf /tmp/wpm-sync.tgz -C "$new" --no-same-owner --warning=no-unknown-keyword
 chown -R root:root "$new"
 if [[ -f $dst/config.php ]]; then cp -p "$dst/config.php" "$new/config.php"; fi
 rm -rf "$dst.old"
