@@ -29,6 +29,8 @@ across one or more ISPConfig nodes — a free, open source alternative to commer
 | 0.4 | Updates with pre-update backup and rollback | planned |
 | 0.5 | Clone site | planned |
 
+The detailed list of planned work is in [ROADMAP.md](ROADMAP.md).
+
 ## How it works
 
 ```mermaid
