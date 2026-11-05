@@ -65,8 +65,11 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   `multipass exec ispc-master -- sudo /opt/ispconfig-wp-manager/install/install.sh --role=master --role=node`
 - Panel PHP errors: `multipass exec ispc-master -- sudo tail -50 /var/log/apache2/error.log`
 - With the Tunnelblick VPN connected the VM reaches the Mac and resolves names, but has no internet access:
-  WP-CLI downloads time out. Disconnect it for those tests; it can reconnect by itself. The VM clock also
-  falls behind, since it cannot sync.
+  WP-CLI downloads time out, so run those tests with the VPN off. The VM clock also falls behind.
+- Without the VPN, the home network resets TLS connections that offer the post-quantum key share
+  (`openssl s_client -groups X25519MLKEM768`) to some hosts, including `api.anthropic.com` and
+  `api.wordpress.org`; X25519 works. Claude Code drops with ECONNRESET there, so it needs the VPN: WordPress
+  install tests are run by hand with the VPN off. What resets them is not known yet.
 - `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
   The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
 - Do not change the VM clock from `multipass exec` with `date -s`: the client can hang. Kill it if it does.
