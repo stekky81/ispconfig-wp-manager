@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Installer for ispconfig-wp-manager. Idempotent: run it again after every ISPConfig update.
+#
+#   ./install/install.sh --role=master     # panel: module symlink, tables, shared key
+#   ./install/install.sh --role=node       # web node: server plugin, worker cron, tables
+#   ./install/install.sh --role=master --role=node   # single-server setup
+#   ./install/install.sh --uninstall       # remove symlinks and cron (keeps tables and sites)
+
+set -euo pipefail
+
+APP_DIR=/opt/ispconfig-wp-manager
+ISP_DIR=/usr/local/ispconfig
+KEY_DIR=/etc/ispconfig-wp-manager
+KEY_FILE=$KEY_DIR/secret.key
+SPOOL_DIR=/var/spool/ispconfig-wp-manager
+CRON_FILE=/etc/cron.d/ispconfig-wp-manager
+
+MASTER=0
+NODE=0
+UNINSTALL=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --role=master) MASTER=1 ;;
+        --role=node) NODE=1 ;;
+        --uninstall) UNINSTALL=1 ;;
+        *) echo "Unknown option: $arg" >&2; exit 2 ;;
+    esac
+done
+
+die() { echo "ERROR: $*" >&2; exit 1; }
+info() { echo "==> $*"; }
+
+[[ $EUID -eq 0 ]] || die "run as root"
+[[ -d $ISP_DIR ]] || die "ISPConfig not found in $ISP_DIR"
+[[ "$(cd "$(dirname "$0")/.." && pwd)" == "$APP_DIR" ]] || die "clone the repository into $APP_DIR first"
+
+if [[ $UNINSTALL -eq 1 ]]; then
+    info "Removing symlinks and cron"
+    rm -f "$ISP_DIR/interface/web/wpmanager"
+    rm -f "$ISP_DIR/server/plugins-enabled/wpmanager_plugin.inc.php"
+    rm -f "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
+    rm -f "$CRON_FILE"
+    info "Done. Tables, spool and key were kept; websites were not touched."
+    exit 0
+fi
+
+[[ $MASTER -eq 1 || $NODE -eq 1 ]] || die "choose --role=master and/or --role=node"
+
+php -r 'exit(PHP_VERSION_ID >= 80100 && extension_loaded("sodium") ? 0 : 1);' \
+    || die "PHP 8.1+ with the sodium extension is required"
+
+# Read DB credentials from the ISPConfig config of this machine.
+db_conf() {
+    # shellcheck disable=SC2016  # PHP code, $ is not a shell variable
+    ISP_DIR="$ISP_DIR" php -r '
+        $conf = [];
+        require getenv("ISP_DIR") . "/server/lib/config.inc.php";
+        echo $conf["db_host"], "\n", $conf["db_user"], "\n", $conf["db_password"], "\n", $conf["db_database"], "\n";
+    '
+}
+
+create_tables() {
+    info "Creating tables (if missing)"
+    mapfile -t DB < <(db_conf)
+    MYSQL_PWD="${DB[2]}" mysql -h "${DB[0]}" -u "${DB[1]}" "${DB[3]}" < "$APP_DIR/install/sql/wpmanager.sql"
+}
+
+if [[ $MASTER -eq 1 ]]; then
+    info "Linking interface module"
+    ln -sfn "$APP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/wpmanager"
+
+    create_tables
+
+    install -d -m 0700 "$KEY_DIR"
+    if [[ ! -f $KEY_FILE ]]; then
+        info "Generating shared key $KEY_FILE"
+        (umask 077; APP_DIR="$APP_DIR" php -r 'require getenv("APP_DIR") . "/lib/bootstrap.php"; echo WpManager\Crypto::generateKey(), "\n";' > "$KEY_FILE")
+    fi
+    chmod 0600 "$KEY_FILE"
+    # The panel runs as the ispconfig user and must read the key.
+    chown ispconfig:root "$KEY_FILE" 2>/dev/null || true
+
+    if [[ ! -f $APP_DIR/config.php ]]; then
+        install -m 0600 "$APP_DIR/config/config.example.php" "$APP_DIR/config.php"
+        chown ispconfig:root "$APP_DIR/config.php" 2>/dev/null || true
+        info "Created $APP_DIR/config.php (dry_run = true). Edit it before use."
+    fi
+    info "Copy $KEY_FILE to the same path on every node (mode 0600, owner root)."
+    info "Enable the module: System → CP Users → edit user → Modules → wpmanager"
+fi
+
+if [[ $NODE -eq 1 ]]; then
+    [[ -x /usr/local/bin/wp ]] || echo "WARNING: WP-CLI not found in /usr/local/bin/wp"
+    [[ -f $KEY_FILE ]] || echo "WARNING: $KEY_FILE missing: copy it from the master"
+
+    info "Installing server plugin"
+    ln -sfn "$APP_DIR/server/plugins-available/wpmanager_plugin.inc.php" "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
+    ln -sfn "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php" "$ISP_DIR/server/plugins-enabled/wpmanager_plugin.inc.php"
+
+    # On a slave node the replicated tables live in the local dbispconfig as well.
+    [[ $MASTER -eq 1 ]] || create_tables
+
+    install -d -m 0700 "$SPOOL_DIR"
+
+    info "Installing worker cron"
+    cat > "$CRON_FILE" <<EOF
+# ispconfig-wp-manager worker
+* * * * * root /usr/bin/php $APP_DIR/server/bin/wpm-worker.php >> /var/log/ispconfig-wp-manager.log 2>&1
+EOF
+    chmod 0644 "$CRON_FILE"
+fi
+
+info "Done."

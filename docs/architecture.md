@@ -1,0 +1,49 @@
+# Architecture
+
+## Components
+
+| Path | Runs on | Role |
+|------|---------|------|
+| `interface/web/wpmanager/` | master (panel) | ISPConfig module: menu, forms, lists |
+| `lib/` | master and nodes | Shared, framework-free classes (unit tested) |
+| `server/plugins-available/wpmanager_plugin.inc.php` | every node | Receives `wpm_site_*` datalog events, queues jobs |
+| `server/bin/wpm-worker.php` | every node (cron) | Executes queued jobs with WP-CLI |
+| `install/` | master and nodes | Installer, SQL schema, cron file |
+
+Everything is installed in `/opt/ispconfig-wp-manager` and **symlinked** into the ISPConfig tree.
+ISPConfig updates therefore do not delete our code; re-running the installer restores the symlinks.
+
+## New site flow
+
+1. The admin fills in the form (domain, client, server, admin email; everything else from defaults).
+2. `SiteProvisioner` (master) calls the ISPConfig Remote API, in this order:
+   website → database user → database (linked to the website via `parent_domain_id`) → SFTP user.
+   A failure stops the sequence and the already-created objects are listed for cleanup.
+3. The `wpm_site` record is saved through the datalog with `status = queued` and the job secrets
+   (DB password, WP admin password) **encrypted** with the shared key (`Crypto`, libsodium).
+4. On the target node `server.sh` raises `wpm_site_insert`; the plugin writes a job file to the spool.
+5. `wpm-worker.php` (cron, every minute) picks the job when the vhost directory exists, checks
+   that `web/` is empty, runs WP-CLI as the site user, then reports `installed` or `error`
+   back to the master and clears the secrets.
+
+The plugin never runs WP-CLI itself: ISPConfig applies datalog entries asynchronously and a slow
+command inside `server.sh` would block every other change on the node.
+
+## Safety rules (enforced in code)
+
+- **Dry-run**: `config.php` → `dry_run = true` logs every API call and command without executing it.
+  Default in `config.example.php` is `true`.
+- **Empty target only**: the worker refuses to install into a `web/` directory that contains anything
+  other than the files ISPConfig creates (`index.html`, `favicon.ico`, `robots.txt`, `stats/`, `error/`).
+- **Path guard**: every path used by the worker must resolve inside `/var/www/clients/`.
+- **Run as site user**: WP-CLI always runs as the site's `webN` user, never as root.
+- **No half-installs overwritten**: a failed install is retried only while `web/` is still pristine.
+  If WP-CLI already wrote files, the job ends in `error` and needs a manual look — never an automatic cleanup.
+- **Secrets out of `ps`**: passwords reach WP-CLI through stdin (`--prompt`), never as arguments.
+- **No shell interpolation**: commands are built as argument arrays and escaped one by one.
+
+## Open questions
+
+- Remote API vs internal datalog calls for creating ISPConfig objects (Remote API chosen for 0.2:
+  it is the documented, validated path).
+- How to store the shared key on each node (currently a file readable only by root).

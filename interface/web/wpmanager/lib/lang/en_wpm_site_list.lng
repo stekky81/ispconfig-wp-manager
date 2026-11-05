@@ -1,0 +1,8 @@
+<?php
+$wb['list_head_txt'] = 'WordPress sites';
+$wb['list_desc_txt'] = 'Removing a site here does not delete the website, database or files.';
+$wb['add_new_record_txt'] = 'New WordPress site';
+$wb['domain_txt'] = 'Domain';
+$wb['status_txt'] = 'Status';
+$wb['wp_version_txt'] = 'WordPress';
+$wb['delete_confirmation'] = 'Remove this site from the WordPress list? The website itself is not deleted.';

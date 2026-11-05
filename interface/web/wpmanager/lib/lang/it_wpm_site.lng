@@ -1,0 +1,13 @@
+<?php
+$wb['server_id_txt'] = 'Server';
+$wb['client_id_txt'] = 'Cliente';
+$wb['domain_txt'] = 'Dominio';
+$wb['wp_title_txt'] = 'Titolo del sito';
+$wb['wp_admin_user_txt'] = 'Utente amministratore WordPress';
+$wb['wp_admin_email_txt'] = 'Email amministratore WordPress';
+$wb['dry_run_notice_txt'] = 'Sito, database, utente database e utente SFTP vengono creati con i valori predefiniti globali; WordPress viene installato sul nodo entro pochi minuti. La password di amministratore viene generata automaticamente.';
+$wb['domain_error_empty'] = 'Il dominio è vuoto.';
+$wb['domain_error_unique'] = 'Questo dominio è già gestito dal modulo WordPress.';
+$wb['wp_title_error_empty'] = 'Il titolo del sito è vuoto.';
+$wb['wp_admin_user_error_empty'] = "L'utente amministratore WordPress è vuoto.";
+$wb['wp_admin_email_error_isemail'] = "L'email dell'amministratore WordPress non è valida.";

@@ -1,0 +1,5 @@
+<?php
+$wb['top_menu_wpmanager'] = 'WordPress';
+$wb['WordPress'] = 'WordPress';
+$wb['WordPress sites'] = 'Siti WordPress';
+$wb['New WordPress site'] = 'Nuovo sito WordPress';

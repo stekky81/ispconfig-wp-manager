@@ -1,0 +1,15 @@
+# Local configuration with credentials: never commit
+/config.php
+*.key
+
+# Dependencies and tool caches
+/vendor/
+/composer.lock
+.phpunit.cache/
+.phpunit.result.cache
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

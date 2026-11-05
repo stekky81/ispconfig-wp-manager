@@ -1,0 +1,40 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<!-- VERIFY: markup follows the ISPConfig 3.2 Bootstrap templates (e.g. sites/templates/database_edit.htm) -->
+<div class='page-header'>
+    <h1><tmpl_var name="formHeader"></h1>
+</div>
+<p><tmpl_var name="dry_run_notice_txt"></p>
+
+<div class="form-group">
+    <label for="server_id" class="col-sm-3 control-label">{tmpl_var name='server_id_txt'}</label>
+    <div class="col-sm-9"><select name="server_id" id="server_id" class="form-control">{tmpl_var name='server_id'}</select></div>
+</div>
+<div class="form-group">
+    <label for="client_id" class="col-sm-3 control-label">{tmpl_var name='client_id_txt'}</label>
+    <div class="col-sm-9"><select name="client_id" id="client_id" class="form-control">{tmpl_var name='client_id'}</select></div>
+</div>
+<div class="form-group">
+    <label for="domain" class="col-sm-3 control-label">{tmpl_var name='domain_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="domain" id="domain" value="{tmpl_var name='domain'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="wp_title" class="col-sm-3 control-label">{tmpl_var name='wp_title_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_title" id="wp_title" value="{tmpl_var name='wp_title'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="wp_admin_user" class="col-sm-3 control-label">{tmpl_var name='wp_admin_user_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_admin_user" id="wp_admin_user" value="{tmpl_var name='wp_admin_user'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="wp_admin_email" class="col-sm-3 control-label">{tmpl_var name='wp_admin_email_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_admin_email" id="wp_admin_email" value="{tmpl_var name='wp_admin_email'}" class="form-control" /></div>
+</div>
+
+<input type="hidden" name="id" value="{tmpl_var name='id'}">
+
+<div class="clear">
+    <div class="right">
+        <button class="btn btn-default formbutton-success" type="button" value="{tmpl_var name='btn_save_txt'}" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_edit.php">{tmpl_var name='btn_save_txt'}</button>
+        <button class="btn btn-default formbutton-default" type="button" value="{tmpl_var name='btn_cancel_txt'}" data-load-content="wpmanager/wpm_site_list.php">{tmpl_var name='btn_cancel_txt'}</button>
+    </div>
+</div>
