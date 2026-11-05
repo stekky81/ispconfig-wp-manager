@@ -9,7 +9,7 @@ In ISPConfig: **System → Remote Users → Add**. Give it a strong password and
 
 - Client functions (read)
 - Server functions (read)
-- Sites: Website, Database, Database user, Shell user
+- Sites: Website, Database, Database user, Shell user, FTP user
 
 Restrict "Remote access" to the master's own IP.
 

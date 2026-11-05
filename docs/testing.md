@@ -65,6 +65,7 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 ### New site — happy path
 
 - [ ] Site on master node: website, DB user, DB (linked to the site), SFTP user created
+- [ ] Same with FTP access: FTP user created instead of the SFTP user, login works
 - [ ] Site on slave node (VM B)
 - [ ] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
 - [ ] Secrets cleared from `wpm_site` after install

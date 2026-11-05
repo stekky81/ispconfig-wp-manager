@@ -57,6 +57,7 @@ class page_action extends tform_actions
                 (string)$this->dataRecord['wp_title'],
                 (string)$this->dataRecord['wp_admin_user'],
                 (string)$this->dataRecord['wp_admin_email'],
+                (string)($this->dataRecord['access_type'] ?? ''),
             );
             $transport = $config->isDryRun() ? new \WpManager\DryRunTransport() : null;
             $api = \WpManager\IspconfigApi::fromConfig($config, $transport);

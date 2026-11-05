@@ -17,6 +17,7 @@ final class SiteRequest
     public readonly string $title;
     public readonly string $adminUser;
     public readonly string $adminEmail;
+    public readonly string $accessType;
 
     public function __construct(
         string $domain,
@@ -25,6 +26,7 @@ final class SiteRequest
         string $title,
         string $adminUser,
         string $adminEmail,
+        string $accessType = 'sftp',
     ) {
         $this->domain = Validator::domain($domain);
         $this->clientId = Validator::positiveId($clientId);
@@ -36,5 +38,6 @@ final class SiteRequest
         $this->title = $title;
         $this->adminUser = Validator::wpUser($adminUser);
         $this->adminEmail = Validator::email($adminEmail);
+        $this->accessType = Validator::accessType($accessType);
     }
 }

@@ -48,6 +48,15 @@ final class Validator
         return $value;
     }
 
+    /** How the site owner reaches the files: 'sftp' (jailed shell user) or 'ftp' (FTP user). */
+    public static function accessType(string $value): string
+    {
+        if (!in_array($value, ['sftp', 'ftp'], true)) {
+            throw new ValidationException("Invalid access type: {$value}");
+        }
+        return $value;
+    }
+
     /** Linux system user created by ISPConfig for a website, e.g. web12. */
     public static function systemUser(string $value): string
     {

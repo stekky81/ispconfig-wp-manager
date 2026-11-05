@@ -7,7 +7,7 @@ namespace WpManager;
 
 /**
  * Creates the ISPConfig objects for a new WordPress site through the Remote API:
- * website → database user → database → SFTP user.
+ * website → database user → database → SFTP or FTP user.
  *
  * If a step fails, the objects already created are deleted again (in reverse order),
  * so a failed attempt does not leave half-configured sites behind.
@@ -38,14 +38,14 @@ final class SiteProvisioner
         $this->assertDomainIsFree($req->domain);
 
         $dbPassword = Crypto::randomPassword();
-        $sftpPassword = Crypto::randomPassword();
+        $accessPassword = Crypto::randomPassword();
         $wpPassword = Crypto::randomPassword();
 
         $prefix = str_replace('[CLIENT_ID]', (string)$req->clientId, (string)$d['db_prefix']);
         $base = Validator::dbNameFromDomain($req->domain);
         $dbName = Validator::dbName(substr($prefix . $base, 0, 32));
         $dbUser = Validator::dbName(substr($prefix . $base, 0, 30) . 'u');
-        $sftpUser = Validator::dbName(substr($prefix . $base, 0, 30) . 'f');
+        $accessUser = Validator::dbName(substr($prefix . $base, 0, 30) . 'f');
 
         try {
             $domainId = (int)$this->step('sites_web_domain_add', 'sites_web_domain_delete', [
@@ -113,22 +113,7 @@ final class SiteProvisioner
                 ],
             ]);
 
-            $this->step('sites_shell_user_add', 'sites_shell_user_delete', [
-                'client_id' => $req->clientId,
-                'params' => [
-                    'server_id' => $req->serverId,
-                    'parent_domain_id' => $domainId,
-                    'username' => $sftpUser,
-                    'password' => $sftpPassword,
-                    'quota_size' => -1,
-                    'active' => 'y',
-                    'puser' => $systemUser,
-                    'pgroup' => $systemGroup,
-                    'shell' => '/bin/bash',
-                    'dir' => $documentRoot,
-                    'chroot' => 'jailkit',
-                ],
-            ]);
+            $this->addAccessUser($req, $domainId, $accessUser, $accessPassword, $systemUser, $systemGroup, $documentRoot);
         } catch (\Throwable $e) {
             throw new ProvisioningException($e->getMessage(), $this->rollback(), $e);
         }
@@ -143,15 +128,55 @@ final class SiteProvisioner
             'db_name' => $dbName,
             'db_user' => $dbUser,
             'db_host' => $d['db_host'],
-            'sftp_user' => $sftpUser,
+            'access_type' => $req->accessType,
+            'access_user' => $accessUser,
             'wp_title' => $req->title,
             'wp_admin_user' => $req->adminUser,
             'wp_admin_email' => $req->adminEmail,
             'secret_db' => $this->crypto->encrypt($dbPassword),
             'secret_wp' => $this->crypto->encrypt($wpPassword),
-            'secret_sftp' => $this->crypto->encrypt($sftpPassword),
+            'secret_access' => $this->crypto->encrypt($accessPassword),
             'status' => 'queued',
         ];
+    }
+
+    /** Password login only for now: SFTP keys are on the roadmap. */
+    private function addAccessUser(
+        SiteRequest $req,
+        int $domainId,
+        string $username,
+        string $password,
+        string $systemUser,
+        string $systemGroup,
+        string $documentRoot,
+    ): void {
+        $params = [
+            'server_id' => $req->serverId,
+            'parent_domain_id' => $domainId,
+            'username' => $username,
+            'password' => $password,
+            'quota_size' => -1,
+            'active' => 'y',
+            'dir' => $documentRoot,
+        ];
+
+        if ($req->accessType === 'ftp') {
+            $this->step('sites_ftp_user_add', 'sites_ftp_user_delete', [
+                'client_id' => $req->clientId,
+                'params' => $params + ['uid' => $systemUser, 'gid' => $systemGroup],
+            ]);
+            return;
+        }
+
+        $this->step('sites_shell_user_add', 'sites_shell_user_delete', [
+            'client_id' => $req->clientId,
+            'params' => $params + [
+                'puser' => $systemUser,
+                'pgroup' => $systemGroup,
+                'shell' => '/bin/bash',
+                'chroot' => 'jailkit',
+            ],
+        ]);
     }
 
     private function assertDomainIsFree(string $domain): void

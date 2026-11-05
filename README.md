@@ -13,7 +13,7 @@ across one or more ISPConfig nodes — a free, open source alternative to commer
 
 ## Goals
 
-- **One-click WordPress site**: website, database user, database, SFTP user and WordPress install
+- **One-click WordPress site**: website, database user, database, SFTP or FTP user and WordPress install
   in a single form, with global defaults (PHP version, quotas, SSL, plugins, hardening).
 - **Update overview**: see core, plugin and theme updates for every WordPress install on every node.
 - **Clone**: copy an existing site to a new domain (files, database, search-replace).
@@ -37,7 +37,7 @@ The detailed list of planned work is in [ROADMAP.md](ROADMAP.md).
 flowchart LR
     subgraph panel["ISPConfig panel (master)"]
         form["Form: New WordPress site"]
-        api["Remote API:<br/>website, DB, DB user, SFTP user"]
+        api["Remote API:<br/>website, DB, DB user, SFTP/FTP user"]
         rec["wpm_site record"]
         form --> api --> rec
     end

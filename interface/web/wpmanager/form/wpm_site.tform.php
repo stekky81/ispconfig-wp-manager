@@ -93,5 +93,11 @@ $form['tabs']['site'] = [
             'width' => '30',
             'maxlength' => '255',
         ],
+        'access_type' => [
+            'datatype' => 'VARCHAR',
+            'formtype' => 'SELECT',
+            'default' => 'sftp',
+            'value' => ['sftp' => 'SFTP', 'ftp' => 'FTP'],
+        ],
     ],
 ];

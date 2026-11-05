@@ -19,7 +19,8 @@ absolute path. Re-run the installer after every ISPConfig update and after updat
 
 1. The admin fills in the form (domain, client, server, admin email; everything else from defaults).
 2. `SiteProvisioner` (master) calls the ISPConfig Remote API, in this order:
-   website → database user → database (linked to the website via `parent_domain_id`) → SFTP user.
+   website → database user → database (linked to the website via `parent_domain_id`) → SFTP or FTP user,
+   as chosen in the form. Password login only for now.
    A failure stops the sequence and the already-created objects are listed for cleanup.
 3. The `wpm_site` record is saved through the datalog with `status = queued` and the job secrets
    (DB password, WP admin password) **encrypted** with the shared key (`Crypto`, libsodium).

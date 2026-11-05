@@ -17,9 +17,10 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 ## 0.2 — Usable MVP: new WordPress site
 
 - [ ] End-to-end create flow in the VM: dry-run, then real
-- [ ] **One-time reveal of the generated credentials** (WP admin, SFTP) in a site detail page,
+- [ ] **One-time reveal of the generated credentials** (WP admin, SFTP/FTP) in a site detail page,
       then clear them from the database; optional email to the admin
 - [ ] Site detail page: status, install log, links to the site, wp-admin and the ISPConfig website
+- [ ] Choice of SFTP or FTP access in the form, with password login
 - [ ] Per-site options in the form, pre-filled from the defaults: PHP version, locale, plugins, theme
 - [ ] Clear status messages for every failure case in `docs/testing.md`
 - [ ] **Detect existing WordPress installs** on every node (scan `/var/www/clients/*/web*/web`
@@ -52,6 +53,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 
 - [ ] Maintenance: maintenance mode, admin password reset, one-click wp-admin login,
       debug toggle, plugin/theme activate/deactivate/remove
+- [ ] SFTP login with SSH keys instead of a password
 - [ ] Security: known-vulnerability check for plugins/themes (check the data feed's terms of use),
       file permission check, hardening for existing sites
 - [ ] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them)

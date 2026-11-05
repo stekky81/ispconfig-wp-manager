@@ -53,7 +53,7 @@ final class SiteProvisionerTest extends TestCase
     public function testSecretsInRecordAreEncrypted(): void
     {
         $record = $this->provisioner(new DryRunTransport())->provision($this->request());
-        foreach (['secret_db', 'secret_wp', 'secret_sftp'] as $field) {
+        foreach (['secret_db', 'secret_wp', 'secret_access'] as $field) {
             self::assertStringStartsWith('wpm1:', $record[$field]);
             self::assertGreaterThanOrEqual(24, strlen($this->crypto->decrypt($record[$field])));
         }
@@ -104,5 +104,47 @@ final class SiteProvisionerTest extends TestCase
         self::assertStringNotContainsString('TopSecretRemote', $log);
         self::assertStringNotContainsString($this->crypto->decrypt($record['secret_db']), $log);
         self::assertStringNotContainsString('dry-run-session', $log);
+    }
+
+    public function testDefaultAccessIsAnSftpShellUser(): void
+    {
+        $t = new DryRunTransport();
+        $record = $this->provisioner($t)->provision($this->request());
+
+        self::assertContains('sites_shell_user_add', $t->received);
+        self::assertNotContains('sites_ftp_user_add', $t->received);
+        self::assertSame('sftp', $record['access_type']);
+    }
+
+    public function testFtpAccessCreatesAnFtpUserInsteadOfAShellUser(): void
+    {
+        $t = new DryRunTransport();
+        $req = new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', 'ftp');
+        $record = $this->provisioner($t)->provision($req);
+
+        self::assertContains('sites_ftp_user_add', $t->received);
+        self::assertNotContains('sites_shell_user_add', $t->received);
+        self::assertSame('ftp', $record['access_type']);
+        self::assertSame('c3_shop_example_comf', $record['access_user']);
+    }
+
+    public function testFailedFtpUserRollsBackTheOtherObjects(): void
+    {
+        $t = new DryRunTransport(failOn: 'sites_ftp_user_add');
+        $req = new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', 'ftp');
+
+        try {
+            $this->provisioner($t)->provision($req);
+            self::fail('expected a ProvisioningException');
+        } catch (ProvisioningException) {
+            self::assertContains('sites_database_delete', $t->received);
+            self::assertContains('sites_web_domain_delete', $t->received);
+        }
+    }
+
+    public function testUnknownAccessTypeIsRejected(): void
+    {
+        $this->expectException(ValidationException::class);
+        new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', 'telnet');
     }
 }
