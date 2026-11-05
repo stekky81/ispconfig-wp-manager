@@ -99,6 +99,25 @@ snapshot() {
 }
 
 cmd_create() {
+    if exists "$MASTER" && ispconfig_installed "$MASTER"; then
+        # Resume an interrupted run instead of reinstalling.
+        info "$MASTER already has ISPConfig: resuming with the remaining steps"
+    else
+        exists "$MASTER" && die "$MASTER exists without ISPConfig: run destroy first"
+        install_master
+    fi
+
+    multipass exec "$MASTER" -- test -x /usr/local/bin/wp || install_wpcli "$MASTER"
+    multipass info "$MASTER.$SNAPSHOT" >/dev/null 2>&1 || snapshot "$MASTER"
+    ensure_mount "$MASTER"
+
+    cmd_info
+    echo
+    echo "ISPConfig admin password (saved in the VM at /root/ispconfig-install.log):"
+    multipass exec "$MASTER" -- sudo grep -ai "admin password" /root/ispconfig-install.log || true
+}
+
+install_master() {
     launch "$MASTER"
 
     info "Installing ISPConfig on $MASTER (10-20 minutes)"
@@ -109,25 +128,20 @@ cmd_create() {
         /root/ispconfig-install.log \
         || die "ISPConfig installation failed: see the output above (log in the VM: /root/ispconfig-install.log)"
     verify_ispconfig "$MASTER"
+    # Snapshot (taken by cmd_create) comes before the mount: the clean snapshot
+    # has no mount, and reset re-creates the mount after each restore.
+}
 
-    install_wpcli "$MASTER"
-
-    # Snapshot first, mount afterwards: the clean snapshot has no mount,
-    # and reset re-creates the mount after each restore.
-    snapshot "$MASTER"
-    ensure_mount "$MASTER"
-
-    cmd_info
-    echo
-    echo "ISPConfig admin password (saved in the VM at /root/ispconfig-install.log):"
-    multipass exec "$MASTER" -- sudo grep -i "admin password" /root/ispconfig-install.log || true
+# /usr/local/ispconfig is readable by root only.
+ispconfig_installed() {
+    multipass exec "$1" -- sudo test -f /usr/local/ispconfig/server/lib/config.inc.php
 }
 
 # The autoinstaller can stop without a non-zero exit code: check the result itself.
 verify_ispconfig() {
     local name=$1
-    if multipass exec "$name" -- sudo grep -qE '^\[ERROR\]|cannot open /dev' /root/ispconfig-install.log \
-        || ! multipass exec "$name" -- test -f /usr/local/ispconfig/server/lib/config.inc.php; then
+    if multipass exec "$name" -- sudo grep -qaE '\[ERROR\]|cannot open /dev' /root/ispconfig-install.log \
+        || ! ispconfig_installed "$name"; then
         die "ISPConfig is not installed on $name: see the output above (log in the VM: /root/ispconfig-install.log)"
     fi
     info "ISPConfig installed on $name"
