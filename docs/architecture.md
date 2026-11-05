@@ -92,6 +92,13 @@ is reported, including what looks like the old host inside base64 values, which 
 
 A clone is public, with "Discourage search engines" turned on so that it does not compete with its source.
 
+## WP-Cron
+
+A site can move between WP-Cron and a real cron job. The job is an ISPConfig cron job of type URL, every 5 minutes, which
+calls `wp-cron.php`, so it runs on the PHP version of the site. The worker adds or removes `DISABLE_WP_CRON` in
+`wp-config.php`, and removing it leaves the file as it was. Both changes reach the node through the datalog: for a minute
+or two no cron may run, and scheduled tasks simply run at the next pass.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the
@@ -124,7 +131,7 @@ therefore temporary. On a slave node this needs INSERT on `wpm_site`, see the mu
 
 ## Open questions
 
-- **Multiserver grants (to do before multiserver tests)**: slave nodes reach the master's
+- **Multiserver grants (to do before multiserver tests, which are set aside for now)**: slave nodes reach the master's
   dbispconfig as `ispcsrvN` users with per-table grants. The worker on a slave writes to
   `wpm_site` on the master, so the master installer must grant INSERT and UPDATE on `wpm_site` to every
   `ispcsrvN` user (and to new ones when a node is added).

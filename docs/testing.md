@@ -61,7 +61,8 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 ### Install
 
 - [x] Installer runs twice in a row without errors (idempotent)
-- [ ] Installer after an ISPConfig update restores symlinks
+- [ ] Installer after an ISPConfig update restores the module
+- [x] `--uninstall` removes the module and leaves sites, tables and keys alone; the installer brings it back
 - [ ] Module visible only to users who have it enabled
 
 ### New site — happy path
@@ -86,6 +87,33 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] WP-CLI missing on node → status `error` with message
 - [ ] Node offline for 10 minutes → job runs when it is back
 - [x] Two sites created at the same moment → both installed, no mix-up
+
+### Backups and updates
+
+- [x] Backup and restore from the panel: files and database back as they were
+- [x] The last 3 backups are kept
+- [x] Backup without uploads: a restore keeps files uploaded later; a full backup restores uploads
+- [x] Plugin, theme and core updates from the panel
+- [x] An update that breaks the site is rolled back
+- [x] A site already broken is not updated
+- [x] Automatic update runs by itself; the switch of the site and the global one stop it
+- [x] After a rollback the same versions are not tried again
+- [x] A major release is never automatic; its own button updates it
+
+### Clone
+
+- [x] Long domain to short domain, to another client: site works, source unchanged
+- [x] Serialized arrays and objects, JSON, URL encoding, paths and tables without prefix are replaced
+- [x] Email addresses, similar domains and `guid` stay as they are
+- [x] A value in base64 is reported
+- [x] Custom table prefix is kept
+- [x] "Discourage search engines" is on in the clone, not in the source
+- [ ] Objects of plugin classes, with a real plugin (Elementor, WooCommerce)
+- [ ] A large and busy site
+
+### WP-Cron
+
+- [x] To real cron and back: job and crontab line appear and go, `wp-config.php` ends up identical
 
 ### Regression on existing sites
 

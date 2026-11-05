@@ -106,9 +106,10 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
   with one-time passwords; spaced retries; detection of existing sites; settings page; update overview;
   backups, updates with health check and automatic rollback, automatic updates; clone on the same node;
-  `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  WP-Cron switch; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: staging (0.5). Clone across nodes waits for multiserver, which is set aside for now.
+- **Next**: the full security review in the roadmap. Staging needs a decision first. Multiserver and clone
+  across nodes are set aside for now.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.
 - The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has

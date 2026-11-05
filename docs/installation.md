@@ -7,9 +7,11 @@
 
 In ISPConfig: **System → Remote Users → Add**. Give it a strong password and enable only:
 
-- Client functions (read)
-- Server functions (read)
-- Sites: Website, Database, Database user, Shell user, FTP user
+- Sites Domain functions
+- Sites database functions
+- Sites Shell-User functions
+- Sites FTP-User functions
+- Sites cron functions
 
 Restrict "Remote access" to the master's own IP.
 
@@ -41,6 +43,21 @@ This installs the server module and plugin and the worker cron. WP-CLI must be i
 Sites with SFTP access log in with a password, so `sshd` on the node needs `PasswordAuthentication yes`.
 Ubuntu cloud images disable it (`/etc/ssh/sshd_config.d/60-cloudimg-settings.conf`).
 
+## Before turning off dry-run
+
+`dry_run = true` stops every change. Turning it off starts the worker for real, and that includes
+**automatic updates of every site on the node**, also the ones this module did not create. To look at a node
+first, set this in `config.php` before changing `dry_run`:
+
+```php
+'updates' => ['auto' => 'n'],
+```
+
+They can be changed later in **WordPress → Settings** and for each site on its page.
+
+Backups go to the `tmp` folder of each site and count towards its quota. If ISPConfig uses backup mode `userzip` with a
+tar format, its own backups will include them: see [architecture.md](architecture.md#backups).
+
 ## 4. Database tables
 
 The installer creates the tables in `dbispconfig` on the master. In a multiserver setup it also
@@ -52,4 +69,4 @@ creates them on each node, because ISPConfig replicates datalog records into the
 sudo ./install/install.sh --uninstall
 ```
 
-Removes symlinks and cron. Tables and created websites are **not** deleted.
+Removes the module, the server plugin and the cron job. Tables, keys, backups and websites are **not** deleted.
