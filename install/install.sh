@@ -39,7 +39,8 @@ info() { echo "==> $*"; }
 
 if [[ $UNINSTALL -eq 1 ]]; then
     info "Removing symlinks and cron"
-    rm -f "$ISP_DIR/interface/web/wpmanager"
+    # Our own module folder only (a copy, or a symlink from older versions).
+    rm -rf "${ISP_DIR:?}/interface/web/wpmanager"
     rm -f "$ISP_DIR/server/plugins-enabled/wpmanager_plugin.inc.php"
     rm -f "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
     rm -f "$CRON_FILE"
@@ -66,6 +67,18 @@ db_conf() {
     '
 }
 
+# Replace $2 with a fresh copy of $1, owned like the reference folder $3.
+copy_tree() {
+    local src=$1 dst=$2 ref=$3 owner
+    owner=$(stat -c %U:%G "$ref")
+    rm -rf "$dst.new"
+    cp -R "$src" "$dst.new"
+    chown -R "$owner" "$dst.new"
+    chmod -R u=rwX,g=rX,o= "$dst.new"
+    rm -rf "$dst"
+    mv "$dst.new" "$dst"
+}
+
 create_tables() {
     info "Creating tables (if missing)"
     local db=()
@@ -83,8 +96,10 @@ create_tables() {
 }
 
 if [[ $MASTER -eq 1 ]]; then
-    info "Linking interface module"
-    ln -sfn "$APP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/wpmanager"
+    info "Installing interface module"
+    # A copy, not a symlink: ISPConfig modules use relative paths (../../lib/...) that
+    # PHP would resolve from the symlink target. Ownership follows the stock "sites" module.
+    copy_tree "$APP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/sites"
 
     create_tables
 
@@ -117,7 +132,9 @@ if [[ $NODE -eq 1 ]]; then
     [[ -f $KEY_FILE ]] || echo "WARNING: $KEY_FILE missing: copy it from the master"
 
     info "Installing server plugin"
-    ln -sfn "$APP_DIR/server/plugins-available/wpmanager_plugin.inc.php" "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
+    rm -f "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
+    install -m 0750 -o "$(stat -c %U "$ISP_DIR/server/plugins-available")" -g "$(stat -c %G "$ISP_DIR/server/plugins-available")" \
+        "$APP_DIR/server/plugins-available/wpmanager_plugin.inc.php" "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
     ln -sfn "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php" "$ISP_DIR/server/plugins-enabled/wpmanager_plugin.inc.php"
 
     # On a slave node the replicated tables live in the local dbispconfig as well.

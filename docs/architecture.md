@@ -10,8 +10,10 @@
 | `server/bin/wpm-worker.php` | every node (cron) | Executes queued jobs with WP-CLI |
 | `install/` | master and nodes | Installer, SQL schema, cron file |
 
-Everything is installed in `/opt/ispconfig-wp-manager` and **symlinked** into the ISPConfig tree.
-ISPConfig updates therefore do not delete our code; re-running the installer restores the symlinks.
+The project lives in `/opt/ispconfig-wp-manager`. The installer **copies** the interface module and the
+server plugin into the ISPConfig tree (a symlink does not work: ISPConfig modules use relative paths
+that PHP resolves from the symlink target). The shared library stays in `/opt` and is loaded by
+absolute path. Re-run the installer after every ISPConfig update and after updating this project.
 
 ## New site flow
 
