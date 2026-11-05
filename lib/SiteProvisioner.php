@@ -12,8 +12,7 @@ namespace WpManager;
  * If a step fails, the objects already created are deleted again (in reverse order),
  * so a failed attempt does not leave half-configured sites behind.
  *
- * NOTE: the parameter sets follow the ISPConfig 3.2 remote API documentation and
- * must be verified against the installed version (see docs/testing.md).
+ * The parameter sets were tested on ISPConfig 3.3.2.
  */
 final class SiteProvisioner
 {

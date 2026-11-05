@@ -38,7 +38,7 @@ Read `README.md` and `docs/architecture.md` first.
 ## Checks before every commit
 
 ```bash
-composer install && composer lint && composer test   # PHP unit tests (47 at the time of writing)
+composer install && composer lint && composer test   # PHP unit tests
 shellcheck install/install.sh dev/test-env.sh
 ```
 
@@ -64,6 +64,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - Install our module in the VM:
   `multipass exec ispc-master -- sudo /opt/ispconfig-wp-manager/install/install.sh --role=master --role=node`
 - Panel PHP errors: `multipass exec ispc-master -- sudo tail -50 /var/log/apache2/error.log`
+- With a full-tunnel VPN active on the Mac the VM reaches the Mac and resolves names, but has no internet
+  access. Its clock also falls behind, since it cannot sync.
+- Do not change the VM clock from `multipass exec` with `date -s`: the client can hang. Kill it if it does.
 - Do not run `destroy`/`delete` while a `create` or `mount` is running: it hung multipassd once.
   If multipassd hangs: `sudo pkill -9 -f "com.canonical.multipass/bin/"`, then reload the launchd plist.
 
@@ -81,21 +84,19 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
    or a test may still run the previous code.
 8. The panel discards `$app->log()` messages below `log_priority` (2 = errors only).
 9. `server.sh` ignores datalog records of tables no module registered: a plugin alone gets no events.
+10. A new web root contains `standard_index.html`, not `index.html`.
+11. Ubuntu cloud images set `PasswordAuthentication no`: to test SFTP logins in the VM, add a file in
+    `/etc/ssh/sshd_config.d/` with a name sorting before `60-cloudimg-settings.conf`.
 
 ## Current status (2026-11-05)
 
-- Done: skeleton, 47 unit tests, CI, test VM, module installed and visible in the panel menu.
-- **Next immediate step**: after the "copy instead of symlink" fix (commit f0fb549), run `sync`, re-run
-  the installer, verify that *WordPress sites* and *New WordPress site* pages load. Check the Apache
-  error log for the next problem (likely candidates below).
-- Things still marked `VERIFY` in the code (written from ISPConfig 3.2 docs, now running on 3.3.2):
-  tform/listform flow in `wpm_site_edit.php`, templates, `paging_tpl` path in the list definition
-  (no `paging.tpl.htm` exists under `interface/web/sites/templates/`), Remote API parameters in
-  `lib/SiteProvisioner.php`.
-- To test the create-site flow end to end: create a remote user in the panel (System → Remote Users),
-  put it in `/opt/ispconfig-wp-manager/config.php` in the VM (keep `dry_run => true` first, then false),
-  create a client, then a WordPress site with a `*.ispc.test` domain; set `ssl_letsencrypt => 'n'`.
-  Note: `sync` keeps the VM's `config.php`.
+- Done: both panel pages load; the `VERIFY` items are checked on 3.3.2; dry-run lists the API calls on the
+  form; real creation of website, DB user, DB and SFTP or FTP user works, and the generated logins work;
+  the job reaches the worker, which passes the empty web root check. See [ROADMAP.md](ROADMAP.md).
+- **Next immediate step**: finish a real WordPress install. It is untested: `wp core download` failed
+  because the VM had no internet access (see the VPN note below).
+- The VM has a remote user `wpmanager`, a client `testclient` and test sites `sito2`-`sito4`; its
+  `config.php` has `dry_run => false`. To start clean: `./dev/test-env.sh reset`, then redo that setup.
 - Then go through `docs/testing.md` (checklist) and write down results.
 
 ## Known open issues / roadmap

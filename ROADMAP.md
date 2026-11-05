@@ -10,7 +10,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] Multipass test environment (`dev/test-env.sh`)
 - [x] Module installs on ISPConfig 3.3.2 and appears in the panel menu
 - [x] List and form pages load without errors in the panel
-- [ ] Verify everything marked `VERIFY` in the code against ISPConfig 3.3.x
+- [x] Verify everything marked `VERIFY` in the code against ISPConfig 3.3.x
       (tform/listform flow, templates, `paging_tpl`, Remote API parameters)
 - [ ] Installer: run twice in a row, run after an ISPConfig update, `--uninstall`
 
@@ -20,7 +20,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [ ] **One-time reveal of the generated credentials** (WP admin, SFTP/FTP) in a site detail page,
       then clear them from the database; optional email to the admin
 - [ ] Site detail page: status, install log, links to the site, wp-admin and the ISPConfig website
-- [ ] Choice of SFTP or FTP access in the form, with password login
+- [x] Choice of SFTP or FTP access in the form, with password login
 - [ ] Per-site options in the form, pre-filled from the defaults: PHP version, locale, plugins, theme
 - [ ] Clear status messages for every failure case in `docs/testing.md`
 - [ ] **Detect existing WordPress installs** on every node (scan `/var/www/clients/*/web*/web`

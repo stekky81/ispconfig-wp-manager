@@ -4,8 +4,6 @@
 // "New WordPress site" page. On save it provisions the ISPConfig objects through the
 // Remote API (SiteProvisioner) and then stores the wpm_site record through the datalog,
 // which hands the WordPress install over to the target node.
-//
-// VERIFY against the installed ISPConfig version: tform_actions method names and flow.
 
 $tform_def_file = 'form/wpm_site.tform.php';
 

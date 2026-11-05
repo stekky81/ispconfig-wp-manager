@@ -38,6 +38,9 @@ sudo ./install/install.sh --role=node
 
 This installs the server module and plugin and the worker cron. WP-CLI must be in `/usr/local/bin/wp`.
 
+Sites with SFTP access log in with a password, so `sshd` on the node needs `PasswordAuthentication yes`.
+Ubuntu cloud images disable it (`/etc/ssh/sshd_config.d/60-cloudimg-settings.conf`).
+
 ## 4. Database tables
 
 The installer creates the tables in `dbispconfig` on the master. In a multiserver setup it also
