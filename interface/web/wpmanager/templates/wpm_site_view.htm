@@ -1,0 +1,61 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<div class='page-header'>
+    <h1>{tmpl_var name='domain'}</h1>
+</div>
+
+<div class="panel" style="padding:20px;">
+    <p>
+        <tmpl_if name="is_installed">
+        <a class="btn btn-default formbutton-default" href="http://{tmpl_var name='domain'}/" target="_blank" rel="noopener">{tmpl_var name='open_site_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="http://{tmpl_var name='domain'}/wp-admin/" target="_blank" rel="noopener">{tmpl_var name='open_admin_txt'}</a>
+        </tmpl_if>
+        <a class="btn btn-default formbutton-default" href="#" onclick="ISPConfig.capp('sites', '{tmpl_var name='website_redirect'}'); return false;">{tmpl_var name='open_website_txt'}</a>
+    </p>
+
+    <table class="table">
+        <tbody>
+            <tr><th>{tmpl_var name='status_txt'}</th><td id="site_status">{tmpl_var name='status'}</td></tr>
+            <tr><th>{tmpl_var name='wp_version_txt'}</th><td>{tmpl_var name='wp_version'}</td></tr>
+            <tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td>{tmpl_var name='wp_admin_user'}</td></tr>
+            <tr><th>{tmpl_var name='access_txt'}</th><td>{tmpl_var name='access_type'}: {tmpl_var name='access_user'}</td></tr>
+            <tr><th>{tmpl_var name='database_txt'}</th><td>{tmpl_var name='db_name'} ({tmpl_var name='db_user'})</td></tr>
+            <tr><th>{tmpl_var name='path_txt'}</th><td>{tmpl_var name='document_root'} ({tmpl_var name='system_user'})</td></tr>
+        </tbody>
+    </table>
+
+    <h2>{tmpl_var name='credentials_txt'}</h2>
+    <tmpl_if name="revealed">
+        <div class="alert alert-warning">{tmpl_var name='credentials_once_txt'}</div>
+        <table class="table">
+            <tbody>
+                <tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td><code id="wp_admin_user">{tmpl_var name='wp_admin_user'}</code></td></tr>
+                <tr><th>{tmpl_var name='wp_password_txt'}</th><td><code id="wp_password">{tmpl_var name='wp_password'}</code></td></tr>
+                <tr><th>{tmpl_var name='access_txt'}</th><td><code id="access_user">{tmpl_var name='access_user'}</code></td></tr>
+                <tr><th>{tmpl_var name='access_password_txt'}</th><td><code id="access_password">{tmpl_var name='access_password'}</code></td></tr>
+            </tbody>
+        </table>
+    <tmpl_else>
+        <tmpl_if name="can_reveal">
+            <p>{tmpl_var name='credentials_available_txt'}</p>
+            <input type="hidden" name="reveal" value="1" />
+            <button class="btn btn-default formbutton-success" type="button" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_view.php">{tmpl_var name='reveal_txt'}</button>
+        <tmpl_else>
+            <p id="credentials_gone">{tmpl_var name='credentials_unavailable_txt'}</p>
+        </tmpl_if>
+    </tmpl_if>
+
+    <tmpl_if name="status_message">
+        <h2>{tmpl_var name='log_txt'}</h2>
+        <pre>{tmpl_var name='status_message'}</pre>
+    </tmpl_if>
+
+    <input type="hidden" name="id" value="{tmpl_var name='id'}" />
+    <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
+    <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />
+
+    <div class="clear">
+        <div class="right">
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_list.php">{tmpl_var name='back_txt'}</button>
+        </div>
+    </div>
+</div>

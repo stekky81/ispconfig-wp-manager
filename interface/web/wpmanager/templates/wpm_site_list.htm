@@ -27,7 +27,7 @@
     <tbody>
         <tmpl_loop name="records">
         <tr>
-            <td>{tmpl_var name="domain"}</td>
+            <td><a href="#" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}">{tmpl_var name="domain"}</a></td>
             <td>{tmpl_var name="status"}</td>
             <td>{tmpl_var name="status_summary"}</td>
             <td>{tmpl_var name="wp_version"}</td>

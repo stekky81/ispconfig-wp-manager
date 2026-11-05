@@ -68,7 +68,8 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [ ] Same with FTP access: FTP user created instead of the SFTP user, login works
 - [ ] Site on slave node (VM B)
 - [ ] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
-- [ ] Secrets cleared from `wpm_site` after install
+- [ ] Secrets cleared from `wpm_site` after install (DB password) and after the reveal (the other two)
+- [ ] Passwords shown once on the site detail page, and they work
 - [ ] Defaults applied (PHP version, SSL, plugins)
 
 ### New site — failure cases

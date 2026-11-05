@@ -101,7 +101,6 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 
 ## Known open issues / roadmap
 
-- Generated WP admin and SFTP passwords are never shown to the admin: needs a one-time reveal page.
 - Multiserver: grant UPDATE on `wpm_site` to the `ispcsrvN` users (see `docs/architecture.md`).
 - Admin-only for now; clients/resellers and quota checks later.
 - Planned work, by milestone: see [ROADMAP.md](ROADMAP.md).

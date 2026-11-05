@@ -1,0 +1,20 @@
+<?php
+$wb['site_not_found_txt'] = 'Sito WordPress non trovato.';
+$wb['open_site_txt'] = 'Apri il sito';
+$wb['open_admin_txt'] = 'Apri wp-admin';
+$wb['open_website_txt'] = 'Sito in ISPConfig';
+$wb['status_txt'] = 'Stato';
+$wb['wp_version_txt'] = 'Versione WordPress';
+$wb['wp_admin_user_txt'] = 'Utente amministratore WordPress';
+$wb['wp_password_txt'] = 'Password amministratore WordPress';
+$wb['access_txt'] = 'Utente per l\'accesso ai file';
+$wb['access_password_txt'] = 'Password per l\'accesso ai file';
+$wb['database_txt'] = 'Database';
+$wb['path_txt'] = 'Percorso';
+$wb['credentials_txt'] = 'Password generate';
+$wb['credentials_available_txt'] = 'Le password si possono vedere una sola volta. Poi vengono cancellate dal pannello.';
+$wb['credentials_unavailable_txt'] = 'Non disponibili: già mostrate, oppure installazione ancora in corso.';
+$wb['credentials_once_txt'] = 'Salva subito queste password: non verranno mostrate di nuovo.';
+$wb['reveal_txt'] = 'Mostra le password';
+$wb['log_txt'] = 'Log di installazione';
+$wb['back_txt'] = 'Indietro';
