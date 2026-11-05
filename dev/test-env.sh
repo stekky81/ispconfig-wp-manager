@@ -113,12 +113,10 @@ cmd_create() {
 
     install_wpcli "$MASTER"
 
-    info "Mounting the project at $MOUNT_POINT"
-    multipass mount "$PROJECT_DIR" "$MASTER:$MOUNT_POINT"
-
+    # Snapshot first, mount afterwards: the clean snapshot has no mount,
+    # and reset re-creates the mount after each restore.
     snapshot "$MASTER"
-    # Mounts survive restarts but are not part of the snapshot: re-check after start.
-    multipass info "$MASTER" | grep -q "$MOUNT_POINT" || multipass mount "$PROJECT_DIR" "$MASTER:$MOUNT_POINT"
+    ensure_mount "$MASTER"
 
     cmd_info
     echo
@@ -126,11 +124,18 @@ cmd_create() {
     multipass exec "$MASTER" -- sudo grep -i "admin password" /root/ispconfig-install.log || true
 }
 
+ensure_mount() {
+    local name=$1
+    if ! multipass info "$name" | grep -q "$MOUNT_POINT"; then
+        info "Mounting the project at $MOUNT_POINT in $name (first time: a few minutes)"
+        multipass mount "$PROJECT_DIR" "$name:$MOUNT_POINT"
+    fi
+}
+
 cmd_slave() {
     exists "$MASTER" || die "create the master first"
     launch "$SLAVE"
     install_wpcli "$SLAVE"
-    multipass mount "$PROJECT_DIR" "$SLAVE:$MOUNT_POINT"
     cat <<EOF
 
 The slave must be joined to the master interactively (ISPConfig "expert mode").
@@ -149,7 +154,7 @@ cmd_reset() {
         multipass stop "$vm"
         multipass restore --destructive "$vm.$SNAPSHOT"
         multipass start "$vm"
-        multipass info "$vm" | grep -q "$MOUNT_POINT" || multipass mount "$PROJECT_DIR" "$vm:$MOUNT_POINT"
+        ensure_mount "$vm"
     done
 }
 
@@ -169,7 +174,7 @@ cmd_info() {
 case "${1:-}" in
     create) cmd_create ;;
     slave) cmd_slave ;;
-    snapshot-slave) snapshot "$SLAVE" ;;
+    snapshot-slave) snapshot "$SLAVE"; ensure_mount "$SLAVE" ;;
     reset) cmd_reset ;;
     shell) multipass shell "$MASTER" ;;
     info) cmd_info ;;
