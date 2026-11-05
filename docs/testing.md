@@ -21,7 +21,7 @@ Never test on the production nodes. Use two disposable VMs that mirror productio
 ### Quick start on macOS: Multipass
 
 ```bash
-brew install --cask multipass
+brew install --cask multipass        # macOS needs Multipass 1.17.0 or later
 UBUNTU=24.04 WEB=apache ./dev/test-env.sh create   # same Ubuntu and web server as production
 ./dev/test-env.sh info                             # panel URL and IP
 ./dev/test-env.sh reset                            # back to the clean snapshot after each test

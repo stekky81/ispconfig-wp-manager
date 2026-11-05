@@ -34,6 +34,14 @@ info() { echo "==> $*"; }
 
 command -v multipass >/dev/null || die "Multipass not found: brew install --cask multipass"
 
+# Multipass < 1.17 on macOS ships qemu-img 8.2.1, which crashes (SIGSEGV in img_amend) on launch.
+MP_VERSION=$(multipass version 2>/dev/null | awk '/^multipass /{print $2}' | cut -d+ -f1)
+if [[ $(uname) == Darwin && $MP_VERSION =~ ^([0-9]+)\.([0-9]+) ]]; then
+    if (( BASH_REMATCH[1] < 1 || (BASH_REMATCH[1] == 1 && BASH_REMATCH[2] < 17) )); then
+        die "Multipass $MP_VERSION is too old on macOS: install 1.17.0 or later"
+    fi
+fi
+
 exists() { multipass info "$1" >/dev/null 2>&1; }
 
 ai_flags() {
