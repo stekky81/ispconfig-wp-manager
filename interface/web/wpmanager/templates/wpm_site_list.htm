@@ -12,6 +12,7 @@
         <tr>
             <th data-column="domain"><tmpl_var name="domain_txt"></th>
             <th data-column="status"><tmpl_var name="status_txt"></th>
+            <th><tmpl_var name="status_message_txt"></th>
             <th><tmpl_var name="wp_version_txt"></th>
             <th class="small-col text-right">{tmpl_var name='search_limit'}</th>
         </tr>
@@ -19,7 +20,8 @@
             <td><input class="form-control" type="text" name="search_domain" value="{tmpl_var name='search_domain'}" /></td>
             <td><select class="form-control" name="search_status">{tmpl_var name='search_status'}</select></td>
             <td></td>
-            <td class="text-right"><button type="button" class="btn btn-default formbutton-default formbutton-narrow" name="Filter" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_list.php"><span class="icon icon-filter"></span></button></td>
+            <td></td>
+            <td class="text-right"><button type="button" class="btn btn-default formbutton-default formbutton-narrow" name="Filter" id="Filter" value="{tmpl_var name='filter_txt'}" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_list.php"><span class="icon icon-filter"></span></button></td>
         </tr>
     </thead>
     <tbody>
@@ -27,6 +29,7 @@
         <tr>
             <td>{tmpl_var name="domain"}</td>
             <td>{tmpl_var name="status"}</td>
+            <td>{tmpl_var name="status_summary"}</td>
             <td>{tmpl_var name="wp_version"}</td>
             <td class="text-right">
                 <a class="btn btn-default formbutton-danger formbutton-narrow" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_del.php?id={tmpl_var name='id'}&_csrf_id={tmpl_var name='csrf_id'}&_csrf_key={tmpl_var name='csrf_key'}&phpsessid={tmpl_var name='phpsessid'}','{tmpl_var name='delete_confirmation'}');"><span class="icon icon-delete"></span></a>
@@ -35,12 +38,12 @@
         </tmpl_loop>
         <tmpl_unless name="records">
         <tr class="tbl_row_noresults">
-            <td colspan="4">{tmpl_var name='globalsearch_noresults_text_txt'}</td>
+            <td colspan="5">{tmpl_var name='globalsearch_noresults_text_txt'}</td>
         </tr>
         </tmpl_unless>
     </tbody>
     <tfoot>
-        <tr><td colspan="4"><tmpl_var name="paging"></td></tr>
+        <tr><td colspan="5"><tmpl_var name="paging"></td></tr>
     </tfoot>
 </table>
 </div>

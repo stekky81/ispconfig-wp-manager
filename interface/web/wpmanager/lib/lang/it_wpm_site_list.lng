@@ -4,5 +4,6 @@ $wb['list_desc_txt'] = 'Rimuovere un sito da qui non elimina il sito web, il dat
 $wb['add_new_record_txt'] = 'Nuovo sito WordPress';
 $wb['domain_txt'] = 'Dominio';
 $wb['status_txt'] = 'Stato';
+$wb['status_message_txt'] = 'Dettagli';
 $wb['wp_version_txt'] = 'WordPress';
 $wb['delete_confirmation'] = 'Rimuovere questo sito dalla lista WordPress? Il sito web non viene eliminato.';
