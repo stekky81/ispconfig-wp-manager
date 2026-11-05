@@ -32,6 +32,15 @@ final class SiteInventoryTest extends TestCase
         self::assertSame('4.1', $report['themes'][0]['update']);
     }
 
+    public function testMinorReleaseIsKeptNextToANewBranch(): void
+    {
+        $core = '[{"version":"7.2","update_type":"major"},{"version":"7.1.5","update_type":"minor"}]';
+        $report = SiteInventory::report('7.1.4', $core, '[]', '[]');
+
+        self::assertSame('7.2', $report['core_update']);
+        self::assertSame('7.1.5', $report['core_minor']);
+    }
+
     public function testUpdateCountAddsCorePluginsAndThemes(): void
     {
         self::assertSame(3, SiteInventory::updateCount(SiteInventory::report('7.1.4', self::CORE, self::PLUGINS, self::THEMES)));

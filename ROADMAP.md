@@ -34,7 +34,8 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] Scheduled check (worker): core, plugin and theme versions and available updates
 - [x] Dashboard: per node and per site, filter "updates available"
 - [ ] Optional daily/weekly summary email
-- [ ] First pilot on the production nodes (read-only, so no risk to the sites)
+- [ ] First pilot on the production nodes. Read-only only with automatic updates turned off first:
+      they start as soon as `dry_run` is off
 
 ## 0.4 — Safe updates
 
@@ -42,7 +43,10 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] Update core / plugins / themes from the panel
 - [x] Health check after the update (HTTP 200, no PHP fatal errors, wp-admin reachable)
 - [x] Automatic rollback when the health check fails
-- [ ] Bulk updates and scheduled auto-updates per site
+- [x] Automatic updates, on by default: plugins, themes and minor core releases, with a switch per site
+  (no bulk updates: decided on 2026-11-05)
+- [x] Separate button to move to a new major version of WordPress
+- [x] Optional backups without `wp-content/uploads`, for large sites
 
 ## 0.5 — Clone and staging
 

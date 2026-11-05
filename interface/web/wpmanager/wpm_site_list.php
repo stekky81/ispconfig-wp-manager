@@ -18,7 +18,8 @@ class list_action extends listform_actions
         global $app;
 
         // Read before the parent call, which replaces status with its display value.
-        $summary = \WpManager\SiteStatus::summary((string)$rec['status'], $rec['status_message'] ?? null);
+        $summary = \WpManager\SiteStatus::summary((string)$rec['status'], $rec['status_message'] ?? null)
+            ?: \WpManager\SiteStatus::actionProblem((string)$rec['action_status'], $rec['action_message'] ?? null);
         $rec = parent::prepareDataRow($rec);
         // The core escapes only the fields of the list definition, and this text can come from WP-CLI.
         $rec['status_summary'] = $app->functions->htmlentities($summary);

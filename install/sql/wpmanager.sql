@@ -44,6 +44,11 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `action_status` varchar(20) NOT NULL DEFAULT '',
   `action_message` text,
   `backups_json` text,
+  -- Automatic updates: auto_skip identifies versions that were rolled back
+  `auto_update` enum('y','n') NOT NULL DEFAULT 'y',
+  `auto_skip` varchar(40) NOT NULL DEFAULT '',
+  `last_auto` datetime DEFAULT NULL,
+  `backup_uploads` enum('y','n') NOT NULL DEFAULT 'y',
   PRIMARY KEY (`wpm_site_id`),
   UNIQUE KEY `domain` (`domain`),
   KEY `server_id` (`server_id`)
@@ -69,6 +74,31 @@ CREATE TABLE IF NOT EXISTS `wpm_setting` (
   `setting_value` mediumtext,
   PRIMARY KEY (`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Upgrade from the versions that always included the uploads in backups.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` ADD `backup_uploads` enum(\'y\',\'n\') NOT NULL DEFAULT \'y\'')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'backup_uploads'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions without automatic updates.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site`
+       ADD `auto_update` enum(\'y\',\'n\') NOT NULL DEFAULT \'y\',
+       ADD `auto_skip` varchar(40) NOT NULL DEFAULT \'\',
+       ADD `last_auto` datetime DEFAULT NULL')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'auto_update'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
 
 -- Upgrade from the versions without actions on existing sites.
 SET @wpm_sql = (

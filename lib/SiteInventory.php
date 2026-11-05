@@ -21,7 +21,7 @@ final class SiteInventory
     ) {
     }
 
-    /** @return array{version:string, core_update:?string, plugins:list<array>, themes:list<array>} */
+    /** @return array{version:string, core_update:?string, core_minor:?string, plugins:list<array>, themes:list<array>} */
     public function collect(array $site, ?Runner $runner = null): array
     {
         $runner ??= new Runner($this->config->isDryRun(), [], 120);
@@ -38,16 +38,22 @@ final class SiteInventory
 
     public static function report(string $version, string $core, string $plugins, string $themes): array
     {
+        $installed = WordPressInstaller::parseVersion($version);
         $coreUpdate = null;
+        $coreMinor = null;
         foreach (self::decode($core) as $item) {
             $candidate = is_array($item) ? self::text($item['version'] ?? '') : '';
             if ($candidate !== '' && ($coreUpdate === null || version_compare($candidate, $coreUpdate, '>'))) {
                 $coreUpdate = $candidate;
             }
+            if (AutoUpdatePolicy::isMinorCoreUpdate($installed, $candidate) && ($coreMinor === null || version_compare($candidate, $coreMinor, '>'))) {
+                $coreMinor = $candidate;
+            }
         }
         return [
-            'version' => WordPressInstaller::parseVersion($version),
+            'version' => $installed,
             'core_update' => $coreUpdate,
+            'core_minor' => $coreMinor,
             'plugins' => self::items(self::decode($plugins)),
             'themes' => self::items(self::decode($themes)),
         ];

@@ -29,6 +29,22 @@ final class SiteStatusTest extends TestCase
         self::assertSame('', SiteStatus::summary('queued', "  \n "));
     }
 
+    // A rollback happens without anyone watching: the list must show it.
+    public function testProblemsOfAnActionAreShown(): void
+    {
+        self::assertSame('Broken after the update', SiteStatus::actionProblem('rolled_back', 'Broken after the update'));
+        self::assertSame('Still broken', SiteStatus::actionProblem('rollback_failed', 'Still broken'));
+        self::assertSame('Not updated', SiteStatus::actionProblem('refused', 'Not updated'));
+        self::assertSame('Disk full', SiteStatus::actionProblem('failed', 'Disk full'));
+    }
+
+    public function testNormalActionsShowNothing(): void
+    {
+        self::assertSame('', SiteStatus::actionProblem('updated', 'Updated'));
+        self::assertSame('', SiteStatus::actionProblem('done', 'Backup created'));
+        self::assertSame('', SiteStatus::actionProblem('', null));
+    }
+
     public function testWhitespaceIsCollapsedAndLongTextShortened(): void
     {
         self::assertSame('a b c', SiteStatus::summary('error', "a\n  b\tc"));

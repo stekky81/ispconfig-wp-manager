@@ -24,7 +24,7 @@ $app->tpl->setVar($wb);
 $escape = static fn($value): string => $app->functions->htmlentities((string)$value);
 
 $rows = $app->db->queryAllRecords(
-    "SELECT s.wpm_site_id, s.domain, s.wp_version, s.updates_count, s.updates_json, s.last_check, v.server_name
+    "SELECT s.wpm_site_id, s.domain, s.wp_version, s.updates_count, s.updates_json, s.last_check, s.action_status, s.action_message, v.server_name
      FROM wpm_site s LEFT JOIN server v ON v.server_id = s.server_id
      WHERE s.status = 'installed' ORDER BY s.updates_count DESC, s.domain"
 );
@@ -51,7 +51,7 @@ foreach ($rows as $row) {
         'wp_version' => $escape($row['wp_version']),
         'updates_count' => (int)$row['updates_count'],
         'updates' => $escape(implode(', ', $updates)),
-        'error' => $escape(\WpManager\UpdateOverview::error($row['updates_json'])),
+        'error' => $escape(trim(\WpManager\UpdateOverview::error($row['updates_json']) . ' ' . \WpManager\SiteStatus::actionProblem((string)$row['action_status'], $row['action_message']))),
         'last_check' => $escape($row['last_check'] ?? ''),
     ];
 }

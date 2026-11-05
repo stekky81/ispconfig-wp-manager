@@ -54,6 +54,10 @@ verified, then marked with a `COMPLETE` file. The last 3 are kept. The folder wa
 Exception: with backup mode `userzip` and a tar format ISPConfig ignores its excludes, so these files end up in its
 archives. Nothing is lost, but they grow. Modes `rootgz`, zip formats and borg apply the excludes.
 
+Large sites can leave `wp-content/uploads` out of their backups, with a switch on the site page. Such a backup carries a
+`NO_UPLOADS` mark and a restore follows the mark, not the current switch, so uploads are never deleted by mistake.
+After that restore, files uploaded since the backup stay on disk but the database no longer lists them.
+
 A restore first verifies and unpacks the backup, and only then replaces `web/` and imports the database. Actions asked
 in the panel reach the node through the datalog and run once: a failed restore never starts again by itself.
 
@@ -65,11 +69,18 @@ checked again. What worked before and does not work now, or a failed command, re
 The checks compare before and after, so a login page moved on purpose is not a failure. They call the local web server
 directly: a vhost bound to a single IP address may need a different address.
 
+Automatic updates are on by default: plugins, themes and minor core releases, never a new branch of WordPress. They
+go through the same steps, one site per worker run and once a day per site at most. Three switches stop them: `dry_run`,
+Automatic updates in the settings and the switch of each site. After a rollback the same set of versions is skipped until
+a different version appears, otherwise a broken update would break the site again every day. The outcome appears in the
+site list. The panel has no bulk update on purpose. A new branch of WordPress is only installed from its own button on the
+site page, with the same checks and rollback.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the
-master, on top of `config.php`. The record of each site carries everything the worker needs from them, so the
-nodes do not read that table. `dry_run`, the Remote API account and the key file can only be set in `config.php`.
+master, on top of `config.php`. The record of each site carries what the worker needs to install it, and the worker
+reads only the automatic updates switch from that table. `dry_run`, the Remote API account and the key file can only be set in `config.php`.
 
 ## Existing sites
 

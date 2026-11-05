@@ -37,6 +37,10 @@ final class Config
             // Same placeholder syntax as System → Interface → Main config → DB prefix
             'db_prefix' => 'c[CLIENT_ID]_',
         ],
+        'updates' => [
+            // Plugins, themes and minor core releases. Nothing runs while dry_run is on.
+            'auto' => 'y',
+        ],
         'wordpress' => [
             'locale' => 'it_IT',
             'plugins' => [],

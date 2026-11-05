@@ -29,6 +29,12 @@ return [
         'db_prefix' => 'c[CLIENT_ID]_',
     ],
 
+    // Plugins, themes and minor core releases of every site, also the ones found on the nodes.
+    // Starts as soon as dry_run is off: set 'n' to look at a node without changing it.
+    'updates' => [
+        'auto' => 'y',
+    ],
+
     'wordpress' => [
         'locale' => 'it_IT',
         'plugins' => [

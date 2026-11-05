@@ -11,7 +11,10 @@ namespace WpManager;
  */
 final class SiteUpdater
 {
-    public const SCOPES = ['all', 'core', 'plugins', 'themes'];
+    /** What the panel can ask for. */
+    public const SCOPES = ['all', 'core', 'plugins', 'themes', 'major'];
+    /** Plugins, themes and minor core releases: the unattended update of the worker. */
+    public const AUTOMATIC = 'automatic';
 
     public function __construct(
         private readonly Config $config,
@@ -24,7 +27,7 @@ final class SiteUpdater
     /** @return array{outcome:string, message:string} outcome: updated, refused, rolled_back or rollback_failed */
     public function update(array $site, string $scope, ?Runner $runner = null): array
     {
-        if (!in_array($scope, self::SCOPES, true)) {
+        if ($scope !== self::AUTOMATIC && !in_array($scope, self::SCOPES, true)) {
             throw new \InvalidArgumentException("Invalid update scope: {$scope}");
         }
         $runner ??= new Runner($this->config->isDryRun(), [], 1800);
@@ -55,14 +58,15 @@ final class SiteUpdater
         $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
         $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
 
-        if ($scope === 'all' || $scope === 'core') {
-            $runner->mustRun($wp->coreUpdate());
+        // Only 'major' leaves the current branch of WordPress.
+        if (in_array($scope, ['all', 'core', 'major', self::AUTOMATIC], true)) {
+            $runner->mustRun($wp->coreUpdate($scope !== 'major'));
             $runner->mustRun($wp->coreUpdateDb());
         }
-        if ($scope === 'all' || $scope === 'plugins') {
+        if (in_array($scope, ['all', 'plugins', self::AUTOMATIC], true)) {
             $runner->mustRun($wp->pluginUpdateAll());
         }
-        if ($scope === 'all' || $scope === 'themes') {
+        if (in_array($scope, ['all', 'themes', self::AUTOMATIC], true)) {
             $runner->mustRun($wp->themeUpdateAll());
         }
     }

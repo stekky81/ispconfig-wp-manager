@@ -63,6 +63,7 @@ $app->tpl->setVar([
     'ssl_options' => $options($yesNo, $d['ssl']),
     'ssl_letsencrypt_options' => $options($yesNo, $d['ssl_letsencrypt']),
     'subdomain_options' => $options(['none' => 'none', 'www' => 'www', '*' => '*'], $d['subdomain']),
+    'auto_updates_options' => $options($yesNo, $config->get('updates.auto')),
     'hd_quota' => $escape($d['hd_quota']),
     'traffic_quota' => $escape($d['traffic_quota']),
     'locale' => $escape($wp['locale']),

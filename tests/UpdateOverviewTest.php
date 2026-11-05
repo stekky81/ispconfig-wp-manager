@@ -51,6 +51,14 @@ final class UpdateOverviewTest extends TestCase
         ], UpdateOverview::available($json));
     }
 
+    // Regression: a PHP stack trace filled the whole table cell.
+    public function testErrorKeepsOnlyItsFirstLine(): void
+    {
+        $json = (string)json_encode(['error' => "Command failed (1): PHP Fatal error: boom\nStack trace:\n#0 /x.php"]);
+
+        self::assertSame('Command failed (1): PHP Fatal error: boom', UpdateOverview::error($json));
+    }
+
     public function testStoredErrorAndBrokenJson(): void
     {
         self::assertSame('wp failed', UpdateOverview::error('{"error":"wp failed"}'));

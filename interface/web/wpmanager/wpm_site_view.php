@@ -42,6 +42,19 @@ if (isset($_GET['check'])) {
     $app->tpl->setVar('check_requested', 1);
 }
 
+// Read directly from the master by the worker: nothing to hand over to the node.
+if (isset($_GET['auto']) && in_array($_GET['auto'], ['y', 'n'], true)) {
+    $app->auth->csrf_token_check('GET');
+    $app->db->query("UPDATE wpm_site SET auto_update = ?, auto_skip = '' WHERE wpm_site_id = ?", $_GET['auto'], $id);
+    $site['auto_update'] = $_GET['auto'];
+}
+
+if (isset($_GET['backup_uploads']) && in_array($_GET['backup_uploads'], ['y', 'n'], true)) {
+    $app->auth->csrf_token_check('GET');
+    $app->db->query('UPDATE wpm_site SET backup_uploads = ? WHERE wpm_site_id = ?', $_GET['backup_uploads'], $id);
+    $site['backup_uploads'] = $_GET['backup_uploads'];
+}
+
 // The request reaches the node through the datalog, like every other change.
 $action = (string)($_GET['action'] ?? '');
 if (in_array($action, ['backup', 'restore', 'update'], true)) {
@@ -92,6 +105,8 @@ $updates = array_map(
 );
 $app->tpl->setLoop('updates', $updates);
 $app->tpl->setVar('has_updates', $updates === [] ? 0 : 1);
+$major = \WpManager\AutoUpdatePolicy::majorUpdate(json_decode((string)$site['updates_json'], true) ?: []);
+$app->tpl->setVar('major_update', $escape($major));
 $app->tpl->setVar('update_error', $escape(\WpManager\UpdateOverview::error($site['updates_json'])));
 $app->tpl->setVar('last_check', $escape($site['last_check'] ?? ''));
 
@@ -101,11 +116,14 @@ foreach (json_decode((string)$site['backups_json'], true) ?: [] as $backup) {
     $backup_rows[] = [
         'backup_id' => $escape($backup['id'] ?? ''),
         'backup_size' => $escape(round((int)($backup['size'] ?? 0) / 1048576, 1)),
+        'backup_no_uploads' => ($backup['uploads'] ?? true) ? 0 : 1,
     ];
 }
 $app->tpl->setLoop('backups', $backup_rows);
 $app->tpl->setVar('has_backups', $backup_rows === [] ? 0 : 1);
 $app->tpl->setVar('action_busy', $action_busy ? 1 : 0);
+$app->tpl->setVar('auto_update_on', $site['auto_update'] === 'y' ? 1 : 0);
+$app->tpl->setVar('backup_uploads_on', $site['backup_uploads'] === 'y' ? 1 : 0);
 $app->tpl->setVar('action_status', $escape($site['action_status']));
 $app->tpl->setVar('action_message', $escape($site['action_message'] ?? ''));
 

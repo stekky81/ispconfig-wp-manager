@@ -14,6 +14,7 @@ const WPM_MAX_ATTEMPTS = 3;    // failed installs are retried at most this many 
 const WPM_SCAN_INTERVAL = 3600; // look for existing WordPress installs once an hour
 const WPM_CHECK_INTERVAL = 86400; // read the updates of each site once a day
 const WPM_CHECKS_PER_RUN = 3;   // keep each run short: jobs wait for the same lock
+const WPM_AUTO_INTERVAL = 86400; // at most one automatic update of a site per day
 
 if (PHP_SAPI !== 'cli' || posix_geteuid() !== 0) {
     fwrite(STDERR, "Run from cron as root.\n");
@@ -29,11 +30,13 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 
 use WpManager\Config;
+use WpManager\AutoUpdatePolicy;
 use WpManager\Crypto;
 use WpManager\HealthCheck;
 use WpManager\JobQueue;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
+use WpManager\Settings;
 use WpManager\SiteBackup;
 use WpManager\SiteInventory;
 use WpManager\SiteScanner;
@@ -209,5 +212,45 @@ if (!$config->isDryRun()) {
                 $site['wpm_site_id'],
             );
         }
+    }
+}
+
+// Automatic updates: plugins, themes and minor core releases, one site per run. dry_run stops
+// them, then the switch in the settings on the master, then the one of the site.
+if (!$config->isDryRun()) {
+    $stored = $app->dbmaster->queryOneRecord("SELECT setting_value FROM wpm_setting WHERE setting_name = 'defaults'");
+    $settings = is_array($stored) ? $config->withOverrides(Settings::fromJson((string)$stored['setting_value'])) : $config;
+    $enabled = $settings->get('updates.auto') === 'y';
+
+    $candidates = $enabled ? $app->dbmaster->queryAllRecords(
+        "SELECT * FROM wpm_site
+         WHERE server_id = ? AND status = 'installed' AND auto_update = 'y' AND updates_count > 0 AND action_request = ''
+           AND (last_auto IS NULL OR last_auto < NOW() - INTERVAL " . WPM_AUTO_INTERVAL . ' SECOND)
+         ORDER BY last_auto IS NOT NULL, last_auto',
+        $conf['server_id'],
+    ) : [];
+
+    foreach ($candidates ?: [] as $site) {
+        $report = json_decode((string)$site['updates_json'], true);
+        if (!is_array($report) || !isset($report['plugins']) || !AutoUpdatePolicy::shouldRun($site, $report, $enabled)) {
+            continue;
+        }
+        try {
+            $result = $updater->update($site, SiteUpdater::AUTOMATIC);
+        } catch (\Throwable $e) {
+            $result = ['outcome' => 'failed', 'message' => 'Automatic update not started: ' . $e->getMessage()];
+        }
+        $rolledBack = in_array($result['outcome'], ['rolled_back', 'rollback_failed'], true);
+        $app->dbmaster->query(
+            'UPDATE wpm_site SET action_status = ?, action_message = ?, backups_json = ?, last_auto = NOW(), last_check = NULL,
+                auto_skip = IF(?, ?, auto_skip) WHERE wpm_site_id = ?',
+            $result['outcome'],
+            'Automatic update: ' . mb_substr($result['message'], 0, 1900),
+            json_encode($backups->list($site), JSON_THROW_ON_ERROR),
+            $rolledBack ? 1 : 0,
+            AutoUpdatePolicy::fingerprint($report),
+            $site['wpm_site_id'],
+        );
+        break;
     }
 }

@@ -24,6 +24,7 @@ final class SettingsTest extends TestCase
             'locale' => 'en_GB',
             'plugins' => 'akismet, jetpack',
             'theme' => '',
+            'auto_updates' => 'y',
         ];
     }
 
@@ -54,7 +55,7 @@ final class SettingsTest extends TestCase
             'key_file' => '/tmp/key',
         ]));
 
-        self::assertSame(['site_defaults', 'wordpress'], array_keys($overrides));
+        self::assertSame(['site_defaults', 'wordpress', 'updates'], array_keys($overrides));
         $config = Config::fromArray(['dry_run' => true])->withOverrides($overrides);
         self::assertTrue($config->isDryRun());
     }
@@ -67,6 +68,14 @@ final class SettingsTest extends TestCase
         self::assertTrue($config->isDryRun());
         self::assertSame('de_DE', $config->get('wordpress.locale'));
         self::assertArrayNotHasKey('X', $config->get('wordpress.constants'));
+    }
+
+    public function testAutomaticUpdatesAreOnUnlessTurnedOff(): void
+    {
+        self::assertSame('y', Config::fromArray([])->get('updates.auto'));
+
+        $off = Settings::fromInput($this->input(['auto_updates' => 'n']));
+        self::assertSame('n', Config::fromArray([])->withOverrides(Settings::fromJson((string)json_encode($off)))->get('updates.auto'));
     }
 
     public function testBrokenStoredSettingsAreIgnored(): void
@@ -94,6 +103,7 @@ final class SettingsTest extends TestCase
             'plugin' => [['plugins' => '--require=/tmp/x.php']],
             'theme' => [['theme' => '../x']],
             'php' => [['server_php_id' => 'abc']],
+            'auto updates' => [['auto_updates' => 'maybe']],
         ];
     }
 }

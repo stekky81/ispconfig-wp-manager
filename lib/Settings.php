@@ -15,6 +15,7 @@ final class Settings
     private const ALLOWED = [
         'site_defaults' => ['server_php_id', 'hd_quota', 'traffic_quota', 'ssl', 'ssl_letsencrypt', 'subdomain'],
         'wordpress' => ['locale', 'plugins', 'theme'],
+        'updates' => ['auto'],
     ];
 
     /** @return array<string, array<string, mixed>> validated overrides for Config::withOverrides() */
@@ -34,6 +35,9 @@ final class Settings
                 'locale' => Validator::locale((string)($in['locale'] ?? '')),
                 'plugins' => Validator::wpSlugList((string)($in['plugins'] ?? '')),
                 'theme' => $theme === '' ? '' : Validator::wpSlug($theme),
+            ],
+            'updates' => [
+                'auto' => self::choice($in['auto_updates'] ?? null, ['y', 'n']),
             ],
         ];
     }

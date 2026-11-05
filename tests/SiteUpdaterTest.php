@@ -164,6 +164,60 @@ final class SiteUpdaterTest extends TestCase
         ];
     }
 
+    public function testAutomaticUpdatesKeepCoreOnMinorReleases(): void
+    {
+        $runner = new Runner(true);
+        $this->updater([200, 200])->update($this->site(), SiteUpdater::AUTOMATIC, $runner);
+        $log = implode("\n", $runner->log());
+
+        self::assertStringContainsString("'core' 'update' '--minor'", $log);
+        self::assertStringContainsString("'plugin' 'update' '--all'", $log);
+        self::assertStringContainsString("'theme' 'update' '--all'", $log);
+    }
+
+    /** @dataProvider minorScopes */
+    public function testOnlyTheMajorButtonLeavesTheBranch(string $scope, bool $minor): void
+    {
+        $runner = new Runner(true);
+        $this->updater([200, 200])->update($this->site(), $scope, $runner);
+        $log = implode("\n", $runner->log());
+
+        self::assertStringContainsString("'core' 'update'", $log);
+        self::assertSame($minor, str_contains($log, "'--minor'"));
+    }
+
+    public static function minorScopes(): array
+    {
+        return [
+            'all' => ['all', true],
+            'core' => ['core', true],
+            'automatic' => [SiteUpdater::AUTOMATIC, true],
+            'major' => ['major', false],
+        ];
+    }
+
+    public function testAMajorUpdateRunsTheDatabaseUpgradeAndNothingElse(): void
+    {
+        $runner = new Runner(true);
+        $this->updater([200, 200])->update($this->site(), 'major', $runner);
+        $log = implode("\n", $runner->log());
+
+        self::assertStringContainsString("'core' 'update-db'", $log);
+        self::assertStringNotContainsString("'plugin'", $log);
+    }
+
+    public function testAMajorUpdateIsRolledBackToo(): void
+    {
+        $result = $this->updater([200, 500, 200])->update($this->site(), 'major', new Runner(true));
+
+        self::assertSame('rolled_back', $result['outcome']);
+    }
+
+    public function testThePanelCanNotAskForTheAutomaticScope(): void
+    {
+        self::assertNotContains(SiteUpdater::AUTOMATIC, SiteUpdater::SCOPES);
+    }
+
     public function testUnknownScopeIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);

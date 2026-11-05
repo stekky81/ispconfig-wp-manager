@@ -50,6 +50,21 @@
         <a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=update&scope=themes&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_themes_txt'}</a>
     </p>
     </tmpl_unless></tmpl_if>
+    <tmpl_if name="major_update"><tmpl_unless name="action_busy">
+    <div class="alert alert-info" id="major_update">
+        {tmpl_var name='major_available_txt'} {tmpl_var name='major_update'}.
+        <a class="btn btn-default formbutton-success" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=update&scope=major&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='major_confirm_txt'}');">{tmpl_var name='major_update_txt'} {tmpl_var name='major_update'}</a>
+    </div>
+    </tmpl_unless></tmpl_if>
+    <p id="auto_update">
+        <tmpl_if name="auto_update_on">
+            {tmpl_var name='auto_on_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&auto=n&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_off_txt'}</button>
+        <tmpl_else>
+            {tmpl_var name='auto_off_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&auto=y&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_on_txt'}</button>
+        </tmpl_if>
+    </p>
     <p>{tmpl_var name='last_check_txt'}: {tmpl_var name='last_check'}
         <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&check=1&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='check_now_txt'}</button>
     </p>
@@ -66,13 +81,22 @@
                 <tmpl_loop name="backups">
                 <tr>
                     <td>{tmpl_var name='backup_id'}</td>
-                    <td>{tmpl_var name='backup_size'} MB</td>
+                    <td>{tmpl_var name='backup_size'} MB<tmpl_if name="backup_no_uploads"> · {tmpl_var name='no_uploads_txt'}</tmpl_if></td>
                     <td class="text-right"><tmpl_unless name="action_busy"><a class="btn btn-default formbutton-danger" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=restore&backup={tmpl_var name='backup_id'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='restore_confirm_txt'}');">{tmpl_var name='restore_txt'}</a></tmpl_unless></td>
                 </tr>
                 </tmpl_loop>
             </tbody>
         </table>
     </tmpl_if>
+    <p id="backup_uploads">
+        <tmpl_if name="backup_uploads_on">
+            {tmpl_var name='uploads_on_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&backup_uploads=n&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='uploads_turn_off_txt'}</button>
+        <tmpl_else>
+            {tmpl_var name='uploads_off_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&backup_uploads=y&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='uploads_turn_on_txt'}</button>
+        </tmpl_if>
+    </p>
     <tmpl_unless name="action_busy">
         <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=backup&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='backup_now_txt'}</button>
     </tmpl_unless>

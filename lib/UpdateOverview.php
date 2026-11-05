@@ -52,7 +52,7 @@ final class UpdateOverview
     /** Why the last check failed, or ''. */
     public static function error(?string $json): string
     {
-        return (string)(self::decode($json)['error'] ?? '');
+        return strtok((string)(self::decode($json)['error'] ?? ''), "\n") ?: '';
     }
 
     private static function decode(?string $json): array

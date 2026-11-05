@@ -18,6 +18,8 @@ final class SiteBackup implements SiteBackups
     private const FILES = 'files.tar.gz';
     private const DATABASE = 'db.sql.gz';
     private const COMPLETE = 'COMPLETE';
+    /** Marks a backup taken without wp-content/uploads: only the backup decides how it is restored. */
+    private const NO_UPLOADS = 'NO_UPLOADS';
 
     public function __construct(
         private readonly Config $config,
@@ -43,8 +45,13 @@ final class SiteBackup implements SiteBackups
         $runner->mustRun(new Command(['mkdir', '-p', '-m', '0700', '--', $dir], $user));
         $runner->mustRun($wp->dbExport("{$dir}/db.sql"));
         $runner->mustRun(new Command(['gzip', '--', "{$dir}/db.sql"], $user));
-        $runner->mustRun(new Command(['tar', '-czf', "{$dir}/" . self::FILES, '-C', $web, '.'], $user));
+        $withoutUploads = ($site['backup_uploads'] ?? 'y') === 'n';
+        $exclude = $withoutUploads ? ['--exclude=./wp-content/uploads'] : [];
+        $runner->mustRun(new Command(array_merge(['tar', '-czf', "{$dir}/" . self::FILES], $exclude, ['-C', $web, '.']), $user));
         $this->verify($dir, $user, $runner);
+        if ($withoutUploads) {
+            $runner->mustRun(new Command(['touch', '--', "{$dir}/" . self::NO_UPLOADS], $user));
+        }
         // Last: a backup without this file was interrupted and is never restored.
         $runner->mustRun(new Command(['touch', '--', "{$dir}/" . self::COMPLETE], $user));
 
@@ -52,7 +59,7 @@ final class SiteBackup implements SiteBackups
         return $id;
     }
 
-    /** @return list<array{id:string, size:int}> complete backups, newest first */
+    /** @return list<array{id:string, size:int, uploads:bool}> complete backups, newest first */
     public function list(array $site): array
     {
         $backups = [];
@@ -60,7 +67,7 @@ final class SiteBackup implements SiteBackups
             $dir = $this->directory($site) . '/' . $id;
             if (is_file("{$dir}/" . self::COMPLETE) && !is_link("{$dir}/" . self::COMPLETE)) {
                 $size = (int)@filesize("{$dir}/" . self::FILES) + (int)@filesize("{$dir}/" . self::DATABASE);
-                $backups[] = ['id' => $id, 'size' => $size];
+                $backups[] = ['id' => $id, 'size' => $size, 'uploads' => !is_file("{$dir}/" . self::NO_UPLOADS)];
             }
         }
         return $backups;
@@ -102,7 +109,9 @@ final class SiteBackup implements SiteBackups
         $runner->mustRun(new Command(['tar', '-xzf', "{$dir}/" . self::FILES, '-C', $staging], $user));
         $runner->mustRun(new Command(['gzip', '-dk', '--', "{$dir}/" . self::DATABASE], $user));
 
-        $runner->mustRun(new Command(['rsync', '-a', '--delete', '--', "{$staging}/", "{$web}/"], $user));
+        // Without this, --delete would remove uploads that this backup does not hold.
+        $keep = is_file("{$dir}/" . self::NO_UPLOADS) ? ['--exclude=/wp-content/uploads'] : [];
+        $runner->mustRun(new Command(array_merge(['rsync', '-a', '--delete'], $keep, ['--', "{$staging}/", "{$web}/"]), $user));
         $wp = new WpCli($this->config->get('wp_cli'), $web, $user);
         $runner->mustRun($wp->dbImport("{$dir}/db.sql"));
 

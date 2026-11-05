@@ -109,9 +109,9 @@ final class WpCli
     }
 
     /** Updates run without normal plugins and themes, which may be what is broken. Must-use plugins still load. */
-    public function coreUpdate(): Command
+    public function coreUpdate(bool $minorOnly = false): Command
     {
-        return $this->cmd(['core', 'update', '--skip-plugins', '--skip-themes']);
+        return $this->cmd(array_merge(['core', 'update'], $minorOnly ? ['--minor'] : [], ['--skip-plugins', '--skip-themes']));
     }
 
     public function coreUpdateDb(): Command

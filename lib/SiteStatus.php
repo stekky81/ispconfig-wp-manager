@@ -10,6 +10,14 @@ namespace WpManager;
  */
 final class SiteStatus
 {
+    /** What went wrong in the last action on the site, on one line. Finished actions show nothing. */
+    public static function actionProblem(string $status, ?string $message, int $maxLength = 200): string
+    {
+        return in_array($status, ['rolled_back', 'rollback_failed', 'refused', 'failed'], true)
+            ? self::summary('error', $message, $maxLength)
+            : '';
+    }
+
     /** The reason behind an error or a pending retry, on one line. */
     public static function summary(string $status, ?string $message, int $maxLength = 200): string
     {

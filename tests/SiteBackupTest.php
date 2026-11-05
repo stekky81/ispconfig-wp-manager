@@ -155,6 +155,59 @@ final class SiteBackupTest extends TestCase
         }
     }
 
+    public function testUploadsAreInTheBackupByDefault(): void
+    {
+        $runner = new Runner(true);
+        $this->backups()->create($this->record(), $runner);
+        $log = implode("\n", $runner->log());
+
+        self::assertStringNotContainsString('wp-content/uploads', $log);
+        self::assertStringNotContainsString('NO_UPLOADS', $log);
+    }
+
+    public function testUploadsCanBeLeftOutAndTheBackupSaysSo(): void
+    {
+        $runner = new Runner(true);
+        $this->backups()->create($this->record() + ['backup_uploads' => 'n'], $runner);
+        $log = implode("\n", $runner->log());
+
+        self::assertStringContainsString("'--exclude=./wp-content/uploads'", $log);
+        self::assertLessThan(strpos($log, '/COMPLETE'), strpos($log, '/NO_UPLOADS'));
+    }
+
+    // Without the exclude, rsync --delete would wipe uploads that are not in the backup.
+    public function testRestoreOfABackupWithoutUploadsLeavesThemAlone(): void
+    {
+        $this->fakeBackup('20260101-000000');
+        touch("{$this->site}/tmp/wpmanager-backups/20260101-000000/NO_UPLOADS");
+        $runner = new Runner(true);
+        $this->backups()->restore($this->record(), '20260101-000000', $runner);
+
+        self::assertStringContainsString("'--exclude=/wp-content/uploads'", implode("\n", $runner->log()));
+    }
+
+    // The backup decides, not the current option: a full backup must restore the uploads too.
+    public function testRestoreFollowsTheBackupNotTheCurrentOption(): void
+    {
+        $this->fakeBackup('20260101-000000');
+        $runner = new Runner(true);
+        $this->backups()->restore($this->record() + ['backup_uploads' => 'n'], '20260101-000000', $runner);
+
+        self::assertStringNotContainsString('--exclude', implode("\n", $runner->log()));
+    }
+
+    public function testListSaysWhichBackupsHaveTheUploads(): void
+    {
+        $this->fakeBackup('20260101-000000');
+        $this->fakeBackup('20260102-000000');
+        touch("{$this->site}/tmp/wpmanager-backups/20260102-000000/NO_UPLOADS");
+
+        $list = $this->backups()->list($this->record());
+
+        self::assertFalse($list[0]['uploads']);
+        self::assertTrue($list[1]['uploads']);
+    }
+
     public function testRestoreRefusesAnIncompleteBackup(): void
     {
         $this->fakeBackup('20260101-000000', false);
