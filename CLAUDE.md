@@ -64,8 +64,11 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - Install our module in the VM:
   `multipass exec ispc-master -- sudo /opt/ispconfig-wp-manager/install/install.sh --role=master --role=node`
 - Panel PHP errors: `multipass exec ispc-master -- sudo tail -50 /var/log/apache2/error.log`
-- With a full-tunnel VPN active on the Mac the VM reaches the Mac and resolves names, but has no internet
-  access. Its clock also falls behind, since it cannot sync.
+- With the Tunnelblick VPN connected the VM reaches the Mac and resolves names, but has no internet access:
+  WP-CLI downloads time out. Disconnect it for those tests; it can reconnect by itself. The VM clock also
+  falls behind, since it cannot sync.
+- `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
+  The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
 - Do not change the VM clock from `multipass exec` with `date -s`: the client can hang. Kill it if it does.
 - Do not run `destroy`/`delete` while a `create` or `mount` is running: it hung multipassd once.
   If multipassd hangs: `sudo pkill -9 -f "com.canonical.multipass/bin/"`, then reload the launchd plist.
@@ -90,13 +93,14 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 
 ## Current status (2026-11-05)
 
-- Done: both panel pages load; the `VERIFY` items are checked on 3.3.2; dry-run lists the API calls on the
-  form; real creation of website, DB user, DB and SFTP or FTP user works, and the generated logins work;
-  the job reaches the worker, which passes the empty web root check. See [ROADMAP.md](ROADMAP.md).
-- **Next immediate step**: finish a real WordPress install. It is untested: `wp core download` failed
-  because the VM had no internet access (see the VPN note below).
-- The VM has a remote user `wpmanager`, a client `testclient` and test sites `sito2`-`sito4`; its
-  `config.php` has `dry_run => false`. To start clean: `./dev/test-env.sh reset`, then redo that setup.
+- Done: panel pages, list filter and sorting, dry-run report, real creation with SFTP or FTP, site detail
+  page with one-time passwords, `--uninstall`. A real WordPress install worked (`my.ispc.test`, 7.1.4).
+  See [ROADMAP.md](ROADMAP.md).
+- **Next immediate step**: create a new site with the VPN off and check what that install could not cover:
+  http URL without a certificate, WordPress version in the list, plugins and theme from the form. Then tick
+  "End-to-end create flow" and "Per-site options" in the roadmap.
+- The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has
+  `dry_run => false`. To start clean: `./dev/test-env.sh reset`, then redo that setup.
 - Then go through `docs/testing.md` (checklist) and write down results.
 
 ## Known open issues / roadmap

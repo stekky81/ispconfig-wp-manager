@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `wp_title` varchar(255) NOT NULL DEFAULT '',
   `wp_admin_user` varchar(60) NOT NULL DEFAULT '',
   `wp_admin_email` varchar(255) NOT NULL DEFAULT '',
+  `wp_locale` varchar(20) NOT NULL DEFAULT '',
+  `wp_plugins` varchar(1000) NOT NULL DEFAULT '',
+  `wp_theme` varchar(100) NOT NULL DEFAULT '',
   -- Encrypted with the shared key, cleared by the worker after the install
   `secret_db` text,
   `secret_wp` text,
@@ -46,6 +49,20 @@ SET @wpm_sql = (
        ADD `access_type` enum(\'sftp\',\'ftp\') NOT NULL DEFAULT \'sftp\' AFTER `db_host`')
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'sftp_user'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions without per-site options.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site`
+       ADD `wp_locale` varchar(20) NOT NULL DEFAULT \'\' AFTER `wp_admin_email`,
+       ADD `wp_plugins` varchar(1000) NOT NULL DEFAULT \'\' AFTER `wp_locale`,
+       ADD `wp_theme` varchar(100) NOT NULL DEFAULT \'\' AFTER `wp_plugins`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'wp_locale'
 );
 PREPARE wpm_stmt FROM @wpm_sql;
 EXECUTE wpm_stmt;

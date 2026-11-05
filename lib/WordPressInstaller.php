@@ -50,7 +50,7 @@ final class WordPressInstaller
             }
         }
 
-        $runner->mustRun($wp->coreDownload((string)$wpCfg['locale']));
+        $runner->mustRun($wp->coreDownload((string)($site['wp_locale'] ?? $wpCfg['locale'])));
         $runner->mustRun($wp->configCreate((string)$site['db_name'], (string)$site['db_user'], $dbPassword, (string)$site['db_host']));
         $runner->mustRun(new Command(['chmod', '0640', '--', $webRoot . '/wp-config.php'], (string)$site['system_user']));
         $runner->mustRun($wp->coreInstall(
@@ -64,11 +64,14 @@ final class WordPressInstaller
         foreach ($wpCfg['constants'] as $name => [$value, $raw]) {
             $runner->mustRun($wp->configSet((string)$name, (string)$value, (bool)$raw));
         }
-        foreach ($wpCfg['plugins'] as $slug) {
+        // The record wins, also when empty: the admin may have removed a default from the form.
+        $plugins = isset($site['wp_plugins']) ? Validator::wpSlugList((string)$site['wp_plugins']) : $wpCfg['plugins'];
+        foreach ($plugins as $slug) {
             $runner->mustRun($wp->pluginInstall((string)$slug));
         }
-        if (!empty($wpCfg['theme'])) {
-            $runner->mustRun($wp->themeInstall((string)$wpCfg['theme']));
+        $theme = $site['wp_theme'] ?? $wpCfg['theme'];
+        if (!empty($theme)) {
+            $runner->mustRun($wp->themeInstall((string)$theme));
         }
 
         return $runner->log();

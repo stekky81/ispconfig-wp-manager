@@ -18,6 +18,12 @@ final class SiteRequest
     public readonly string $adminUser;
     public readonly string $adminEmail;
     public readonly string $accessType;
+    /** Options left null come from the global defaults. */
+    public readonly ?string $locale;
+    /** @var list<string>|null */
+    public readonly ?array $plugins;
+    public readonly ?string $theme;
+    public readonly ?int $phpVersionId;
 
     public function __construct(
         string $domain,
@@ -27,6 +33,10 @@ final class SiteRequest
         string $adminUser,
         string $adminEmail,
         string $accessType = 'sftp',
+        ?string $locale = null,
+        ?string $plugins = null,
+        ?string $theme = null,
+        mixed $phpVersionId = null,
     ) {
         $this->domain = Validator::domain($domain);
         $this->clientId = Validator::positiveId($clientId);
@@ -39,5 +49,9 @@ final class SiteRequest
         $this->adminUser = Validator::wpUser($adminUser);
         $this->adminEmail = Validator::email($adminEmail);
         $this->accessType = Validator::accessType($accessType);
+        $this->locale = $locale === null ? null : Validator::locale($locale);
+        $this->plugins = $plugins === null ? null : Validator::wpSlugList($plugins);
+        $this->theme = $theme === null || $theme === '' ? $theme : Validator::wpSlug($theme);
+        $this->phpVersionId = $phpVersionId === null ? null : Validator::phpVersionId($phpVersionId);
     }
 }

@@ -124,6 +124,27 @@ final class WordPressInstallerTest extends TestCase
         self::assertSame('', $this->installer()->installedVersion($this->site(), new Runner(true)));
     }
 
+    public function testRecordOptionsWinOverTheConfiguration(): void
+    {
+        $site = $this->site() + ['wp_locale' => 'en_GB', 'wp_plugins' => 'akismet,jetpack', 'wp_theme' => 'astra'];
+        $log = implode("\n", $this->installer(['wordpress' => ['plugins' => ['wordfence']]])->install($site, new Runner(true)));
+
+        self::assertStringContainsString("'--locale=en_GB'", $log);
+        self::assertStringContainsString("'akismet'", $log);
+        self::assertStringContainsString("'jetpack'", $log);
+        self::assertStringContainsString("'theme' 'install' 'astra'", $log);
+        self::assertStringNotContainsString('wordfence', $log);
+    }
+
+    public function testEmptyRecordOptionsInstallNoPluginOrTheme(): void
+    {
+        $site = $this->site() + ['wp_locale' => 'it_IT', 'wp_plugins' => '', 'wp_theme' => ''];
+        $log = implode("\n", $this->installer(['wordpress' => ['plugins' => ['wordfence'], 'theme' => 'astra']])->install($site, new Runner(true)));
+
+        self::assertStringNotContainsString("'plugin' 'install'", $log);
+        self::assertStringNotContainsString("'theme' 'install'", $log);
+    }
+
     public function testRefusesNonEmptyWebRoot(): void
     {
         file_put_contents($this->root . '/client3/web7/web/index.php', '<?php // existing site');

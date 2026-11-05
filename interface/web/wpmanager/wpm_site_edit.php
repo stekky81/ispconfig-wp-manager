@@ -23,6 +23,21 @@ $app->load('tform_actions');
 
 class page_action extends tform_actions
 {
+    public function onShowNew()
+    {
+        global $app;
+
+        // Pre-fill the per-site options with the global defaults.
+        $config = \WpManager\Config::load();
+        $fields = &$app->tform->formDef['tabs']['site']['fields'];
+        $fields['wp_locale']['default'] = $config->get('wordpress.locale');
+        $fields['wp_plugins']['default'] = implode(', ', $config->get('wordpress.plugins'));
+        $fields['wp_theme']['default'] = (string)$config->get('wordpress.theme');
+        $fields['server_php_id']['default'] = (string)$config->get('site_defaults.server_php_id');
+
+        parent::onShowNew();
+    }
+
     public function onShowEdit()
     {
         // Existing sites are read-only in the MVP: go back to the list.
@@ -56,6 +71,10 @@ class page_action extends tform_actions
                 (string)$this->dataRecord['wp_admin_user'],
                 (string)$this->dataRecord['wp_admin_email'],
                 (string)($this->dataRecord['access_type'] ?? ''),
+                (string)($this->dataRecord['wp_locale'] ?? '') ?: null,
+                (string)($this->dataRecord['wp_plugins'] ?? ''),
+                (string)($this->dataRecord['wp_theme'] ?? ''),
+                $this->dataRecord['server_php_id'] ?? '0',
             );
             $transport = $config->isDryRun() ? new \WpManager\DryRunTransport() : null;
             $api = \WpManager\IspconfigApi::fromConfig($config, $transport);

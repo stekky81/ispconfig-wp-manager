@@ -57,6 +57,31 @@ final class Validator
         return $value;
     }
 
+    /** WordPress locale, e.g. it_IT or de_DE_formal. */
+    public static function locale(string $value): string
+    {
+        if (!preg_match('/^[a-z]{2,3}(_[A-Z]{2})?(_[a-z]+)?$/', $value)) {
+            throw new ValidationException("Invalid locale: {$value}");
+        }
+        return $value;
+    }
+
+    /** Plugin or theme slug from wordpress.org. */
+    public static function wpSlug(string $value): string
+    {
+        if (!preg_match('/^[a-z0-9][a-z0-9-]{0,99}$/', $value)) {
+            throw new ValidationException("Invalid plugin or theme name: {$value}");
+        }
+        return $value;
+    }
+
+    /** @return list<string> slugs from a list separated by commas or spaces */
+    public static function wpSlugList(string $value): array
+    {
+        $slugs = preg_split('/[\s,]+/', trim($value), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        return array_map(self::wpSlug(...), $slugs);
+    }
+
     /** Linux system user created by ISPConfig for a website, e.g. web12. */
     public static function systemUser(string $value): string
     {
@@ -72,6 +97,12 @@ final class Validator
             throw new ValidationException('Invalid id: ' . var_export($value, true));
         }
         return (int)$value;
+    }
+
+    /** Id of an additional PHP version; 0 is the default PHP of the server. */
+    public static function phpVersionId(mixed $value): int
+    {
+        return (string)$value === '0' ? 0 : self::positiveId($value);
     }
 
     /** Database or user name fragment: ISPConfig prefixes it, we keep it short and safe. */

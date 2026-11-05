@@ -147,4 +147,54 @@ final class SiteProvisionerTest extends TestCase
         $this->expectException(ValidationException::class);
         new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', 'telnet');
     }
+
+    public function testOptionsFallBackToTheDefaults(): void
+    {
+        $api = new IspconfigApi('https://panel.test/remote/json.php', 'u', 'p', new DryRunTransport());
+        $config = Config::fromArray(['wordpress' => ['locale' => 'de_DE', 'plugins' => ['akismet'], 'theme' => 'astra']]);
+        $record = (new SiteProvisioner($api, $config, $this->crypto))->provision($this->request());
+
+        self::assertSame('de_DE', $record['wp_locale']);
+        self::assertSame('akismet', $record['wp_plugins']);
+        self::assertSame('astra', $record['wp_theme']);
+    }
+
+    public function testOptionsOfTheRequestWinOverTheDefaults(): void
+    {
+        $api = new IspconfigApi('https://panel.test/remote/json.php', 'u', 'p', new DryRunTransport());
+        $config = Config::fromArray(['wordpress' => ['plugins' => ['akismet'], 'theme' => 'astra']]);
+        $req = new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', 'sftp', 'en_GB', '', '', '4');
+        $record = (new SiteProvisioner($api, $config, $this->crypto))->provision($req);
+
+        self::assertSame('en_GB', $record['wp_locale']);
+        self::assertSame('', $record['wp_plugins']);
+        self::assertSame('', $record['wp_theme']);
+
+        $add = array_values(array_filter($api->calls(), fn($c) => $c['method'] === 'sites_web_domain_add'))[0];
+        self::assertSame(4, $add['params']['params']['server_php_id']);
+    }
+
+    /** @dataProvider unsafeOptions */
+    public function testUnsafeOptionsAreRejected(?string $locale, ?string $plugins, ?string $theme, mixed $phpId): void
+    {
+        $this->expectException(ValidationException::class);
+        new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', 'sftp', $locale, $plugins, $theme, $phpId);
+    }
+
+    public static function unsafeOptions(): array
+    {
+        return [
+            'locale' => ['it_IT; rm -rf /', null, null, null],
+            'plugin' => [null, 'akismet,--require=/tmp/x.php', null, null],
+            'theme' => [null, null, '../../evil', null],
+            'php id' => [null, null, null, '-1'],
+        ];
+    }
+
+    public function testPluginListAcceptsCommasAndSpaces(): void
+    {
+        $req = new SiteRequest('shop.example.com', 3, 1, 'My shop', 'stefano', 'stefano@example.com', 'sftp', null, ' akismet, wordfence  jetpack ');
+
+        self::assertSame(['akismet', 'wordfence', 'jetpack'], $req->plugins);
+    }
 }

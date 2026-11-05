@@ -33,6 +33,7 @@ final class SiteProvisioner
     {
         $this->created = [];
         $d = $this->config->get('site_defaults');
+        $wp = $this->config->get('wordpress');
 
         $this->assertDomainIsFree($req->domain);
 
@@ -60,7 +61,7 @@ final class SiteProvisioner
                     'traffic_quota' => $d['traffic_quota'],
                     'subdomain' => $d['subdomain'],
                     'php' => $d['php'],
-                    'server_php_id' => $d['server_php_id'],
+                    'server_php_id' => $req->phpVersionId ?? $d['server_php_id'],
                     'pm' => 'ondemand',
                     'pm_process_idle_timeout' => 10,
                     'pm_max_requests' => 0,
@@ -132,6 +133,9 @@ final class SiteProvisioner
             'wp_title' => $req->title,
             'wp_admin_user' => $req->adminUser,
             'wp_admin_email' => $req->adminEmail,
+            'wp_locale' => $req->locale ?? $wp['locale'],
+            'wp_plugins' => implode(',', $req->plugins ?? $wp['plugins']),
+            'wp_theme' => $req->theme ?? (string)$wp['theme'],
             'secret_db' => $this->crypto->encrypt($dbPassword),
             'secret_wp' => $this->crypto->encrypt($wpPassword),
             'secret_access' => $this->crypto->encrypt($accessPassword),
