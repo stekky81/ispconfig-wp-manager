@@ -105,6 +105,25 @@ final class WordPressInstallerTest extends TestCase
         self::assertStringContainsString("'--url=http://shop.example.com'", implode("\n", $log));
     }
 
+    // Regression: the worker never stored the version, so the list column stayed empty.
+    public function testVersionOutputIsParsed(): void
+    {
+        self::assertSame('7.1.4', WordPressInstaller::parseVersion("7.1.4\n"));
+        self::assertSame('7.1', WordPressInstaller::parseVersion('7.1'));
+        self::assertSame('7.2-beta1', WordPressInstaller::parseVersion('7.2-beta1'));
+    }
+
+    public function testUnexpectedVersionOutputIsIgnored(): void
+    {
+        self::assertSame('', WordPressInstaller::parseVersion(''));
+        self::assertSame('', WordPressInstaller::parseVersion('Error: this does not seem to be a WordPress install'));
+    }
+
+    public function testDryRunHasNoVersion(): void
+    {
+        self::assertSame('', $this->installer()->installedVersion($this->site(), new Runner(true)));
+    }
+
     public function testRefusesNonEmptyWebRoot(): void
     {
         file_put_contents($this->root . '/client3/web7/web/index.php', '<?php // existing site');

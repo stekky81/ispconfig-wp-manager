@@ -103,6 +103,11 @@ final class WpCli
         return $this->cmd($args);
     }
 
+    public function coreVersion(): Command
+    {
+        return $this->cmd(['core', 'version']);
+    }
+
     /** Read-only checks used by the update overview. */
     public function coreCheckUpdate(): Command
     {

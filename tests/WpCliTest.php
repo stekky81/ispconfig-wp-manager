@@ -13,6 +13,14 @@ use WpManager\WpCli;
 
 final class WpCliTest extends TestCase
 {
+    public function testCoreVersionRunsAsTheSiteUser(): void
+    {
+        $argv = (new WpCli('/usr/local/bin/wp', '/var/www/clients/client1/web1/web', 'web1'))->coreVersion()->argv();
+
+        self::assertSame(['sudo', '-u', 'web1'], array_slice($argv, 0, 3));
+        self::assertContains('version', $argv);
+    }
+
     private function wp(): WpCli
     {
         return new WpCli('/usr/local/bin/wp', '/var/www/clients/client1/web5/web', 'web5');

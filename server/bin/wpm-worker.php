@@ -44,16 +44,16 @@ $installer = new WordPressInstaller(
     new PathGuard($config->get('web_root_base')),
 );
 
-$report = static function (int $siteId, string $status, string $message, bool $clearDbSecret = false) use ($app, $config): void {
+$report = static function (int $siteId, string $status, string $message, bool $clearDbSecret = false, string $wpVersion = '') use ($app, $config): void {
     if ($config->isDryRun()) {
         $app->log("wpmanager dry-run: site {$siteId} → {$status}: {$message}", LOGLEVEL_DEBUG);
         return;
     }
     // Direct update (no datalog): status is informational and must not trigger the plugin again.
-    $sql = 'UPDATE wpm_site SET status = ?, status_message = ?'
+    $sql = 'UPDATE wpm_site SET status = ?, status_message = ?, wp_version = ?'
         . ($clearDbSecret ? ', secret_db = NULL' : '')
         . ' WHERE wpm_site_id = ?';
-    $app->dbmaster->query($sql, $status, mb_substr($message, 0, 4000), $siteId);
+    $app->dbmaster->query($sql, $status, mb_substr($message, 0, 4000), $wpVersion, $siteId);
 };
 
 foreach ($queue->pending() as $name) {
@@ -77,7 +77,7 @@ foreach ($queue->pending() as $name) {
     $report($siteId, 'installing', '');
     try {
         $log = $installer->install($site);
-        $report($siteId, 'installed', implode("\n", $log), true);
+        $report($siteId, 'installed', implode("\n", $log), true, $installer->installedVersion($site));
         $queue->remove($name);
     } catch (\Throwable $e) {
         $job['attempts'] = (int)$job['attempts'] + 1;

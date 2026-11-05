@@ -74,6 +74,26 @@ final class WordPressInstaller
         return $runner->log();
     }
 
+    /** The installed version, or '' when it cannot be read: a finished install must not fail for this. */
+    public function installedVersion(array $site, ?Runner $runner = null): string
+    {
+        $runner ??= new Runner($this->config->isDryRun());
+        $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
+        try {
+            $result = $runner->run($wp->coreVersion());
+        } catch (\RuntimeException) {
+            return '';
+        }
+        return $result['exit'] === 0 ? self::parseVersion($result['stdout']) : '';
+    }
+
+    public static function parseVersion(string $output): string
+    {
+        $version = trim($output);
+        return preg_match('/^\d+\.\d+(\.\d+)?(-[A-Za-z0-9.]+)?$/', $version) ? $version : '';
+    }
+
     /** https only when a certificate will exist: nothing answers on 443 without one. */
     private function siteScheme(): string
     {
