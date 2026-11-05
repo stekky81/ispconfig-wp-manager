@@ -3,7 +3,7 @@
 
 $module['name'] = 'wpmanager';
 $module['title'] = 'WordPress';
-$module['icon'] = 'icon bi bi-wordpress';
+$module['icon'] = 'bi-icon bi bi-wordpress';
 $module['template'] = 'module.tpl.htm';
 $module['startpage'] = 'wpmanager/wpm_site_list.php';
 $module['tab_width'] = '';
@@ -21,6 +21,13 @@ $items[] = [
     'target' => 'content',
     'link' => 'wpmanager/wpm_site_edit.php',
     'html_id' => 'wpm_site_edit',
+];
+
+$items[] = [
+    'title' => 'Settings',
+    'target' => 'content',
+    'link' => 'wpmanager/wpm_settings.php',
+    'html_id' => 'wpm_settings',
 ];
 
 $module['nav'][] = [

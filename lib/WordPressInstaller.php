@@ -41,7 +41,7 @@ final class WordPressInstaller
         $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
         $wpCfg = $this->config->get('wordpress');
         $domain = Validator::domain((string)$site['domain']);
-        $scheme = $this->siteScheme();
+        $url = (string)($site['site_url'] ?? '') ?: $this->siteScheme() . '://' . $domain;
 
         // ISPConfig placeholder pages: they could shadow index.php and must not stay public
         foreach (['index.html', 'standard_index.html'] as $placeholder) {
@@ -54,7 +54,7 @@ final class WordPressInstaller
         $runner->mustRun($wp->configCreate((string)$site['db_name'], (string)$site['db_user'], $dbPassword, (string)$site['db_host']));
         $runner->mustRun(new Command(['chmod', '0640', '--', $webRoot . '/wp-config.php'], (string)$site['system_user']));
         $runner->mustRun($wp->coreInstall(
-            $scheme . '://' . $domain,
+            $url,
             (string)$site['wp_title'],
             (string)$site['wp_admin_user'],
             $wpPassword,
@@ -97,7 +97,7 @@ final class WordPressInstaller
         return preg_match('/^\d+\.\d+(\.\d+)?(-[A-Za-z0-9.]+)?$/', $version) ? $version : '';
     }
 
-    /** https only when a certificate will exist: nothing answers on 443 without one. */
+    /** For records without site_url. https only when a certificate will exist: nothing answers on 443 without one. */
     private function siteScheme(): string
     {
         $d = $this->config->get('site_defaults');

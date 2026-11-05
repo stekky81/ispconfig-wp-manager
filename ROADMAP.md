@@ -27,7 +27,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] **Detect existing WordPress installs** on every node (scan `/var/www/clients/*/web*/web`
       for `wp-config.php`) and register them in `wpm_site`, linked to the ISPConfig website
 - [ ] Multiserver: grant INSERT and UPDATE on `wpm_site` to the `ispcsrvN` users; test with a slave VM
-- [ ] Settings page in the panel for the global defaults (instead of editing `config.php`)
+- [x] Settings page in the panel for the global defaults (instead of editing `config.php`)
 
 ## 0.3 — Inventory and update overview (read-only)
 

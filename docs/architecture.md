@@ -34,6 +34,12 @@ absolute path. Re-run the installer after every ISPConfig update and after updat
 The plugin never runs WP-CLI itself: ISPConfig applies datalog entries asynchronously and a slow
 command inside `server.sh` would block every other change on the node.
 
+## Settings
+
+Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the
+master, on top of `config.php`. The record of each site carries everything the worker needs from them, so the
+nodes do not read that table. `dry_run`, the Remote API account and the key file can only be set in `config.php`.
+
 ## Existing sites
 
 Once an hour the worker looks for `wp-config.php` in `/var/www/clients/client*/web*/web` and adds to `wpm_site`

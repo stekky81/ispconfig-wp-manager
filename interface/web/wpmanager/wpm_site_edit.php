@@ -10,6 +10,7 @@ $tform_def_file = 'form/wpm_site.tform.php';
 require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
+require_once 'lib/wpm_config.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
@@ -28,7 +29,7 @@ class page_action extends tform_actions
         global $app;
 
         // Pre-fill the per-site options with the global defaults.
-        $config = \WpManager\Config::load();
+        $config = wpm_config($app);
         $fields = &$app->tform->formDef['tabs']['site']['fields'];
         $fields['wp_locale']['default'] = $config->get('wordpress.locale');
         $fields['wp_plugins']['default'] = implode(', ', $config->get('wordpress.plugins'));
@@ -62,7 +63,7 @@ class page_action extends tform_actions
         }
 
         try {
-            $config = \WpManager\Config::load();
+            $config = wpm_config($app);
             $request = new \WpManager\SiteRequest(
                 (string)$this->dataRecord['domain'],
                 $this->dataRecord['client_id'],

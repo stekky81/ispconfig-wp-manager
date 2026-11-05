@@ -50,6 +50,7 @@ foreach (['domain', 'status', 'origin', 'access_type', 'access_user', 'wp_admin_
     $app->tpl->setVar($field, $escape($site[$field]));
 }
 $app->tpl->setVar('id', $id);
+$app->tpl->setVar('site_url', $escape($site['site_url'] ?: 'http://' . $site['domain']));
 $app->tpl->setVar('status_message', $escape($site['status_message'] ?? ''));
 $app->tpl->setVar('can_reveal', $credentials->canReveal($site) ? 1 : 0);
 $app->tpl->setVar('is_installed', $site['status'] === 'installed' ? 1 : 0);

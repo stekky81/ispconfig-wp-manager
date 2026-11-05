@@ -1,0 +1,57 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<div class='page-header'>
+    <h1>{tmpl_var name='settings_head_txt'}</h1>
+</div>
+<p class="fieldDescription">{tmpl_var name='settings_desc_txt'}</p>
+
+<tmpl_if name="saved"><div class="alert alert-success" id="settings_saved">{tmpl_var name='saved_txt'}</div></tmpl_if>
+<tmpl_if name="error_msg"><div class="alert alert-danger" id="settings_error">{tmpl_var name='error_msg'}</div></tmpl_if>
+<tmpl_if name="dry_run"><div class="alert alert-warning" id="dry_run_on">{tmpl_var name='dry_run_on_txt'}</div></tmpl_if>
+
+<div class="panel" style="padding:20px;">
+    <div class="form-group">
+        <label for="server_php_id" class="col-sm-3 control-label">{tmpl_var name='server_php_id_txt'}</label>
+        <div class="col-sm-9"><select name="server_php_id" id="server_php_id" class="form-control">{tmpl_var name='server_php_id_options'}</select></div>
+    </div>
+    <div class="form-group">
+        <label for="hd_quota" class="col-sm-3 control-label">{tmpl_var name='hd_quota_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="hd_quota" id="hd_quota" value="{tmpl_var name='hd_quota'}" class="form-control" /></div>
+    </div>
+    <div class="form-group">
+        <label for="traffic_quota" class="col-sm-3 control-label">{tmpl_var name='traffic_quota_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="traffic_quota" id="traffic_quota" value="{tmpl_var name='traffic_quota'}" class="form-control" /></div>
+    </div>
+    <div class="form-group">
+        <label for="ssl" class="col-sm-3 control-label">{tmpl_var name='ssl_txt'}</label>
+        <div class="col-sm-9"><select name="ssl" id="ssl" class="form-control">{tmpl_var name='ssl_options'}</select></div>
+    </div>
+    <div class="form-group">
+        <label for="ssl_letsencrypt" class="col-sm-3 control-label">{tmpl_var name='ssl_letsencrypt_txt'}</label>
+        <div class="col-sm-9"><select name="ssl_letsencrypt" id="ssl_letsencrypt" class="form-control">{tmpl_var name='ssl_letsencrypt_options'}</select></div>
+    </div>
+    <div class="form-group">
+        <label for="subdomain" class="col-sm-3 control-label">{tmpl_var name='subdomain_txt'}</label>
+        <div class="col-sm-9"><select name="subdomain" id="subdomain" class="form-control">{tmpl_var name='subdomain_options'}</select></div>
+    </div>
+    <div class="form-group">
+        <label for="locale" class="col-sm-3 control-label">{tmpl_var name='locale_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="locale" id="locale" value="{tmpl_var name='locale'}" class="form-control" /></div>
+    </div>
+    <div class="form-group">
+        <label for="plugins" class="col-sm-3 control-label">{tmpl_var name='plugins_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="plugins" id="plugins" value="{tmpl_var name='plugins'}" class="form-control" /><p class="help-block">{tmpl_var name='plugins_help_txt'}</p></div>
+    </div>
+    <div class="form-group">
+        <label for="theme" class="col-sm-3 control-label">{tmpl_var name='theme_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="theme" id="theme" value="{tmpl_var name='theme'}" class="form-control" /></div>
+    </div>
+
+    <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
+    <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />
+
+    <div class="clear">
+        <div class="right">
+            <button class="btn btn-default formbutton-success" type="button" data-submit-form="pageForm" data-form-action="wpmanager/wpm_settings.php">{tmpl_var name='btn_save_txt'}</button>
+        </div>
+    </div>
+</div>

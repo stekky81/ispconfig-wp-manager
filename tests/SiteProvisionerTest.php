@@ -197,4 +197,22 @@ final class SiteProvisionerTest extends TestCase
 
         self::assertSame(['akismet', 'wordfence', 'jetpack'], $req->plugins);
     }
+
+    /** @dataProvider siteUrls */
+    public function testSiteUrlFollowsTheCertificateSettings(string $ssl, string $letsEncrypt, string $url): void
+    {
+        $api = new IspconfigApi('https://panel.test/remote/json.php', 'u', 'p', new DryRunTransport());
+        $config = Config::fromArray(['site_defaults' => ['ssl' => $ssl, 'ssl_letsencrypt' => $letsEncrypt]]);
+
+        self::assertSame($url, (new SiteProvisioner($api, $config, $this->crypto))->provision($this->request())['site_url']);
+    }
+
+    public static function siteUrls(): array
+    {
+        return [
+            'certificate' => ['y', 'y', 'https://shop.example.com'],
+            'no certificate' => ['y', 'n', 'http://shop.example.com'],
+            'ssl off' => ['n', 'y', 'http://shop.example.com'],
+        ];
+    }
 }

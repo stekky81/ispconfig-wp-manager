@@ -74,6 +74,12 @@ final class Config
         return new self(self::merge(self::BUILTIN, $user));
     }
 
+    /** A copy with these values on top, for example the settings saved in the panel. */
+    public function withOverrides(array $overrides): self
+    {
+        return new self(self::merge($this->data, $overrides));
+    }
+
     /** Recursive merge where the user value replaces lists instead of appending to them. */
     private static function merge(array $base, array $over): array
     {

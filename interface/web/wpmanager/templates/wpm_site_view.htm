@@ -6,8 +6,8 @@
 <div class="panel" style="padding:20px;">
     <p>
         <tmpl_if name="is_installed">
-        <a class="btn btn-default formbutton-default" href="http://{tmpl_var name='domain'}/" target="_blank" rel="noopener">{tmpl_var name='open_site_txt'}</a>
-        <a class="btn btn-default formbutton-default" href="http://{tmpl_var name='domain'}/wp-admin/" target="_blank" rel="noopener">{tmpl_var name='open_admin_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="{tmpl_var name='site_url'}/" target="_blank" rel="noopener">{tmpl_var name='open_site_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="{tmpl_var name='site_url'}/wp-admin/" target="_blank" rel="noopener">{tmpl_var name='open_admin_txt'}</a>
         </tmpl_if>
         <a class="btn btn-default formbutton-default" href="#" onclick="ISPConfig.capp('sites', '{tmpl_var name='website_redirect'}'); return false;">{tmpl_var name='open_website_txt'}</a>
     </p>

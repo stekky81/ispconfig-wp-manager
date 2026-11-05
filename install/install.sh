@@ -99,11 +99,14 @@ create_tables() {
 
     MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" "$name" < "$APP_DIR/install/sql/wpmanager.sql"
 
-    # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our table.
-    if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
-        "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`wpm_site\` TO '$panel_user'@'localhost'"; then
-        echo "WARNING: could not grant access on wpm_site to '$panel_user'@'localhost'; check the grants manually" >&2
-    fi
+    # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our tables.
+    local table
+    for table in wpm_site wpm_setting; do
+        if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`$table\` TO '$panel_user'@'localhost'"; then
+            echo "WARNING: could not grant access on $table to '$panel_user'@'localhost'; check the grants manually" >&2
+        fi
+    done
 }
 
 if [[ $MASTER -eq 1 ]]; then

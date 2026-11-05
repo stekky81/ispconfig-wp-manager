@@ -120,6 +120,7 @@ final class SiteProvisioner
 
         return [
             'domain' => $req->domain,
+            'site_url' => ($d['ssl'] === 'y' && $d['ssl_letsencrypt'] === 'y' ? 'https' : 'http') . '://' . $req->domain,
             'server_id' => $req->serverId,
             'client_id' => $req->clientId,
             'domain_id' => $domainId,

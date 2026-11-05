@@ -124,6 +124,15 @@ final class WordPressInstallerTest extends TestCase
         self::assertSame('', $this->installer()->installedVersion($this->site(), new Runner(true)));
     }
 
+    // The panel decides the URL: settings changed there do not reach the configuration of a node.
+    public function testSiteUrlOfTheRecordWinsOverTheConfiguration(): void
+    {
+        $site = $this->site() + ['site_url' => 'http://shop.example.com'];
+        $log = $this->installer(['site_defaults' => ['ssl' => 'y', 'ssl_letsencrypt' => 'y']])->install($site, new Runner(true));
+
+        self::assertStringContainsString("'--url=http://shop.example.com'", implode("\n", $log));
+    }
+
     public function testRecordOptionsWinOverTheConfiguration(): void
     {
         $site = $this->site() + ['wp_locale' => 'en_GB', 'wp_plugins' => 'akismet,jetpack', 'wp_theme' => 'astra'];

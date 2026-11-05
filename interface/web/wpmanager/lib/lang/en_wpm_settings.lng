@@ -1,0 +1,18 @@
+<?php
+$wb['settings_head_txt'] = 'WordPress settings';
+$wb['settings_desc_txt'] = 'Defaults for new sites. Existing sites do not change. Dry-run and the Remote API account are set in config.php.';
+$wb['saved_txt'] = 'Settings saved.';
+$wb['dry_run_on_txt'] = 'Dry-run is on: new sites are not created. Change it in config.php.';
+$wb['server_php_id_txt'] = 'PHP version';
+$wb['hd_quota_txt'] = 'Disk quota (MB, -1 = unlimited)';
+$wb['traffic_quota_txt'] = 'Traffic quota (MB, -1 = unlimited)';
+$wb['ssl_txt'] = 'SSL';
+$wb['ssl_letsencrypt_txt'] = 'Let\'s Encrypt certificate';
+$wb['subdomain_txt'] = 'Auto subdomain';
+$wb['locale_txt'] = 'WordPress language';
+$wb['plugins_txt'] = 'Plugins to install';
+$wb['plugins_help_txt'] = 'wordpress.org names, separated by commas.';
+$wb['theme_txt'] = 'Theme to install';
+$wb['yes_txt'] = 'Yes';
+$wb['no_txt'] = 'No';
+$wb['btn_save_txt'] = 'Save';
