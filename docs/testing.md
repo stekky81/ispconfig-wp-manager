@@ -24,12 +24,14 @@ Never test on the production nodes. Use two disposable VMs that mirror productio
 brew install --cask multipass        # macOS needs Multipass 1.17.0 or later
 UBUNTU=24.04 WEB=apache ./dev/test-env.sh create   # same Ubuntu and web server as production
 ./dev/test-env.sh info                             # panel URL and IP
-./dev/test-env.sh reset                            # back to the clean snapshot after each test
+./dev/test-env.sh sync                             # copy the current code into the VM
+./dev/test-env.sh reset                            # back to the clean snapshot (then syncs again)
 ./dev/test-env.sh destroy                          # delete everything
 ```
 
-The project folder is mounted in the VM at `/opt/ispconfig-wp-manager`, so local changes are
-available immediately.
+The project is copied into the VM at `/opt/ispconfig-wp-manager`: run `sync` after every change.
+(A live mount is not possible: the ISPConfig autoinstaller removes snapd, which Multipass mounts need.)
+The VM's own `config.php` is kept across syncs.
 
 What it does **not** touch on the Mac:
 
@@ -37,8 +39,7 @@ What it does **not** touch on the Mac:
   no port conflicts (nothing is forwarded to `localhost`).
 - No system files are changed. The only manual step is adding test domains to `/etc/hosts`;
   use a dedicated suffix (e.g. `sito1.ispc.test`) so they never clash with local virtual hosts.
-- The only Mac folder the VMs can write to is the mounted project folder (the installer creates
-  the git-ignored `config.php` there).
+- The VMs cannot write to the Mac at all: code goes one way, from the Mac into the VM.
 
 Full removal: `./dev/test-env.sh destroy` deletes the VMs and frees their disk space;
 `brew uninstall --cask multipass` removes Multipass; finally remove the test lines from `/etc/hosts`.

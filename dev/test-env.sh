@@ -3,7 +3,8 @@
 #
 # Local test environment on macOS (or Linux) with Multipass: https://multipass.run
 #
-#   ./dev/test-env.sh create     # master VM with ISPConfig + project mounted, snapshot "clean"
+#   ./dev/test-env.sh create     # master VM with ISPConfig + project copied, snapshot "clean"
+#   ./dev/test-env.sh sync       # copy the current project into the VMs (after every change)
 #   ./dev/test-env.sh slave      # second VM for multiserver tests (ISPConfig setup is interactive)
 #   ./dev/test-env.sh reset      # restore every VM to its "clean" snapshot
 #   ./dev/test-env.sh shell      # open a root shell on the master
@@ -28,7 +29,7 @@ MASTER=ispc-master
 SLAVE=ispc-slave
 SNAPSHOT=clean
 PROJECT_DIR=$(cd "$(dirname "$0")/.." && pwd)
-MOUNT_POINT=/opt/ispconfig-wp-manager
+APP_DIR=/opt/ispconfig-wp-manager
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -73,6 +74,13 @@ ip=$(hostname -I | awk '{print $1}')
 [[ -n ${HOSTS_FILE:-} ]] || {
     echo 'preserve_hostname: true' > /etc/cloud/cloud.cfg.d/99-ispconfig-fqdn.cfg
     hostnamectl set-hostname "$fqdn"
+    # cloud-init (manage_etc_hosts) rebuilds /etc/hosts at every boot from this template.
+    tmpl=/etc/cloud/templates/hosts.debian.tmpl
+    if [[ -f $tmpl ]]; then
+        grep -v '# ispconfig-wp-manager$' "$tmpl" > "$tmpl.new"
+        echo "$ip $fqdn $name # ispconfig-wp-manager" >> "$tmpl.new"
+        cat "$tmpl.new" > "$tmpl" && rm -f "$tmpl.new"
+    fi
 }
 # Drop any line that mentions the short or full name, then map the VM IP to the FQDN.
 awk -v n="$name" -v f="$fqdn" '{ for (i = 2; i <= NF; i++) if ($i == n || $i == f) next } 1' "$hosts" > "$hosts.new"
@@ -102,6 +110,7 @@ cmd_create() {
     if exists "$MASTER" && ispconfig_installed "$MASTER"; then
         # Resume an interrupted run instead of reinstalling.
         info "$MASTER already has ISPConfig: resuming with the remaining steps"
+        set_fqdn "$MASTER"
     else
         exists "$MASTER" && die "$MASTER exists without ISPConfig: run destroy first"
         install_master
@@ -109,7 +118,7 @@ cmd_create() {
 
     multipass exec "$MASTER" -- test -x /usr/local/bin/wp || install_wpcli "$MASTER"
     multipass info "$MASTER.$SNAPSHOT" >/dev/null 2>&1 || snapshot "$MASTER"
-    ensure_mount "$MASTER"
+    sync_project "$MASTER"
 
     cmd_info
     echo
@@ -128,8 +137,8 @@ install_master() {
         /root/ispconfig-install.log \
         || die "ISPConfig installation failed: see the output above (log in the VM: /root/ispconfig-install.log)"
     verify_ispconfig "$MASTER"
-    # Snapshot (taken by cmd_create) comes before the mount: the clean snapshot
-    # has no mount, and reset re-creates the mount after each restore.
+    # The clean snapshot (taken by cmd_create) has no project files:
+    # sync copies them after every create and reset.
 }
 
 # /usr/local/ispconfig is readable by root only.
@@ -147,17 +156,28 @@ verify_ispconfig() {
     info "ISPConfig installed on $name"
 }
 
-ensure_mount() {
-    local name=$1
-    if ! multipass info "$name" | grep -q "$MOUNT_POINT"; then
-        info "Preparing mount support in $name (first time: a few minutes)"
-        # On first boot snapd is still seeding and multipass gives up after 15 s:
-        # wait for it and install the sshfs helper ourselves, without a timeout.
-        multipass exec "$name" -- sudo snap wait system seed.loaded
-        multipass exec "$name" -- sudo snap install multipass-sshfs
-        info "Mounting the project at $MOUNT_POINT in $name"
-        multipass mount "$PROJECT_DIR" "$name:$MOUNT_POINT"
-    fi
+# ISPConfig's autoinstaller removes snapd, so multipass mount (sshfs) is not available.
+# Copy the project instead: closer to a real install anyway. config.php in the VM is kept.
+sync_project() {
+    local name=$1 archive
+    archive="${TMPDIR:-/tmp}/wpm-sync-$$.tgz"
+    info "Copying the project to $name:$APP_DIR"
+    COPYFILE_DISABLE=1 tar -czf "$archive" -C "$PROJECT_DIR" \
+        --exclude ./.git --exclude ./vendor --exclude ./dev/logs --exclude ./config.php .
+    multipass transfer "$archive" "$name:/tmp/wpm-sync.tgz"
+    rm -f "$archive"
+    multipass exec "$name" -- sudo bash -s -- "$APP_DIR" <<'EOS'
+set -euo pipefail
+dst=$1 new="$1.new"
+rm -rf "$new" && mkdir -p "$new"
+tar -xzf /tmp/wpm-sync.tgz -C "$new" --no-same-owner
+chown -R root:root "$new"
+if [[ -f $dst/config.php ]]; then cp -p "$dst/config.php" "$new/config.php"; fi
+rm -rf "$dst.old"
+if [[ -d $dst ]]; then mv "$dst" "$dst.old"; fi
+mv "$new" "$dst"
+rm -rf "$dst.old" /tmp/wpm-sync.tgz
+EOS
 }
 
 cmd_slave() {
@@ -182,7 +202,7 @@ cmd_reset() {
         multipass stop "$vm"
         multipass restore --destructive "$vm.$SNAPSHOT"
         multipass start "$vm"
-        ensure_mount "$vm"
+        sync_project "$vm"
     done
 }
 
@@ -202,12 +222,15 @@ cmd_info() {
 case "${1:-}" in
     create) cmd_create ;;
     slave) cmd_slave ;;
-    snapshot-slave) snapshot "$SLAVE"; ensure_mount "$SLAVE" ;;
+    snapshot-slave) snapshot "$SLAVE"; sync_project "$SLAVE" ;;
+    sync)
+        for vm in "$MASTER" "$SLAVE"; do if exists "$vm"; then sync_project "$vm"; fi; done
+        ;;
     reset) cmd_reset ;;
     shell) multipass shell "$MASTER" ;;
     info) cmd_info ;;
     destroy)
-        for vm in "$MASTER" "$SLAVE"; do exists "$vm" && multipass delete --purge "$vm"; done
+        for vm in "$MASTER" "$SLAVE"; do if exists "$vm"; then multipass delete --purge "$vm"; fi; done
         info "VMs deleted"
         ;;
     *) sed -n '3,15p' "$0"; exit 2 ;;
