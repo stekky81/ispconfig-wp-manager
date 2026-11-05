@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `auto_skip` varchar(40) NOT NULL DEFAULT '',
   `last_auto` datetime DEFAULT NULL,
   `backup_uploads` enum('y','n') NOT NULL DEFAULT 'y',
+  -- WordPress cron: wp = run by page visits, real = a cron job of ISPConfig
+  `wp_cron` enum('wp','real') NOT NULL DEFAULT 'wp',
+  `cron_job_id` int(11) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`wpm_site_id`),
   UNIQUE KEY `domain` (`domain`),
   KEY `server_id` (`server_id`)
@@ -75,6 +78,19 @@ CREATE TABLE IF NOT EXISTS `wpm_setting` (
   `setting_value` mediumtext,
   PRIMARY KEY (`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Upgrade from the versions without the switch of WP-Cron.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site`
+       ADD `wp_cron` enum(\'wp\',\'real\') NOT NULL DEFAULT \'wp\',
+       ADD `cron_job_id` int(11) unsigned NOT NULL DEFAULT 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'wp_cron'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
 
 -- Upgrade from the versions without clones.
 SET @wpm_sql = (

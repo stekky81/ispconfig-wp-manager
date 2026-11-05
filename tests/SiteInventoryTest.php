@@ -41,6 +41,11 @@ final class SiteInventoryTest extends TestCase
         self::assertSame('7.1.5', $report['core_minor']);
     }
 
+    public function testDryRunSaysNothingAboutCron(): void
+    {
+        self::assertFalse(SiteInventory::report('7.1.4', '[]', '[]', '[]')['wp_cron_disabled']);
+    }
+
     public function testUpdateCountAddsCorePluginsAndThemes(): void
     {
         self::assertSame(3, SiteInventory::updateCount(SiteInventory::report('7.1.4', self::CORE, self::PLUGINS, self::THEMES)));

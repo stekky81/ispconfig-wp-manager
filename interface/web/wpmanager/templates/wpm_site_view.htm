@@ -72,6 +72,17 @@
     </tmpl_if>
 
     <tmpl_if name="is_installed">
+    <h2>{tmpl_var name='cron_txt'}</h2>
+    <p id="wp_cron_mode">
+        <tmpl_if name="real_cron_on">
+            {tmpl_var name='cron_real_txt'}
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=wpcron&mode=wp&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='cron_to_wp_txt'}</button></tmpl_unless>
+        <tmpl_else>
+            {tmpl_var name='cron_wp_txt'}
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=wpcron&mode=real&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='cron_to_real_txt'}</button></tmpl_unless>
+        </tmpl_if>
+    </p>
+
     <h2>{tmpl_var name='backups_txt'}</h2>
     <p class="fieldDescription">{tmpl_var name='backups_desc_txt'}</p>
     <tmpl_if name="action_message"><div class="alert alert-info" id="action_message">{tmpl_var name='action_message'}</div></tmpl_if>

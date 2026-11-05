@@ -55,6 +55,16 @@ final class WpCli
         ], $dbPassword . "\n");
     }
 
+    public function configHas(string $name): Command
+    {
+        return $this->cmd(['config', 'has', $name, '--type=constant']);
+    }
+
+    public function configDelete(string $name): Command
+    {
+        return $this->cmd(['config', 'delete', $name, '--type=constant']);
+    }
+
     public function configGet(string $name): Command
     {
         return $this->cmd(['config', 'get', $name]);

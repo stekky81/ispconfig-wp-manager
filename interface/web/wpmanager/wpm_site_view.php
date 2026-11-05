@@ -7,6 +7,7 @@
 require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
+require_once 'lib/wpm_config.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
@@ -31,7 +32,7 @@ if (!is_array($site)) {
 
 $escape = static fn($value): string => $app->functions->htmlentities((string)$value);
 
-$config = \WpManager\Config::load();
+$config = wpm_config($app);
 $credentials = new \WpManager\SiteCredentials(\WpManager\Crypto::fromFile($config->get('key_file')));
 
 // Links, not the page form: the form may also carry the reveal field.
@@ -57,23 +58,42 @@ if (isset($_GET['backup_uploads']) && in_array($_GET['backup_uploads'], ['y', 'n
 
 // The request reaches the node through the datalog, like every other change.
 $action = (string)($_GET['action'] ?? '');
-if (in_array($action, ['backup', 'restore', 'update'], true)) {
+if (in_array($action, ['backup', 'restore', 'update', 'wpcron'], true)) {
     $app->auth->csrf_token_check('GET');
     $param = match ($action) {
         'restore' => (string)($_GET['backup'] ?? ''),
         'update' => (string)($_GET['scope'] ?? ''),
+        'wpcron' => (string)($_GET['mode'] ?? ''),
         default => '',
     };
     $allowed = match ($action) {
         'restore' => array_column(json_decode((string)$site['backups_json'], true) ?: [], 'id'),
         'update' => \WpManager\SiteUpdater::SCOPES,
+        'wpcron' => [\WpManager\WpCron::WORDPRESS, \WpManager\WpCron::REAL],
         default => [''],
     };
     $valid = $site['status'] === 'installed' && in_array($param, $allowed, true);
     if ($valid && $site['action_request'] === '') {
         $update = ['action_request' => $action, 'action_param' => $param, 'action_status' => 'requested', 'action_message' => ''];
-        $app->db->datalogUpdate('wpm_site', $update, 'wpm_site_id', $id);
-        $site = $update + $site;
+        try {
+            if ($action === 'wpcron' && !$config->isDryRun()) {
+                // Job first when turning WP-Cron off, so that the site is not left with no cron at all.
+                $api = \WpManager\IspconfigApi::fromConfig($config);
+                if ($param === \WpManager\WpCron::REAL && (int)$site['cron_job_id'] === 0) {
+                    $jobId = (int)$api->call('sites_cron_add', ['client_id' => (int)$site['client_id'], 'params' => \WpManager\WpCron::jobParams($site)]);
+                    $app->db->query('UPDATE wpm_site SET cron_job_id = ? WHERE wpm_site_id = ?', $jobId, $id);
+                } elseif ($param === \WpManager\WpCron::WORDPRESS && (int)$site['cron_job_id'] > 0) {
+                    $api->call('sites_cron_delete', ['cron_id' => (int)$site['cron_job_id']]);
+                    $app->db->query('UPDATE wpm_site SET cron_job_id = 0 WHERE wpm_site_id = ?', $id);
+                }
+                $api->logout();
+            }
+            $app->db->datalogUpdate('wpm_site', $update, 'wpm_site_id', $id);
+            $site = $update + $site;
+        } catch (\Throwable $e) {
+            $site['action_status'] = 'failed';
+            $site['action_message'] = $e->getMessage();
+        }
     }
 }
 
@@ -124,6 +144,7 @@ $app->tpl->setVar('has_backups', $backup_rows === [] ? 0 : 1);
 $app->tpl->setVar('action_busy', $action_busy ? 1 : 0);
 $app->tpl->setVar('auto_update_on', $site['auto_update'] === 'y' ? 1 : 0);
 $app->tpl->setVar('backup_uploads_on', $site['backup_uploads'] === 'y' ? 1 : 0);
+$app->tpl->setVar('real_cron_on', $site['wp_cron'] === 'real' ? 1 : 0);
 $app->tpl->setVar('action_status', $escape($site['action_status']));
 $app->tpl->setVar('action_message', $escape($site['action_message'] ?? ''));
 

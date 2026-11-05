@@ -32,7 +32,7 @@ class wpmanager_plugin
 
         // An action asked in the panel: the worker reads the current record itself.
         $action = (string)($site['action_request'] ?? '');
-        if (in_array($action, ['backup', 'restore', 'update'], true)) {
+        if (in_array($action, ['backup', 'restore', 'update', 'wpcron'], true)) {
             try {
                 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
                 $queue = new \WpManager\JobQueue(\WpManager\Config::load()->get('spool_dir'));

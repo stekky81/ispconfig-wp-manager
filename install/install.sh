@@ -3,10 +3,10 @@
 #
 # Installer for ispconfig-wp-manager. Idempotent: run it again after every ISPConfig update.
 #
-#   ./install/install.sh --role=master     # panel: module symlink, tables, shared key
+#   ./install/install.sh --role=master     # panel: interface module, tables, shared key
 #   ./install/install.sh --role=node       # web node: server module and plugin, worker cron, tables
 #   ./install/install.sh --role=master --role=node   # single-server setup
-#   ./install/install.sh --uninstall       # remove symlinks and cron (keeps tables and sites)
+#   ./install/install.sh --uninstall       # remove the module and cron (keeps tables and sites)
 
 set -euo pipefail
 
@@ -38,7 +38,7 @@ info() { echo "==> $*"; }
 [[ "$(cd "$(dirname "$0")/.." && pwd)" == "$APP_DIR" ]] || die "clone the repository into $APP_DIR first"
 
 if [[ $UNINSTALL -eq 1 ]]; then
-    info "Removing symlinks and cron"
+    info "Removing the module and cron"
     # Our own module folder only (a copy, or a symlink from older versions).
     rm -rf "${ISP_DIR:?}/interface/web/wpmanager"
     rm -f "$ISP_DIR/server/mods-enabled/wpmanager_module.inc.php"

@@ -42,6 +42,7 @@ use WpManager\SiteCloner;
 use WpManager\SiteInventory;
 use WpManager\SiteScanner;
 use WpManager\SiteUpdater;
+use WpManager\WpCron;
 use WpManager\WordPressInstaller;
 
 // ISPConfig server environment, for $app->dbmaster and $app->log.
@@ -79,7 +80,7 @@ foreach ($queue->pending() as $name) {
     $siteId = (int)$job['site_id'];
 
     // Actions on existing sites run once: a failed restore must not start again by itself.
-    if (in_array($job['type'], ['backup', 'restore', 'update'], true)) {
+    if (in_array($job['type'], ['backup', 'restore', 'update', 'wpcron'], true)) {
         $queue->remove($name);
         $record = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $siteId);
         if (!is_array($record) || $record['action_request'] !== $job['type'] || $config->isDryRun()) {
@@ -98,6 +99,10 @@ foreach ($queue->pending() as $name) {
         try {
             if ($job['type'] === 'backup') {
                 $finish('done', 'Backup ' . $backups->create($record) . ' created.');
+            } elseif ($job['type'] === 'wpcron') {
+                (new WpCron($config, new PathGuard($config->get('web_root_base'))))->apply($record, (string)$record['action_param']);
+                $app->dbmaster->query('UPDATE wpm_site SET wp_cron = ? WHERE wpm_site_id = ?', $record['action_param'], $siteId);
+                $finish('done', 'WordPress cron mode: ' . $record['action_param'] . '.');
             } elseif ($job['type'] === 'update') {
                 $result = $updater->update($record, (string)$record['action_param']);
                 $finish($result['outcome'], $result['message']);
@@ -106,6 +111,7 @@ foreach ($queue->pending() as $name) {
             } else {
                 $backups->restore($record, (string)$record['action_param']);
                 $finish('done', 'Backup ' . $record['action_param'] . ' restored.');
+                $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
             }
         } catch (\Throwable $e) {
             $app->log("wpmanager: {$job['type']} of {$record['domain']} failed: " . $e->getMessage(), LOGLEVEL_WARN);
@@ -216,11 +222,12 @@ if (!$config->isDryRun()) {
         try {
             $report = $inventory->collect($site);
             $app->dbmaster->query(
-                'UPDATE wpm_site SET updates_json = ?, updates_count = ?, last_check = NOW(), wp_version = IF(? = \'\', wp_version, ?) WHERE wpm_site_id = ?',
+                'UPDATE wpm_site SET updates_json = ?, updates_count = ?, last_check = NOW(), wp_version = IF(? = \'\', wp_version, ?), wp_cron = ? WHERE wpm_site_id = ?',
                 json_encode($report, JSON_THROW_ON_ERROR),
                 SiteInventory::updateCount($report),
                 $report['version'],
                 $report['version'],
+                $report['wp_cron_disabled'] ? WpCron::REAL : WpCron::WORDPRESS,
                 $site['wpm_site_id'],
             );
         } catch (\Throwable $e) {

@@ -3,6 +3,8 @@
 Planned work, by milestone. Tick items as they land (with the commit or PR).
 Pre-release: no milestone is considered done until it has passed `docs/testing.md` in the test VM.
 
+**Next:** the full security review listed under 1.0.
+
 ## 0.1 — Skeleton (in progress)
 
 - [x] Shared library, installer, interface module, server plugin, node worker
@@ -48,6 +50,10 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] Separate button to move to a new major version of WordPress
 - [x] Optional backups without `wp-content/uploads`, for large sites
 
+## 0.4.1 — Site tools
+
+- [x] Switch between WP-Cron and a real cron job (`DISABLE_WP_CRON` and an ISPConfig cron job)
+
 ## 0.5 — Clone and staging
 
 - [x] Clone a site to a new domain or subdomain, on the same node (files, DB, `search-replace`)
@@ -60,6 +66,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 
 ## 1.0 — Complete product
 
+- [ ] Full security review: access levels, permissions of files and folders, panel pages, worker and installer
 - [ ] Maintenance: maintenance mode, admin password reset, one-click wp-admin login,
       debug toggle, plugin/theme activate/deactivate/remove
 - [ ] SFTP login with SSH keys instead of a password

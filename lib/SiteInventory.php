@@ -28,12 +28,14 @@ final class SiteInventory
         $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
         $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
 
-        return self::report(
+        $report = self::report(
             $runner->mustRun($wp->coreVersion()),
             self::orEmptyList($runner->mustRun($wp->coreCheckUpdate())),
             self::orEmptyList($runner->mustRun($wp->pluginList())),
             self::orEmptyList($runner->mustRun($wp->themeList())),
         );
+        $report['wp_cron_disabled'] = WpCron::isDisabled($runner->run($wp->configGet('DISABLE_WP_CRON')));
+        return $report;
     }
 
     public static function report(string $version, string $core, string $plugins, string $themes): array
@@ -56,6 +58,7 @@ final class SiteInventory
             'core_minor' => $coreMinor,
             'plugins' => self::items(self::decode($plugins)),
             'themes' => self::items(self::decode($themes)),
+            'wp_cron_disabled' => false,
         ];
     }
 
