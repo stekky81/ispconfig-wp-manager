@@ -38,10 +38,10 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 
 ## 0.4 — Safe updates
 
-- [ ] Backup before every update (files + DB dump), with retention
-- [ ] Update core / plugins / themes from the panel
-- [ ] Health check after the update (HTTP 200, no PHP fatal errors, wp-admin reachable)
-- [ ] Automatic rollback when the health check fails
+- [x] Backup before every update (files + DB dump), with retention
+- [x] Update core / plugins / themes from the panel
+- [x] Health check after the update (HTTP 200, no PHP fatal errors, wp-admin reachable)
+- [x] Automatic rollback when the health check fails
 - [ ] Bulk updates and scheduled auto-updates per site
 
 ## 0.5 — Clone and staging

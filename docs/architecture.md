@@ -37,7 +37,7 @@ command inside `server.sh` would block every other change on the node.
 ## Update overview
 
 Once a day, three sites per run, the worker reads core, plugin and theme versions and available updates with
-WP-CLI, as the site user and with `--skip-plugins --skip-themes`. It updates nothing: no file changes, and in the
+WP-CLI, as the site user and with `--skip-plugins --skip-themes` (must-use plugins still load). It updates nothing: no file changes, and in the
 site database WordPress only refreshes its own update transients. The output is under the control of the site
 owner, so it is limited on the node and escaped in the panel. The report is stored in `wpm_site.updates_json`.
 
@@ -56,6 +56,14 @@ archives. Nothing is lost, but they grow. Modes `rootgz`, zip formats and borg a
 
 A restore first verifies and unpacks the backup, and only then replaces `web/` and imports the database. Actions asked
 in the panel reach the node through the datalog and run once: a failed restore never starts again by itself.
+
+## Updates
+
+An update runs on the node as the site user and never without a way back: the site must answer before it starts,
+a backup must succeed, and the update runs with `--skip-plugins --skip-themes`. The home page and `wp-login.php` are then
+checked again. What worked before and does not work now, or a failed command, restores the backup automatically.
+The checks compare before and after, so a login page moved on purpose is not a failure. They call the local web server
+directly: a vhost bound to a single IP address may need a different address.
 
 ## Settings
 

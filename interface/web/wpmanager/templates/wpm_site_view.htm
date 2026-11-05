@@ -41,6 +41,15 @@
     <tmpl_else>
         <p id="no_updates">{tmpl_var name='no_updates_txt'}</p>
     </tmpl_if>
+    <tmpl_if name="has_updates"><tmpl_unless name="action_busy">
+    <p class="fieldDescription">{tmpl_var name='update_desc_txt'}</p>
+    <p id="update_buttons">
+        <a class="btn btn-default formbutton-success" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=update&scope=all&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_all_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=update&scope=core&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_core_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=update&scope=plugins&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_plugins_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=update&scope=themes&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_themes_txt'}</a>
+    </p>
+    </tmpl_unless></tmpl_if>
     <p>{tmpl_var name='last_check_txt'}: {tmpl_var name='last_check'}
         <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&check=1&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='check_now_txt'}</button>
     </p>

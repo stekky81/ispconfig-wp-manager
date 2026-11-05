@@ -44,11 +44,19 @@ if (isset($_GET['check'])) {
 
 // The request reaches the node through the datalog, like every other change.
 $action = (string)($_GET['action'] ?? '');
-if (in_array($action, ['backup', 'restore'], true)) {
+if (in_array($action, ['backup', 'restore', 'update'], true)) {
     $app->auth->csrf_token_check('GET');
-    $param = $action === 'restore' ? (string)($_GET['backup'] ?? '') : '';
-    $known = array_column(json_decode((string)$site['backups_json'], true) ?: [], 'id');
-    $valid = $site['status'] === 'installed' && ($action === 'backup' || in_array($param, $known, true));
+    $param = match ($action) {
+        'restore' => (string)($_GET['backup'] ?? ''),
+        'update' => (string)($_GET['scope'] ?? ''),
+        default => '',
+    };
+    $allowed = match ($action) {
+        'restore' => array_column(json_decode((string)$site['backups_json'], true) ?: [], 'id'),
+        'update' => \WpManager\SiteUpdater::SCOPES,
+        default => [''],
+    };
+    $valid = $site['status'] === 'installed' && in_array($param, $allowed, true);
     if ($valid && $site['action_request'] === '') {
         $update = ['action_request' => $action, 'action_param' => $param, 'action_status' => 'requested', 'action_message' => ''];
         $app->db->datalogUpdate('wpm_site', $update, 'wpm_site_id', $id);

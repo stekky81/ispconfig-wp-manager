@@ -12,7 +12,7 @@ namespace WpManager;
  * the quota and ISPConfig leaves them alone. Its own backups exclude ./tmp, its cleanup of tmp
  * only removes sess_* files, and <site>/backup would not do: it is emptied after 3 days.
  */
-final class SiteBackup
+final class SiteBackup implements SiteBackups
 {
     public const KEEP = 3;
     private const FILES = 'files.tar.gz';

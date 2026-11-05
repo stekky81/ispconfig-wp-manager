@@ -108,6 +108,27 @@ final class WpCli
         return $this->cmd(['core', 'version']);
     }
 
+    /** Updates run without normal plugins and themes, which may be what is broken. Must-use plugins still load. */
+    public function coreUpdate(): Command
+    {
+        return $this->cmd(['core', 'update', '--skip-plugins', '--skip-themes']);
+    }
+
+    public function coreUpdateDb(): Command
+    {
+        return $this->cmd(['core', 'update-db', '--skip-plugins', '--skip-themes']);
+    }
+
+    public function pluginUpdateAll(): Command
+    {
+        return $this->cmd(['plugin', 'update', '--all', '--skip-plugins', '--skip-themes']);
+    }
+
+    public function themeUpdateAll(): Command
+    {
+        return $this->cmd(['theme', 'update', '--all', '--skip-plugins', '--skip-themes']);
+    }
+
     public function dbExport(string $file): Command
     {
         return $this->cmd(['db', 'export', $file, '--skip-plugins', '--skip-themes']);
@@ -118,7 +139,7 @@ final class WpCli
         return $this->cmd(['db', 'import', $file, '--skip-plugins', '--skip-themes']);
     }
 
-    /** Read-only checks of the update overview. Plugin and theme code does not run. */
+    /** Read-only checks of the update overview. Normal plugins and themes do not load; must-use plugins do. */
     public function coreCheckUpdate(): Command
     {
         return $this->cmd(['core', 'check-update', '--format=json', '--skip-plugins', '--skip-themes']);

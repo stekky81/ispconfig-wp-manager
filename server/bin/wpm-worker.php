@@ -30,12 +30,14 @@ require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 
 use WpManager\Config;
 use WpManager\Crypto;
+use WpManager\HealthCheck;
 use WpManager\JobQueue;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
 use WpManager\SiteBackup;
 use WpManager\SiteInventory;
 use WpManager\SiteScanner;
+use WpManager\SiteUpdater;
 use WpManager\WordPressInstaller;
 
 // ISPConfig server environment, for $app->dbmaster and $app->log.
@@ -52,6 +54,7 @@ $installer = new WordPressInstaller(
 );
 
 $backups = new SiteBackup($config, new PathGuard($config->get('web_root_base')));
+$updater = new SiteUpdater($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
 
 $report = static function (int $siteId, string $status, string $message, bool $clearDbSecret = false, string $wpVersion = '') use ($app, $config): void {
     if ($config->isDryRun()) {
@@ -71,7 +74,7 @@ foreach ($queue->pending() as $name) {
     $siteId = (int)$job['site_id'];
 
     // Actions on existing sites run once: a failed restore must not start again by itself.
-    if (in_array($job['type'], ['backup', 'restore'], true)) {
+    if (in_array($job['type'], ['backup', 'restore', 'update'], true)) {
         $queue->remove($name);
         $record = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $siteId);
         if (!is_array($record) || $record['action_request'] !== $job['type'] || $config->isDryRun()) {
@@ -90,6 +93,11 @@ foreach ($queue->pending() as $name) {
         try {
             if ($job['type'] === 'backup') {
                 $finish('done', 'Backup ' . $backups->create($record) . ' created.');
+            } elseif ($job['type'] === 'update') {
+                $result = $updater->update($record, (string)$record['action_param']);
+                $finish($result['outcome'], $result['message']);
+                // Whatever happened, the versions on record may be out of date now.
+                $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
             } else {
                 $backups->restore($record, (string)$record['action_param']);
                 $finish('done', 'Backup ' . $record['action_param'] . ' restored.');
@@ -173,7 +181,7 @@ if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INT
     }
 }
 
-// Update overview. Read-only: no file changes, and plugin and theme code does not run.
+// Update overview. Read-only: no file changes, and normal plugins and themes do not load.
 if (!$config->isDryRun()) {
     $inventory = new SiteInventory($config, new PathGuard($config->get('web_root_base')));
     $due = $app->dbmaster->queryAllRecords(

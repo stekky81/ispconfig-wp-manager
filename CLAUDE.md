@@ -105,9 +105,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
   with one-time passwords; spaced retries; detection of existing sites; settings page; update overview;
-  `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  backups, updates with health check and automatic rollback; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: milestone 0.4 (safe updates) in the roadmap. Multiserver is set aside for now.
+- **Next**: bulk updates and scheduled auto-updates (0.4), then milestone 0.5. Multiserver is set aside for now.
 - The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has
   `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
 
