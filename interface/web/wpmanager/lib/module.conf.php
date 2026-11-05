@@ -3,6 +3,7 @@
 
 $module['name'] = 'wpmanager';
 $module['title'] = 'WordPress';
+$module['icon'] = 'icon bi bi-wordpress';
 $module['template'] = 'module.tpl.htm';
 $module['startpage'] = 'wpmanager/wpm_site_list.php';
 $module['tab_width'] = '';
