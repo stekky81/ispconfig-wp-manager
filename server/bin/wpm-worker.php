@@ -33,6 +33,7 @@ use WpManager\Crypto;
 use WpManager\JobQueue;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
+use WpManager\SiteBackup;
 use WpManager\SiteInventory;
 use WpManager\SiteScanner;
 use WpManager\WordPressInstaller;
@@ -50,6 +51,8 @@ $installer = new WordPressInstaller(
     new PathGuard($config->get('web_root_base')),
 );
 
+$backups = new SiteBackup($config, new PathGuard($config->get('web_root_base')));
+
 $report = static function (int $siteId, string $status, string $message, bool $clearDbSecret = false, string $wpVersion = '') use ($app, $config): void {
     if ($config->isDryRun()) {
         $app->log("wpmanager dry-run: site {$siteId} → {$status}: {$message}", LOGLEVEL_DEBUG);
@@ -66,6 +69,37 @@ foreach ($queue->pending() as $name) {
     $job = $queue->read($name);
     $site = $job['data'];
     $siteId = (int)$job['site_id'];
+
+    // Actions on existing sites run once: a failed restore must not start again by itself.
+    if (in_array($job['type'], ['backup', 'restore'], true)) {
+        $queue->remove($name);
+        $record = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $siteId);
+        if (!is_array($record) || $record['action_request'] !== $job['type'] || $config->isDryRun()) {
+            continue;
+        }
+        $finish = static function (string $status, string $message) use ($app, $backups, $record, $siteId): void {
+            $app->dbmaster->query(
+                "UPDATE wpm_site SET action_request = '', action_param = '', action_status = ?, action_message = ?, backups_json = ? WHERE wpm_site_id = ?",
+                $status,
+                mb_substr($message, 0, 2000),
+                json_encode($backups->list($record), JSON_THROW_ON_ERROR),
+                $siteId,
+            );
+        };
+        $app->dbmaster->query("UPDATE wpm_site SET action_status = 'running', action_message = '' WHERE wpm_site_id = ?", $siteId);
+        try {
+            if ($job['type'] === 'backup') {
+                $finish('done', 'Backup ' . $backups->create($record) . ' created.');
+            } else {
+                $backups->restore($record, (string)$record['action_param']);
+                $finish('done', 'Backup ' . $record['action_param'] . ' restored.');
+            }
+        } catch (\Throwable $e) {
+            $app->log("wpmanager: {$job['type']} of {$record['domain']} failed: " . $e->getMessage(), LOGLEVEL_WARN);
+            $finish('failed', $job['type'] . ' failed: ' . $e->getMessage());
+        }
+        continue;
+    }
 
     if ($job['type'] !== 'install') {
         $queue->remove($name);

@@ -29,6 +29,20 @@ class wpmanager_plugin
         global $app;
 
         $site = $data['new'] ?? [];
+
+        // An action asked in the panel: the worker reads the current record itself.
+        $action = (string)($site['action_request'] ?? '');
+        if (in_array($action, ['backup', 'restore'], true)) {
+            try {
+                require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
+                $queue = new \WpManager\JobQueue(\WpManager\Config::load()->get('spool_dir'));
+                $queue->push($action, (int)$site['wpm_site_id'], []);
+            } catch (\Throwable $e) {
+                $app->log('wpmanager: cannot queue ' . $action . ': ' . $e->getMessage(), LOGLEVEL_WARN);
+            }
+            return;
+        }
+
         if (($site['status'] ?? '') !== 'queued' || (int)($site['domain_id'] ?? 0) < 1) {
             return;
         }

@@ -38,6 +38,12 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `updates_json` mediumtext,
   `updates_count` int(11) unsigned NOT NULL DEFAULT 0,
   `last_check` datetime DEFAULT NULL,
+  -- Actions asked in the panel and run by the worker of the node
+  `action_request` varchar(20) NOT NULL DEFAULT '',
+  `action_param` varchar(40) NOT NULL DEFAULT '',
+  `action_status` varchar(20) NOT NULL DEFAULT '',
+  `action_message` text,
+  `backups_json` text,
   PRIMARY KEY (`wpm_site_id`),
   UNIQUE KEY `domain` (`domain`),
   KEY `server_id` (`server_id`)
@@ -63,6 +69,22 @@ CREATE TABLE IF NOT EXISTS `wpm_setting` (
   `setting_value` mediumtext,
   PRIMARY KEY (`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Upgrade from the versions without actions on existing sites.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site`
+       ADD `action_request` varchar(20) NOT NULL DEFAULT \'\' AFTER `last_check`,
+       ADD `action_param` varchar(40) NOT NULL DEFAULT \'\' AFTER `action_request`,
+       ADD `action_status` varchar(20) NOT NULL DEFAULT \'\' AFTER `action_param`,
+       ADD `action_message` text AFTER `action_status`,
+       ADD `backups_json` text AFTER `action_message`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'action_request'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
 
 -- Upgrade from the versions without the update overview.
 SET @wpm_sql = (

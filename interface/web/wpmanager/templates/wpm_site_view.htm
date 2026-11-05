@@ -46,6 +46,29 @@
     </p>
     </tmpl_if>
 
+    <tmpl_if name="is_installed">
+    <h2>{tmpl_var name='backups_txt'}</h2>
+    <p class="fieldDescription">{tmpl_var name='backups_desc_txt'}</p>
+    <tmpl_if name="action_message"><div class="alert alert-info" id="action_message">{tmpl_var name='action_message'}</div></tmpl_if>
+    <tmpl_if name="action_busy"><div class="alert alert-info" id="action_busy">{tmpl_var name='action_busy_txt'} ({tmpl_var name='action_status'})</div></tmpl_if>
+    <tmpl_if name="has_backups">
+        <table class="table" id="site_backups">
+            <tbody>
+                <tmpl_loop name="backups">
+                <tr>
+                    <td>{tmpl_var name='backup_id'}</td>
+                    <td>{tmpl_var name='backup_size'} MB</td>
+                    <td class="text-right"><tmpl_unless name="action_busy"><a class="btn btn-default formbutton-danger" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=restore&backup={tmpl_var name='backup_id'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='restore_confirm_txt'}');">{tmpl_var name='restore_txt'}</a></tmpl_unless></td>
+                </tr>
+                </tmpl_loop>
+            </tbody>
+        </table>
+    </tmpl_if>
+    <tmpl_unless name="action_busy">
+        <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=backup&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='backup_now_txt'}</button>
+    </tmpl_unless>
+    </tmpl_if>
+
     <h2>{tmpl_var name='credentials_txt'}</h2>
     <tmpl_if name="revealed">
         <div class="alert alert-warning">{tmpl_var name='credentials_once_txt'}</div>

@@ -108,6 +108,16 @@ final class WpCli
         return $this->cmd(['core', 'version']);
     }
 
+    public function dbExport(string $file): Command
+    {
+        return $this->cmd(['db', 'export', $file, '--skip-plugins', '--skip-themes']);
+    }
+
+    public function dbImport(string $file): Command
+    {
+        return $this->cmd(['db', 'import', $file, '--skip-plugins', '--skip-themes']);
+    }
+
     /** Read-only checks of the update overview. Plugin and theme code does not run. */
     public function coreCheckUpdate(): Command
     {

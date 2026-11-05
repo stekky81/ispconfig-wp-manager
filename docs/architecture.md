@@ -41,6 +41,22 @@ WP-CLI, as the site user and with `--skip-plugins --skip-themes`. It updates not
 site database WordPress only refreshes its own update transients. The output is under the control of the site
 owner, so it is limited on the node and escaped in the panel. The report is stored in `wpm_site.updates_json`.
 
+## Backups
+
+Backups are taken by the worker as the site user, in `<site>/tmp/wpmanager-backups/<id>/`: database dump and files,
+verified, then marked with a `COMPLETE` file. The last 3 are kept. The folder was chosen after reading ISPConfig 3.3.2:
+
+- `<site>/backup` is root-only and ISPConfig deletes files older than 3 days from it.
+- A new folder next to `web` would need the immutable flag of the site folder removed, and ISPConfig would back it up.
+- `<site>/private` would be included in the backups of ISPConfig.
+- `<site>/tmp` counts towards the quota, is excluded from those backups and only loses `sess_*` files in the daily cron.
+
+Exception: with backup mode `userzip` and a tar format ISPConfig ignores its excludes, so these files end up in its
+archives. Nothing is lost, but they grow. Modes `rootgz`, zip formats and borg apply the excludes.
+
+A restore first verifies and unpacks the backup, and only then replaces `web/` and imports the database. Actions asked
+in the panel reach the node through the datalog and run once: a failed restore never starts again by itself.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

@@ -34,12 +34,26 @@ $escape = static fn($value): string => $app->functions->htmlentities((string)$va
 $config = \WpManager\Config::load();
 $credentials = new \WpManager\SiteCredentials(\WpManager\Crypto::fromFile($config->get('key_file')));
 
-// A link, not the page form: the form may also carry the reveal field.
+// Links, not the page form: the form may also carry the reveal field.
 if (isset($_GET['check'])) {
     $app->auth->csrf_token_check('GET');
     $app->db->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $id);
     $site['last_check'] = null;
     $app->tpl->setVar('check_requested', 1);
+}
+
+// The request reaches the node through the datalog, like every other change.
+$action = (string)($_GET['action'] ?? '');
+if (in_array($action, ['backup', 'restore'], true)) {
+    $app->auth->csrf_token_check('GET');
+    $param = $action === 'restore' ? (string)($_GET['backup'] ?? '') : '';
+    $known = array_column(json_decode((string)$site['backups_json'], true) ?: [], 'id');
+    $valid = $site['status'] === 'installed' && ($action === 'backup' || in_array($param, $known, true));
+    if ($valid && $site['action_request'] === '') {
+        $update = ['action_request' => $action, 'action_param' => $param, 'action_status' => 'requested', 'action_message' => ''];
+        $app->db->datalogUpdate('wpm_site', $update, 'wpm_site_id', $id);
+        $site = $update + $site;
+    }
 }
 
 if (isset($_POST['reveal'])) {
@@ -72,6 +86,20 @@ $app->tpl->setLoop('updates', $updates);
 $app->tpl->setVar('has_updates', $updates === [] ? 0 : 1);
 $app->tpl->setVar('update_error', $escape(\WpManager\UpdateOverview::error($site['updates_json'])));
 $app->tpl->setVar('last_check', $escape($site['last_check'] ?? ''));
+
+$action_busy = $site['action_request'] !== '';
+$backup_rows = [];
+foreach (json_decode((string)$site['backups_json'], true) ?: [] as $backup) {
+    $backup_rows[] = [
+        'backup_id' => $escape($backup['id'] ?? ''),
+        'backup_size' => $escape(round((int)($backup['size'] ?? 0) / 1048576, 1)),
+    ];
+}
+$app->tpl->setLoop('backups', $backup_rows);
+$app->tpl->setVar('has_backups', $backup_rows === [] ? 0 : 1);
+$app->tpl->setVar('action_busy', $action_busy ? 1 : 0);
+$app->tpl->setVar('action_status', $escape($site['action_status']));
+$app->tpl->setVar('action_message', $escape($site['action_message'] ?? ''));
 
 $check_token = $app->auth->csrf_token_get('wpm_site_check');
 $app->tpl->setVar('check_csrf_id', $check_token['csrf_id']);
