@@ -11,7 +11,7 @@
 #   ./dev/test-env.sh destroy    # delete the VMs
 #
 # Settings (environment variables):
-#   UBUNTU=24.04   WEB=apache|nginx   CPUS=2   MEMORY=3G   DISK=20G
+#   UBUNTU=24.04   WEB=apache|nginx   CPUS=2   MEMORY=3G   DISK=20G   TEST_DOMAIN=ispc.test
 #
 # Use the same Ubuntu release and web server as your production nodes.
 
@@ -22,6 +22,7 @@ WEB=${WEB:-apache}
 CPUS=${CPUS:-2}
 MEMORY=${MEMORY:-3G}
 DISK=${DISK:-20G}
+TEST_DOMAIN=${TEST_DOMAIN:-ispc.test}
 
 MASTER=ispc-master
 SLAVE=ispc-slave
@@ -57,6 +58,28 @@ launch() {
     multipass launch "$UBUNTU" --name "$name" --cpus "$CPUS" --memory "$MEMORY" --disk "$DISK"
     multipass exec "$name" -- sudo apt-get update -q
     multipass exec "$name" -- sudo apt-get install -y -q wget curl
+    set_fqdn "$name"
+}
+
+# ISPConfig requires a fully qualified host name that resolves to the VM's own IP.
+set_fqdn() {
+    local name=$1 fqdn="$1.$TEST_DOMAIN"
+    info "Setting host name $fqdn"
+    multipass exec "$name" -- sudo bash -s -- "$name" "$fqdn" <<'EOS'
+set -euo pipefail
+name=$1 fqdn=$2 hosts=${HOSTS_FILE:-/etc/hosts}
+ip=$(hostname -I | awk '{print $1}')
+[[ -n $ip ]] || { echo "No IP address found" >&2; exit 1; }
+[[ -n ${HOSTS_FILE:-} ]] || {
+    echo 'preserve_hostname: true' > /etc/cloud/cloud.cfg.d/99-ispconfig-fqdn.cfg
+    hostnamectl set-hostname "$fqdn"
+}
+# Drop any line that mentions the short or full name, then map the VM IP to the FQDN.
+awk -v n="$name" -v f="$fqdn" '{ for (i = 2; i <= NF; i++) if ($i == n || $i == f) next } 1' "$hosts" > "$hosts.new"
+echo "$ip $fqdn $name" >> "$hosts.new"
+cat "$hosts.new" > "$hosts" && rm -f "$hosts.new"
+[[ -n ${HOSTS_FILE:-} ]] || [[ $(hostname -f) == "$fqdn" ]]
+EOS
 }
 
 install_wpcli() {
@@ -81,7 +104,12 @@ cmd_create() {
     info "Installing ISPConfig on $MASTER (10-20 minutes)"
     # shellcheck disable=SC2046  # flags are intentionally split
     multipass exec "$MASTER" -- sudo bash -c \
-        "wget -qO - https://get.ispconfig.org | sh -s -- $(ai_flags) 2>&1 | tee /root/ispconfig-install.log"
+        "set -o pipefail; wget -qO - https://get.ispconfig.org | sh -s -- $(ai_flags) 2>&1 | tee /root/ispconfig-install.log" \
+        || die "ISPConfig installation failed: see the output above (log in the VM: /root/ispconfig-install.log)"
+    # The autoinstaller may exit 0 after logging an error: check for it explicitly.
+    if multipass exec "$MASTER" -- sudo grep -q '^\[ERROR\]' /root/ispconfig-install.log; then
+        die "ISPConfig installation reported errors: see the output above"
+    fi
 
     install_wpcli "$MASTER"
 
