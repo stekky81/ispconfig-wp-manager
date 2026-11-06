@@ -12,6 +12,7 @@ $wb['wp_plugins_txt'] = 'Plugin da installare';
 $wb['wp_plugins_help_txt'] = 'Nomi di wordpress.org, separati da virgole.';
 $wb['wp_theme_txt'] = 'Tema da installare';
 $wb['dry_run_notice_txt'] = 'Sito, database, utente database e utente SFTP o FTP vengono creati con i valori predefiniti globali; WordPress viene installato sul nodo entro pochi minuti. La password di amministratore viene generata automaticamente.';
+$wb['err_csrf_attempt_blocked'] = 'Tentativo CSRF bloccato.';
 $wb['domain_error_empty'] = 'Il dominio è vuoto.';
 $wb['domain_error_unique'] = 'Questo dominio è già gestito dal modulo WordPress.';
 $wb['wp_title_error_empty'] = 'Il titolo del sito è vuoto.';

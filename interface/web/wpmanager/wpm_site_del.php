@@ -12,5 +12,10 @@ require_once '../../lib/app.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
+// MVP: admins only, like the other pages of the module.
+if ($_SESSION['s']['user']['typ'] !== 'admin') {
+    $app->error('Only administrators can remove WordPress sites in this version.');
+}
+
 $app->uses('tform_actions');
 $app->tform_actions->onDelete();

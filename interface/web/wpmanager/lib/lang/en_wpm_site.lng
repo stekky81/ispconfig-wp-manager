@@ -12,6 +12,7 @@ $wb['wp_plugins_txt'] = 'Plugins to install';
 $wb['wp_plugins_help_txt'] = 'wordpress.org names, separated by commas.';
 $wb['wp_theme_txt'] = 'Theme to install';
 $wb['dry_run_notice_txt'] = 'Website, database, database user and SFTP or FTP user are created with the global defaults; WordPress is installed on the node within a few minutes. The admin password is generated automatically.';
+$wb['err_csrf_attempt_blocked'] = 'CSRF attempt blocked.';
 $wb['domain_error_empty'] = 'The domain is empty.';
 $wb['domain_error_unique'] = 'This domain is already managed by the WordPress module.';
 $wb['wp_title_error_empty'] = 'The site title is empty.';

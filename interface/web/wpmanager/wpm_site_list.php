@@ -9,6 +9,11 @@ $list_def_file = 'list/wpm_site.list.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
+// MVP: admins only, like the other pages of the module.
+if ($_SESSION['s']['user']['typ'] !== 'admin') {
+    $app->error('Only administrators can view the WordPress sites in this version.');
+}
+
 $app->load('listform_actions');
 
 class list_action extends listform_actions

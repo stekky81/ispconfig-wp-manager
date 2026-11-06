@@ -55,8 +55,10 @@ class page_action extends tform_actions
     {
         global $app;
 
-        // Run the standard form validators without saving.
-        $app->tform->getSQL($this->dataRecord, $app->tform->getCurrentTab(), 'INSERT', 0, '');
+        // Run the standard form validators and the CSRF check, without saving. The tab is explicit:
+        // getCurrentTab() is empty when the form was never opened in this session, and with an
+        // empty tab getSQL() returns at once, so a forged request would skip every check.
+        $app->tform->getSQL($this->dataRecord, 'site', 'INSERT', 0, '');
         if ($app->tform->errorMessage !== '') {
             $this->onError();
             return;
