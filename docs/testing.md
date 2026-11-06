@@ -115,6 +115,15 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 
 - [x] To real cron and back: job and crontab line appear and go, `wp-config.php` ends up identical
 
+### Security
+
+- [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write
+- [x] A client with the module enabled is refused by every page
+- [x] A forged POST without a CSRF token creates nothing, also if the form was never opened
+- [x] A must-use plugin in the daily check cannot run programs or leave the site folder
+- [x] Endless output is stopped and the worker carries on
+- [x] A hostile `home` option and a `wp-cli.yml` in the source do not reach the clone
+
 ### Regression on existing sites
 
 Run `dev/regression.sh snapshot` in the VM before the test and `dev/regression.sh compare` after it.

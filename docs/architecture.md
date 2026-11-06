@@ -129,6 +129,8 @@ therefore temporary. On a slave node this needs INSERT on `wpm_site`, see the mu
 - **Secrets out of `ps`**: passwords reach WP-CLI through stdin (`--prompt`), never as arguments.
 - **No shell interpolation**: commands are built as argument arrays and escaped one by one.
 
+Permissions, access levels and remaining risks are in [security.md](security.md).
+
 ## Open questions
 
 - **Multiserver grants (to do before multiserver tests, which are set aside for now)**: slave nodes reach the master's

@@ -74,6 +74,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   the phone hotspot, without VPN.
 - On the hotspot DNS through the Mac is unreliable and WP-CLI times out at 10 seconds: the VM uses public DNS,
   from `/etc/systemd/resolved.conf.d/90-wpm-test.conf` (`DNS=1.1.1.1 8.8.8.8`, `Domains=~.`).
+- A test that attacks something must first check that the deploy worked: one ran on old code and damaged
+  `config.php`. Sessions also expire, so a blank answer from the panel proves nothing.
 - A manual `wpm-worker.php` exits silently while the cron worker holds the lock: to test it, wait for cron.
 - `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
   The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
@@ -98,7 +100,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 10. A new web root contains `standard_index.html`, not `index.html`.
 11. Ubuntu cloud images set `PasswordAuthentication no`: to test SFTP logins in the VM, add a file in
     `/etc/ssh/sshd_config.d/` with a name sorting before `60-cloudimg-settings.conf`.
-12. The first full load of WordPress after an install rewrites its `cron` option, as a first visit would.
+12. `$app->tform->getCurrentTab()` is empty if the form was not opened in that session, and `getSQL()` then
+    returns at once, skipping CSRF and validators: always pass the tab name.
+13. The first full load of WordPress after an install rewrites its `cron` option, as a first visit would.
 
 
 ## Current status (2026-11-05)
@@ -108,8 +112,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   backups, updates with health check and automatic rollback, automatic updates; clone on the same node;
   WP-Cron switch; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: the full security review in the roadmap. Staging needs a decision first. Multiserver and clone
-  across nodes are set aside for now.
+- **Next**: staging needs a decision first. Multiserver and clone across nodes are set aside for now.
+  Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.
 - The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has

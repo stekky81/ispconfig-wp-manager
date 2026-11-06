@@ -92,6 +92,10 @@ composer install
 composer test
 ```
 
+## Security
+
+The design, what a review found and the risks that remain are in [docs/security.md](docs/security.md).
+
 ## Contributing
 
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
