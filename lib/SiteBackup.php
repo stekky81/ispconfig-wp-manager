@@ -104,18 +104,21 @@ final class SiteBackup implements SiteBackups
         $this->verify($dir, $user, $runner);
 
         $staging = "{$dir}/restore";
-        $runner->mustRun(new Command(['rm', '-rf', '--', $staging], $user));
-        $runner->mustRun(new Command(['mkdir', '-m', '0700', '--', $staging], $user));
-        $runner->mustRun(new Command(['tar', '-xzf', "{$dir}/" . self::FILES, '-C', $staging], $user));
-        $runner->mustRun(new Command(['gzip', '-dk', '--', "{$dir}/" . self::DATABASE], $user));
+        try {
+            $runner->mustRun(new Command(['rm', '-rf', '--', $staging], $user));
+            $runner->mustRun(new Command(['mkdir', '-m', '0700', '--', $staging], $user));
+            $runner->mustRun(new Command(['tar', '-xzf', "{$dir}/" . self::FILES, '-C', $staging], $user));
+            $runner->mustRun(new Command(['gzip', '-dkf', '--', "{$dir}/" . self::DATABASE], $user));
 
-        // Without this, --delete would remove uploads that this backup does not hold.
-        $keep = is_file("{$dir}/" . self::NO_UPLOADS) ? ['--exclude=/wp-content/uploads'] : [];
-        $runner->mustRun(new Command(array_merge(['rsync', '-a', '--delete'], $keep, ['--', "{$staging}/", "{$web}/"]), $user));
-        $wp = new WpCli($this->config->get('wp_cli'), $web, $user);
-        $runner->mustRun($wp->dbImport("{$dir}/db.sql"));
-
-        $runner->mustRun(new Command(['rm', '-rf', '--', $staging, "{$dir}/db.sql"], $user));
+            // Without this, --delete would remove uploads that this backup does not hold.
+            $keep = is_file("{$dir}/" . self::NO_UPLOADS) ? ['--exclude=/wp-content/uploads'] : [];
+            $runner->mustRun(new Command(array_merge(['rsync', '-a', '--delete'], $keep, ['--', "{$staging}/", "{$web}/"]), $user));
+            $wp = new WpCli($this->config->get('wp_cli'), $web, $user);
+            $runner->mustRun($wp->dbImport("{$dir}/db.sql"));
+        } finally {
+            // The dump is the whole database in clear: never left behind, not even after a failure.
+            $runner->run(new Command(['rm', '-rf', '--', $staging, "{$dir}/db.sql"], $user));
+        }
     }
 
     private function verify(string $dir, string $user, Runner $runner): void

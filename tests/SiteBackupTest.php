@@ -208,6 +208,31 @@ final class SiteBackupTest extends TestCase
         self::assertTrue($list[1]['uploads']);
     }
 
+    // Regression: a restore that stopped left db.sql behind and gzip then refused to run again.
+    public function testARestoreCanRunAgainAfterAFailure(): void
+    {
+        $this->fakeBackup('20260101-000000');
+        touch("{$this->site}/tmp/wpmanager-backups/20260101-000000/db.sql");
+        $runner = new Runner(true);
+        $this->backups()->restore($this->record(), '20260101-000000', $runner);
+
+        self::assertStringContainsString("'gzip' '-dkf'", implode("\n", $runner->log()));
+    }
+
+    public function testAFailedVerificationLeavesTheBackupAlone(): void
+    {
+        $this->fakeBackup('20260101-000000');
+        $dir = "{$this->site}/tmp/wpmanager-backups/20260101-000000";
+        // Not a dry run: gzip -t fails on the fake archive, before the site is touched.
+        $backups = new SiteBackup(Config::fromArray([]), new PathGuard($this->root));
+        try {
+            $backups->restore(['document_root' => $this->site, 'system_user' => 'web7'], '20260101-000000', new Runner(false));
+            self::fail('expected a failure');
+        } catch (\RuntimeException) {
+            self::assertFileExists("{$dir}/COMPLETE");
+        }
+    }
+
     public function testRestoreRefusesAnIncompleteBackup(): void
     {
         $this->fakeBackup('20260101-000000', false);
