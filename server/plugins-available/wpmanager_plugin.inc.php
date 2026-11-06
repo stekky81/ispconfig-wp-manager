@@ -35,7 +35,7 @@ class wpmanager_plugin
         if (in_array($action, ['backup', 'restore', 'update', 'wpcron'], true)) {
             try {
                 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
-                $queue = new \WpManager\JobQueue(\WpManager\Config::load()->get('spool_dir'));
+                $queue = new \WpManager\JobQueue(\WpManager\Config::loadTrusted()->get('spool_dir'));
                 $queue->push($action, (int)$site['wpm_site_id'], []);
             } catch (\Throwable $e) {
                 $app->log('wpmanager: cannot queue ' . $action . ': ' . $e->getMessage(), LOGLEVEL_WARN);
@@ -49,7 +49,7 @@ class wpmanager_plugin
 
         try {
             require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
-            $config = \WpManager\Config::load();
+            $config = \WpManager\Config::loadTrusted();
             $queue = new \WpManager\JobQueue($config->get('spool_dir'));
             $queue->push('install', (int)$site['wpm_site_id'], $site);
             $app->log('wpmanager: queued install of ' . $site['domain'], LOGLEVEL_DEBUG);

@@ -50,7 +50,9 @@ require_once '/usr/local/ispconfig/server/lib/config.inc.php';
 require_once '/usr/local/ispconfig/server/lib/app.inc.php';
 /** @var app $app */
 
-$config = Config::load();
+ini_set('memory_limit', '512M');
+
+$config = Config::loadTrusted();
 $queue = new JobQueue($config->get('spool_dir'));
 $installer = new WordPressInstaller(
     $config,
@@ -61,6 +63,15 @@ $installer = new WordPressInstaller(
 $cloner = new SiteCloner($config, Crypto::fromFile($config->get('key_file')), new PathGuard($config->get('web_root_base')));
 $backups = new SiteBackup($config, new PathGuard($config->get('web_root_base')));
 $updater = new SiteUpdater($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
+
+// A site owner can make this folder unreadable: that must not stop the worker for every site.
+$listBackups = static function (array $site) use ($backups): array {
+    try {
+        return $backups->list($site);
+    } catch (\RuntimeException) {
+        return [];
+    }
+};
 
 $report = static function (int $siteId, string $status, string $message, bool $clearDbSecret = false, string $wpVersion = '') use ($app, $config): void {
     if ($config->isDryRun()) {
@@ -86,12 +97,12 @@ foreach ($queue->pending() as $name) {
         if (!is_array($record) || $record['action_request'] !== $job['type'] || $config->isDryRun()) {
             continue;
         }
-        $finish = static function (string $status, string $message) use ($app, $backups, $record, $siteId): void {
+        $finish = static function (string $status, string $message) use ($app, $listBackups, $record, $siteId): void {
             $app->dbmaster->query(
                 "UPDATE wpm_site SET action_request = '', action_param = '', action_status = ?, action_message = ?, backups_json = ? WHERE wpm_site_id = ?",
                 $status,
                 mb_substr($message, 0, 2000),
-                json_encode($backups->list($record), JSON_THROW_ON_ERROR),
+                json_encode($listBackups($record), JSON_THROW_ON_ERROR),
                 $siteId,
             );
         };
@@ -131,7 +142,7 @@ foreach ($queue->pending() as $name) {
 
     if (!$installer->isReady($site)) {
         if (time() - (int)$job['created'] > WPM_MAX_WAIT) {
-            $report($siteId, 'error', 'The website was not created on this node within one hour.');
+            $report($siteId, 'error', 'The website was not created on this node within one hour.', true);
             $queue->remove($name);
         }
         continue;
@@ -163,7 +174,8 @@ foreach ($queue->pending() as $name) {
         $app->log("wpmanager: install of {$site['domain']} failed: " . $e->getMessage(), LOGLEVEL_WARN);
         // "not empty" is never retried: something else is in that folder.
         if ($job['attempts'] >= WPM_MAX_ATTEMPTS || str_contains($e->getMessage(), 'Refusing to install')) {
-            $report($siteId, 'error', $e->getMessage());
+            // Final: nothing will use the database password again.
+            $report($siteId, 'error', $e->getMessage(), true);
             $queue->remove($name);
         } else {
             $delay = RetryPolicy::delayAfter($job['attempts']);
@@ -212,10 +224,11 @@ if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INT
 if (!$config->isDryRun()) {
     $inventory = new SiteInventory($config, new PathGuard($config->get('web_root_base')));
     $due = $app->dbmaster->queryAllRecords(
-        "SELECT wpm_site_id, domain, document_root, system_user FROM wpm_site
-         WHERE server_id = ? AND status = 'installed'
-           AND (last_check IS NULL OR last_check < NOW() - INTERVAL " . WPM_CHECK_INTERVAL . ' SECOND)
-         ORDER BY last_check IS NOT NULL, last_check LIMIT ' . WPM_CHECKS_PER_RUN,
+        "SELECT s.wpm_site_id, s.domain, s.document_root, s.system_user FROM wpm_site s
+         INNER JOIN web_domain d ON d.domain_id = s.domain_id AND d.active = 'y'
+         WHERE s.server_id = ? AND s.status = 'installed'
+           AND (s.last_check IS NULL OR s.last_check < NOW() - INTERVAL " . WPM_CHECK_INTERVAL . ' SECOND)
+         ORDER BY s.last_check IS NOT NULL, s.last_check LIMIT ' . WPM_CHECKS_PER_RUN,
         $conf['server_id'],
     );
     foreach ($due as $site) {
@@ -248,10 +261,11 @@ if (!$config->isDryRun()) {
     $enabled = $settings->get('updates.auto') === 'y';
 
     $candidates = $enabled ? $app->dbmaster->queryAllRecords(
-        "SELECT * FROM wpm_site
-         WHERE server_id = ? AND status = 'installed' AND auto_update = 'y' AND updates_count > 0 AND action_request = ''
-           AND (last_auto IS NULL OR last_auto < NOW() - INTERVAL " . WPM_AUTO_INTERVAL . ' SECOND)
-         ORDER BY last_auto IS NOT NULL, last_auto',
+        "SELECT s.* FROM wpm_site s
+         INNER JOIN web_domain d ON d.domain_id = s.domain_id AND d.active = 'y'
+         WHERE s.server_id = ? AND s.status = 'installed' AND s.auto_update = 'y' AND s.updates_count > 0 AND s.action_request = ''
+           AND (s.last_auto IS NULL OR s.last_auto < NOW() - INTERVAL " . WPM_AUTO_INTERVAL . ' SECOND)
+         ORDER BY s.last_auto IS NOT NULL, s.last_auto',
         $conf['server_id'],
     ) : [];
 
@@ -271,7 +285,7 @@ if (!$config->isDryRun()) {
                 auto_skip = IF(?, ?, auto_skip) WHERE wpm_site_id = ?',
             $result['outcome'],
             'Automatic update: ' . mb_substr($result['message'], 0, 1900),
-            json_encode($backups->list($site), JSON_THROW_ON_ERROR),
+            json_encode($listBackups($site), JSON_THROW_ON_ERROR),
             $rolledBack ? 1 : 0,
             AutoUpdatePolicy::fingerprint($report),
             $site['wpm_site_id'],

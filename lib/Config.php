@@ -18,6 +18,7 @@ final class Config
         'spool_dir' => '/var/spool/ispconfig-wp-manager',
         'web_root_base' => '/var/www/clients',
         'wp_cli' => '/usr/local/bin/wp',
+        'php_cli' => '/usr/bin/php',
         'remote_api' => [
             'url' => 'https://localhost:8080/remote/json.php',
             'user' => '',
@@ -67,6 +68,25 @@ final class Config
             }
         }
         return self::fromArray($user);
+    }
+
+    /**
+     * For root: config.php is PHP code, so it must not be in the hands of a less trusted user.
+     * The panel only needs to read it. The default owner is root.
+     */
+    public static function loadTrusted(?string $path = null, int $owner = 0): self
+    {
+        $path ??= self::DEFAULT_PATH;
+        clearstatcache(true, $path);
+        if (is_file($path)) {
+            if (fileowner($path) !== $owner) {
+                throw new \RuntimeException("{$path} must be owned by user {$owner}: run the installer");
+            }
+            if ((fileperms($path) & 0o022) !== 0) {
+                throw new \RuntimeException("{$path} must not be writable by group or others: run the installer");
+            }
+        }
+        return self::load($path);
     }
 
     public static function fromArray(array $user): self

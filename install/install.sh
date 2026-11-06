@@ -109,6 +109,10 @@ create_tables() {
     done
 }
 
+# Root runs this code and requires config.php: nobody else may be able to change them.
+chown -R root:root "$APP_DIR"
+chmod -R go-w "$APP_DIR"
+
 if [[ $MASTER -eq 1 ]]; then
     info "Installing interface module"
     # A copy, not a symlink: ISPConfig modules use relative paths (../../lib/...) that
@@ -134,8 +138,15 @@ if [[ $MASTER -eq 1 ]]; then
 
     if [[ ! -f $APP_DIR/config.php ]]; then
         install -m 0600 "$APP_DIR/config/config.example.php" "$APP_DIR/config.php"
-        chown ispconfig:root "$APP_DIR/config.php" 2>/dev/null || true
         info "Created $APP_DIR/config.php (dry_run = true). Edit it before use."
+    fi
+    # The panel only reads it; root runs it. Also for files from older versions, owned by ispconfig.
+    if getent group ispconfig >/dev/null; then
+        chown root:ispconfig "$APP_DIR/config.php"
+        chmod 0640 "$APP_DIR/config.php"
+    else
+        chown root:root "$APP_DIR/config.php"
+        chmod 0600 "$APP_DIR/config.php"
     fi
     info "Copy $KEY_FILE to the same path on every node (mode 0600, owner root)."
     info "Enable the module: System → CP Users → edit user → Modules → wpmanager"
@@ -153,6 +164,8 @@ if [[ $NODE -eq 1 ]]; then
     [[ $MASTER -eq 1 ]] || create_tables
 
     install -d -m 0700 "$SPOOL_DIR"
+    touch /var/log/ispconfig-wp-manager.log
+    chmod 0640 /var/log/ispconfig-wp-manager.log
 
     info "Installing worker cron"
     cat > "$CRON_FILE" <<EOF
