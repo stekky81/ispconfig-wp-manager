@@ -124,6 +124,11 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] FFI and `putenv(LD_PRELOAD)` with `mail()` or `error_log()` do not get out of the sandbox
 - [x] Core, plugin and theme updates work in the sandbox, automatic and from the panel
 - [x] A must-use plugin that dies in the sandbox makes the update roll back, with the reason in the message
+- [x] Backup, restore, rollback and WP-Cron switch on a site with hostile `wp-config.php`, `wp-cli.yml` and must-use plugin:
+      all of it runs in the sandbox
+- [x] A dump with `\!` is refused and starts nothing
+- [x] The database password does not appear in `ps` or in the log during a backup
+- [x] `DB_HOST` with a socket and with a port
 - [x] Endless output is stopped and the worker carries on
 - [x] A hostile `home` option and a `wp-cli.yml` in the source do not reach the clone
 

@@ -89,6 +89,16 @@ final class RunnerTest extends TestCase
         );
     }
 
+    // Regression: a restore that mysql refused only reported "cat: write error: Broken pipe".
+    public function testPipeNamesTheTargetBeforeTheBrokenPipeOfTheSource(): void
+    {
+        $this->expectExceptionMessageMatches('/Command failed \(6\): target refused\nbroken pipe/');
+        (new Runner(false))->pipe(
+            new Command(['/bin/sh', '-c', 'sleep 1; echo "broken pipe" >&2; exit 1']),
+            new Command(['/bin/sh', '-c', 'echo "target refused" >&2; exit 6']),
+        );
+    }
+
     public function testPipeDoesNothingInDryRun(): void
     {
         $runner = new Runner(true);

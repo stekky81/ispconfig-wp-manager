@@ -17,6 +17,8 @@ final class Command
         public readonly ?string $cwd = null,
         /** Data written to the process stdin: used for secrets so they never appear in `ps`. */
         public readonly ?string $stdin = null,
+        /** @var array<string, string> Secrets for tools that take none on stdin. Never in `ps`, never in logs. */
+        public readonly array $env = [],
     ) {
         if ($args === []) {
             throw new \InvalidArgumentException('Empty command');
@@ -29,7 +31,8 @@ final class Command
         if ($this->runAs === null) {
             return $this->args;
         }
-        return array_merge(['sudo', '-u', Validator::systemUser($this->runAs), '-H', '--'], $this->args);
+        $keep = $this->env === [] ? [] : ['--preserve-env=' . implode(',', array_keys($this->env))];
+        return array_merge(['sudo', '-u', Validator::systemUser($this->runAs)], $keep, ['-H', '--'], $this->args);
     }
 
     /** Shell-safe single string, used for logs and dry-run output only. */

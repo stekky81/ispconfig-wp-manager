@@ -59,7 +59,7 @@ final class SiteBackupTest extends TestCase
         $log = implode("\n", $runner->log());
 
         self::assertMatchesRegularExpression('/^\d{8}-\d{6}$/', $id);
-        $order = ["'db' 'export'", "'gzip'", "'tar' '-czf'", "'gzip' '-t'", "'tar' '-tzf'", "COMPLETE"];
+        $order = ["'config' 'list'", "'--no-defaults'", "'gzip'", "'tar' '-czf'", "'gzip' '-t'", "'tar' '-tzf'", "COMPLETE"];
         $last = -1;
         foreach ($order as $step) {
             $at = strpos($log, $step);
@@ -145,7 +145,7 @@ final class SiteBackupTest extends TestCase
         $this->backups()->restore($this->record(), '20260101-000000', $runner);
         $log = implode("\n", $runner->log());
 
-        $order = ["'gzip' '-t'", "'tar' '-tzf'", "'tar' '-xzf'", "'rsync'", "'db' 'import'"];
+        $order = ["'gzip' '-t'", "'tar' '-tzf'", "'tar' '-xzf'", "'rsync'", "'config' 'list'", "'--binary-mode'"];
         $last = -1;
         foreach ($order as $step) {
             $at = strpos($log, $step);

@@ -40,10 +40,9 @@ final class SiteBackup implements SiteBackups
         $web = $this->webRoot($site);
         $id = date('Ymd-His');
         $dir = $this->directory($site) . '/' . $id;
-        $wp = new WpCli($this->config->get('wp_cli'), $web, $user);
 
         $runner->mustRun(new Command(['mkdir', '-p', '-m', '0700', '--', $dir], $user));
-        $runner->mustRun($wp->dbExport("{$dir}/db.sql"));
+        $this->database()->dump($site, "{$dir}/db.sql", $runner);
         $runner->mustRun(new Command(['gzip', '--', "{$dir}/db.sql"], $user));
         $withoutUploads = ($site['backup_uploads'] ?? 'y') === 'n';
         $exclude = $withoutUploads ? ['--exclude=./wp-content/uploads'] : [];
@@ -113,8 +112,8 @@ final class SiteBackup implements SiteBackups
             // Without this, --delete would remove uploads that this backup does not hold.
             $keep = is_file("{$dir}/" . self::NO_UPLOADS) ? ['--exclude=/wp-content/uploads'] : [];
             $runner->mustRun(new Command(array_merge(['rsync', '-a', '--delete'], $keep, ['--', "{$staging}/", "{$web}/"]), $user));
-            $wp = new WpCli($this->config->get('wp_cli'), $web, $user);
-            $runner->mustRun($wp->dbImport("{$dir}/db.sql"));
+            // After the files: the settings of the restored wp-config.php are the right ones.
+            $this->database()->load($site, "{$dir}/db.sql", $runner);
         } finally {
             // The dump is the whole database in clear: never left behind, not even after a failure.
             $runner->run(new Command(['rm', '-rf', '--', $staging, "{$dir}/db.sql"], $user));
@@ -146,6 +145,11 @@ final class SiteBackup implements SiteBackups
     private function webRoot(array $site): string
     {
         return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+    }
+
+    private function database(): SiteDatabase
+    {
+        return new SiteDatabase($this->config, $this->guard);
     }
 
     private function runner(): Runner

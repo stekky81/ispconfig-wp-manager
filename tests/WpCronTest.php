@@ -58,6 +58,20 @@ final class WpCronTest extends TestCase
         self::assertStringNotContainsString("'config' 'set'", $log);
     }
 
+    // Regression: a wp-cli.yml of the site can require PHP, also for commands that load nothing else.
+    public function testTheSwitchRunsInTheSandbox(): void
+    {
+        foreach ([WpCron::REAL, WpCron::WORDPRESS] as $mode) {
+            $runner = new Runner(true);
+            $this->cron()->apply($this->site(), $mode, $runner);
+
+            self::assertNotEmpty($runner->log());
+            foreach ($runner->log() as $line) {
+                self::assertStringContainsString('ffi.enable=0', $line);
+            }
+        }
+    }
+
     public function testUnknownModeIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);

@@ -23,10 +23,10 @@ final class WpCli
     }
 
     /**
-     * For the daily checks and the updates, which start with nobody looking. WordPress and must-use
+     * For everything that runs on a site with nobody looking at it. WordPress and must-use
      * plugins load under the PHP CLI, outside the jail and the limits of the site: here they stay
-     * inside the folder of the site and cannot start programs. Commands that need mysqldump, as
-     * backups do, cannot use this.
+     * inside the folder of the site and cannot start programs. Commands that start other programs,
+     * as wp db export does, cannot use this.
      *
      * This limits PHP, it is not a jail. disable_functions alone is not enough: FFI calls libc
      * directly, and putenv(LD_PRELOAD) with anything that runs sendmail loads a library of the site.
@@ -94,6 +94,12 @@ final class WpCli
     public function configDelete(string $name): Command
     {
         return $this->cmd(['config', 'delete', $name, '--type=constant']);
+    }
+
+    /** All the constants of wp-config.php, the password included: it stays in the output. */
+    public function configList(): Command
+    {
+        return $this->cmd(['config', 'list', '--format=json']);
     }
 
     public function configGet(string $name): Command

@@ -28,8 +28,10 @@ final class WpCron
             throw new \InvalidArgumentException("Invalid cron mode: {$mode}");
         }
         $runner ??= new Runner($this->config->isDryRun());
-        $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
+        $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
+        // These commands do not load WordPress, but a wp-cli.yml of the site can still require PHP.
+        $wp = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
 
         if ($mode === self::REAL) {
             $runner->mustRun($wp->configSet(self::CONSTANT, 'true', true));

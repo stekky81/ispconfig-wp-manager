@@ -105,7 +105,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 13. The first full load of WordPress after an install rewrites its `cron` option, as a first visit would.
 14. `disable_functions` is not enough in the CLI: FFI is on by default there (`ffi.enable=preload`), and
     `putenv(LD_PRELOAD)` with `mail()` or `error_log()` runs a library of the site. `wp db export` and `db import` load
-    `wp-config.php`, but not must-use plugins.
+    `wp-config.php`, but not must-use plugins, and any WP-CLI command runs a `require:` of `wp-cli.yml`.
+15. The `mysql` client obeys `\!` in a file it reads, unless started with `--binary-mode`.
+16. A site's table prefix is not always `wp_`: read it from `wp-config.php` in a test script.
 
 
 ## Current status (2026-11-05)

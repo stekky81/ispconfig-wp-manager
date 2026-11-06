@@ -10,6 +10,8 @@ namespace WpManager;
  */
 final class Runner
 {
+    private const PATH = ['PATH' => '/usr/local/bin:/usr/bin:/bin'];
+
     /** @var list<string> */
     private array $log = [];
 
@@ -34,7 +36,7 @@ final class Runner
         $this->log[] = $line;
 
         $spec = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-        $proc = proc_open($command->argv(), $spec, $pipes, $command->cwd, ['PATH' => '/usr/local/bin:/usr/bin:/bin']);
+        $proc = proc_open($command->argv(), $spec, $pipes, $command->cwd, self::PATH + $command->env);
         if (!is_resource($proc)) {
             throw new \RuntimeException('Cannot start: ' . $line);
         }
@@ -91,14 +93,13 @@ final class Runner
         }
         $this->log[] = $line;
 
-        $env = ['PATH' => '/usr/local/bin:/usr/bin:/bin'];
         $fromError = tmpfile();
         $toError = tmpfile();
-        $source = proc_open($from->argv(), [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => $fromError], $sourcePipes, $from->cwd, $env);
+        $source = proc_open($from->argv(), [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => $fromError], $sourcePipes, $from->cwd, self::PATH + $from->env);
         if (!is_resource($source)) {
             throw new \RuntimeException('Cannot start: ' . $line);
         }
-        $target = proc_open($to->argv(), [0 => $sourcePipes[1], 1 => ['file', '/dev/null', 'w'], 2 => $toError], $targetPipes, $to->cwd, $env);
+        $target = proc_open($to->argv(), [0 => $sourcePipes[1], 1 => ['file', '/dev/null', 'w'], 2 => $toError], $targetPipes, $to->cwd, self::PATH + $to->env);
         fclose($sourcePipes[1]);
         if (!is_resource($target)) {
             proc_terminate($source);
@@ -131,17 +132,24 @@ final class Runner
         proc_close($source);
         proc_close($target);
 
-        foreach (['from' => $fromError, 'to' => $toError] as $name => $errors) {
+        // The target first: when it stops, the source only reports a broken pipe.
+        $code = 0;
+        $messages = [];
+        foreach (['to' => $toError, 'from' => $fromError] as $name => $errors) {
             if ($exits[$name] !== 0) {
                 rewind($errors);
-                $msg = self::failureText((string)stream_get_contents($errors));
-                foreach ($this->secrets as $s) {
-                    if ($s !== '') {
-                        $msg = str_replace($s, '********', $msg);
-                    }
-                }
-                throw new \RuntimeException("Command failed ({$exits[$name]}): {$msg}");
+                $code = $code ?: $exits[$name];
+                $messages[] = self::failureText((string)stream_get_contents($errors));
             }
+        }
+        if ($messages !== []) {
+            $msg = implode("\n", $messages);
+            foreach ($this->secrets as $s) {
+                if ($s !== '') {
+                    $msg = str_replace($s, '********', $msg);
+                }
+            }
+            throw new \RuntimeException("Command failed ({$code}): {$msg}");
         }
     }
 

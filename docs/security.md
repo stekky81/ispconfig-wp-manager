@@ -22,9 +22,9 @@ penetration test, and multiserver setups were not covered. Please report problem
   or others. Re-run the installer to fix permissions.
 - **Root does not open site files.** Everything inside a site runs through `sudo -u webN`. Root only checks paths.
 - **Data between two sites moves through a pipe** between their two users.
-- **Daily checks and updates are sandboxed.** They run with `open_basedir` limited to the site, a memory limit, and
-  no `exec` and similar functions, FFI, `putenv` or sendmail, because WordPress loads during them and automatic updates
-  start with nobody looking. This limits PHP, it is not a jail: see the first risk below.
+- **What starts by itself is sandboxed.** Daily checks, updates, backups, restores and the WP-Cron switch run with
+  `open_basedir` limited to the site, a memory limit, and no `exec` and similar functions, FFI, `putenv` or sendmail.
+  This limits PHP, it is not a jail: see the first risk below.
 - **Output of a site is limited** to 32 MB per command and 2 MB per page, so it cannot fill the memory of root.
 - **Disabled sites** are not checked and not updated.
 - **Every state change in the panel needs a CSRF token**, and every printed value is escaped.
@@ -42,29 +42,30 @@ Known and accepted for now:
   It cannot become root through this module.
 - **Encrypted secrets stay in `sys_datalog`** until ISPConfig prunes it, also after they are cleared from `wpm_site`.
 - **After a timeout** a command gets a termination signal, and a process that ignores it keeps running as the site user.
-- **Backups** belong to the site user, who can read and change them. A restore trusts their content as much as the site.
+- **Backups** belong to the site user, who can read and change them. A restore trusts their content as much as the site:
+  a changed backup can bring back any file or row, but its dump cannot give commands to the `mysql` client.
 
 ## WP-CLI runs outside the jail
 
 Read this before using the module on a server where site owners are jailed and you do not trust them.
 
 WP-CLI runs on the node as the site user, but with the PHP CLI: outside jailkit and without the PHP limits of the site.
-Code that the site owner controls runs at these moments:
+Code that the site owner controls (`wp-config.php`, must-use plugins, a `wp-cli.yml` that requires PHP) runs at these
+moments:
 
-| Moment | Code of the site that runs | Sandbox |
-|--------|----------------------------|---------|
-| Daily check | `wp-config.php`, must-use plugins | Yes |
-| Plugin, theme and core update | `wp-config.php`, must-use plugins | Yes |
-| Backup, restore, **and the backup that comes before every update** | `wp-config.php` | **No** |
-| Install and clone | `wp-config.php`, must-use plugins | **No** |
+| Moment | Sandbox |
+|--------|---------|
+| Daily check | Yes |
+| Plugin, theme and core update, with its backup and rollback | Yes |
+| Backup and restore | Yes: only the database settings are read in it, then `mysqldump` and `mysql` start from the worker |
+| WP-Cron switch | Yes |
+| Install | **No** |
+| Clone | **No** |
 
-`--skip-plugins` does not stop must-use plugins. Backups and restores cannot use the sandbox yet, because WP-CLI starts
-`mysqldump` and `mysql` for them.
+Install and clone stay outside because they need WP-CLI to start other programs, and they only follow a request of an
+admin. A clone loads the code of the source.
 
-**The sandbox does not close this.** Because of the backup, a site owner who edits `wp-config.php` runs code without the
-sandbox at the next update, and automatic updates are on by default. That code can start programs, keep a process running
-and read what the site user can read, outside the jail.
-
+Code that runs there can start programs, keep a process running and read what the site user can read, outside the jail.
 It still runs as the site user. It does not become root, and it cannot read the sites of other clients. In the test VM
 the sites of **one** client can read each other, database passwords included, with or without this module: that comes
 from the permissions ISPConfig gives them.
@@ -72,9 +73,8 @@ from the permissions ISPConfig gives them.
 What to do:
 
 - If your clients have a normal shell, or you are the only owner of the sites, this adds nothing to what they can do.
-- If you rely on the jail to contain your clients, turn off automatic updates (`updates.auto`, or per site) and start
-  updates, backups and clones only on sites whose owner you trust. Automatic updates off does not protect against an
-  admin who presses a button on a hostile site.
+- If you rely on the jail to contain your clients, clone only sites whose owner you trust. A new install starts in an
+  empty folder, so there is no code of the owner to run yet.
 
 The sandbox itself is a limit on PHP and not a wall. It was tested against FFI, `LD_PRELOAD` and Imagick, but other
 extensions loaded on your node may offer another way.
@@ -87,6 +87,7 @@ Fixed:
 |----------|---------|
 | High | `config.php` belonged to the panel user and root ran it every minute: panel access meant root |
 | High | The new site form skipped CSRF and validators when it had not been opened in that session |
+| High | A dump changed by the site user started programs outside the jail during a restore, through `\!` in the `mysql` client |
 | High | The sandbox could be left through FFI and through `putenv(LD_PRELOAD)` with `mail()` or `error_log()`, so a must-use plugin ran programs during the daily check |
 | Medium | Must-use plugins ran outside the jail during the daily check |
 | Medium | Endless output of a site could fill the memory of the root worker |
