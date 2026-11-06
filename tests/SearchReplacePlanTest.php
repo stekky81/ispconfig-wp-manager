@@ -118,6 +118,23 @@ final class SearchReplacePlanTest extends TestCase
         }
     }
 
+    // Regression: the home option belongs to the site owner and reached WP-CLI as an argument.
+    /** @dataProvider hostileUrls */
+    public function testAHostileAddressIsRefused(string $url): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new SearchReplacePlan($url, 'http://a.test', '/var/www/a', '/var/www/b');
+    }
+
+    public static function hostileUrls(): array
+    {
+        return [
+            'option' => ['http://--require=evil.php'],
+            'option with path' => ['http://--exec=x.y/'],
+            'shell characters' => ['http://a.b;id/'],
+        ];
+    }
+
     public function testAnUnusableUrlIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);

@@ -20,6 +20,12 @@
         <div class="col-sm-9"><select name="access_type" id="access_type" class="form-control"><option value="sftp">SFTP</option><option value="ftp">FTP</option></select></div>
     </div>
 
+    <div class="form-group">
+        <div class="col-sm-offset-3 col-sm-9">
+            <label><input type="checkbox" name="confirm_client" id="confirm_client" value="1" /> {tmpl_var name='confirm_client_txt'}</label>
+        </div>
+    </div>
+
     <input type="hidden" name="id" value="{tmpl_var name='id'}" />
     <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
     <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />

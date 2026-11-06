@@ -13,7 +13,7 @@ namespace WpManager;
 final class SiteCloner
 {
     /** The config of the source would point the clone to the database of the source. */
-    private const NOT_COPIED = ['./wp-config.php', './.maintenance', './wp-content/cache'];
+    private const NOT_COPIED = ['./wp-config.php', './wp-cli.yml', './wp-cli.local.yml', './.maintenance', './wp-content/cache'];
 
     public function __construct(
         private readonly Config $config,
@@ -45,7 +45,7 @@ final class SiteCloner
         $from = new WpCli($this->config->get('wp_cli'), $sourceWeb, $sourceUser);
         $to = new WpCli($this->config->get('wp_cli'), $targetWeb, $targetUser);
 
-        $oldUrl = trim($runner->mustRun($from->optionGet('home'))) ?: 'http://' . $source['domain'];
+        $oldUrl = self::safeUrl(trim($runner->mustRun($from->optionGet('home'))), (string)$source['domain']);
         $prefix = self::tablePrefix($runner->mustRun($from->configGet('table_prefix')));
 
         foreach (['index.html', 'standard_index.html'] as $placeholder) {
@@ -78,12 +78,28 @@ final class SiteCloner
             $report[] = "Replaced {$changed} values: {$pattern}";
         }
 
+        // Not left to the rules above: a value they cannot match, even a hostile one, must not stay.
+        $home = (string)parse_url($oldUrl, PHP_URL_PATH);
+        $runner->mustRun($to->optionUpdate('home', $newUrl . rtrim($home, '/')));
+        $runner->mustRun($to->optionUpdate('siteurl', $newUrl . rtrim($home, '/')));
+
         // A clone is public but must not compete with its source in search engines.
         $runner->mustRun($to->optionUpdate('blog_public', '0'));
 
         $left = $this->remaining($to, $plan, $runner);
         // The summary first: the status message keeps only the beginning of a long log.
         return array_merge($report, $left, $runner->log());
+    }
+
+    /** The home option belongs to the owner of the source: only a real address is used. */
+    public static function safeUrl(string $url, string $domain): string
+    {
+        try {
+            new SearchReplacePlan($url, 'http://clone.invalid', '/source', '/target');
+            return $url;
+        } catch (\InvalidArgumentException) {
+            return 'http://' . $domain;
+        }
     }
 
     public static function assertOwnDatabase(string $actual, string $expected, string $source): void

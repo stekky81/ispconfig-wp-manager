@@ -69,6 +69,29 @@ final class SiteClonerTest extends TestCase
         self::assertStringContainsString("'--exclude=./wp-config.php'", $this->log());
     }
 
+    // Regression: WP-CLI reads these files, so the owner of the source could run code in the clone.
+    public function testWpCliConfigFilesAreNotCopied(): void
+    {
+        self::assertStringContainsString("'--exclude=./wp-cli.yml'", $this->log());
+        self::assertStringContainsString("'--exclude=./wp-cli.local.yml'", $this->log());
+    }
+
+    public function testAHostileHomeOptionFallsBackToTheDomain(): void
+    {
+        self::assertSame('http://old.com', SiteCloner::safeUrl('http://--require=evil.php', 'old.com'));
+        self::assertSame('https://www.old.com/blog', SiteCloner::safeUrl('https://www.old.com/blog', 'old.com'));
+        self::assertSame('http://old.com', SiteCloner::safeUrl('', 'old.com'));
+    }
+
+    // Regression: the replace cannot match a hostile value, which stayed in the clone.
+    public function testTheAddressOfTheCloneIsAlwaysSet(): void
+    {
+        $log = $this->log();
+
+        self::assertStringContainsString("'option' 'update' 'home' 'http://new.test'", $log);
+        self::assertStringContainsString("'option' 'update' 'siteurl' 'http://new.test'", $log);
+    }
+
     public function testStepsRunInASafeOrder(): void
     {
         $log = $this->log();

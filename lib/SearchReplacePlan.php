@@ -27,7 +27,10 @@ final class SearchReplacePlan
         private readonly string $newPath,
     ) {
         $host = strtolower((string)parse_url($oldUrl, PHP_URL_HOST));
-        if ($host === '' || !str_contains($host, '.')) {
+        try {
+            // The address comes from the options of the site: its owner controls it.
+            Validator::domain($host);
+        } catch (ValidationException) {
             throw new \InvalidArgumentException("Unusable site address: {$oldUrl}");
         }
         $this->oldHost = (string)preg_replace('/^www\./', '', $host);

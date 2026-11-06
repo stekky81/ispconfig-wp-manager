@@ -40,6 +40,10 @@ if (isset($_POST['domain'])) {
         if ($app->db->queryOneRecord('SELECT wpm_site_id FROM wpm_site WHERE domain = ?', $domain)) {
             throw new \WpManager\ValidationException($wb['domain_taken_txt']);
         }
+        // The code of the source will run in the account of the other client.
+        if ((int)$_POST['client_id'] !== (int)$source['client_id'] && empty($_POST['confirm_client'])) {
+            throw new \WpManager\ValidationException($wb['confirm_client_error_txt']);
+        }
         $website = $app->db->queryOneRecord('SELECT server_php_id FROM web_domain WHERE domain_id = ?', $source['domain_id']);
         // Title and admin belong to the source: its database replaces them.
         $request = new \WpManager\SiteRequest(
