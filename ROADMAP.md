@@ -67,7 +67,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 ## 1.0 — Complete product
 
 - [x] Full security review: access levels, permissions of files and folders, panel pages, worker and installer
-- [ ] Security review of multiserver, and a sandbox for the WP-CLI commands started by an admin
+- [ ] Security review of multiserver, and a sandbox for backups, restores, installs and clones
 - [ ] Maintenance: maintenance mode, admin password reset, one-click wp-admin login,
       debug toggle, plugin/theme activate/deactivate/remove
 - [ ] SFTP login with SSH keys instead of a password

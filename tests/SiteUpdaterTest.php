@@ -234,4 +234,17 @@ final class SiteUpdaterTest extends TestCase
             self::assertStringContainsString("'-u' 'web7'", $line);
         }
     }
+
+    // Must-use plugins load whatever the options, and automatic updates start with nobody looking.
+    public function testUpdatesRunInTheSandbox(): void
+    {
+        $runner = new Runner(true);
+        $this->updater([200, 200])->update($this->site(), SiteUpdater::AUTOMATIC, $runner);
+
+        self::assertCount(4, $runner->log());
+        foreach ($runner->log() as $line) {
+            self::assertStringContainsString("open_basedir={$this->root}/client1/web7:", $line);
+            self::assertStringContainsString('ffi.enable=0', $line);
+        }
+    }
 }

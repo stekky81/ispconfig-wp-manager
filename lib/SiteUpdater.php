@@ -55,8 +55,10 @@ final class SiteUpdater
 
     private function runUpdates(array $site, string $scope, Runner $runner): void
     {
-        $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
+        $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
+        // Automatic updates start with nobody looking, and must-use plugins load during them.
+        $wp = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
 
         // Only 'major' leaves the current branch of WordPress.
         if (in_array($scope, ['all', 'core', 'major', self::AUTOMATIC], true)) {

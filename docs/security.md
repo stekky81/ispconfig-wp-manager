@@ -12,7 +12,7 @@ penetration test, and multiserver setups were not covered. Please report problem
 |-------|-----|--------|
 | ISPConfig admin | Everything in the module | Change `dry_run`, the Remote API account or the key from the panel |
 | Client or reseller with the module enabled | Nothing yet: every page refuses | |
-| Site owner | Their own files and database | Read `secret.key`, `config.php` or the job spool, or reach another site |
+| Site owner | Their own files and database, and what ISPConfig lets one client's sites share (see below) | Read `secret.key`, `config.php` or the job spool, or reach the sites of another client |
 | Panel user (`ispconfig`) | Read `config.php` and `secret.key` | Change `config.php` or anything root runs |
 
 ## How it is protected
@@ -22,8 +22,9 @@ penetration test, and multiserver setups were not covered. Please report problem
   or others. Re-run the installer to fix permissions.
 - **Root does not open site files.** Everything inside a site runs through `sudo -u webN`. Root only checks paths.
 - **Data between two sites moves through a pipe** between their two users.
-- **Daily checks are sandboxed.** They run with `open_basedir` limited to the site, no way to start programs and a
-  memory limit, because nobody starts them by hand and WordPress loads during them.
+- **Daily checks and updates are sandboxed.** They run with `open_basedir` limited to the site, a memory limit, and
+  no `exec` and similar functions, FFI, `putenv` or sendmail, because WordPress loads during them and automatic updates
+  start with nobody looking. This limits PHP, it is not a jail: see the first risk below.
 - **Output of a site is limited** to 32 MB per command and 2 MB per page, so it cannot fill the memory of root.
 - **Disabled sites** are not checked and not updated.
 - **Every state change in the panel needs a CSRF token**, and every printed value is escaped.
@@ -34,10 +35,7 @@ penetration test, and multiserver setups were not covered. Please report problem
 
 Known and accepted for now:
 
-- **WP-CLI outside the jail for actions started by an admin.** Install, update, backup, restore and clone load
-  `wp-config.php` and must-use plugins with the PHP CLI, as the site user but outside jailkit and the limits of the site.
-  `--skip-plugins` does not stop must-use plugins. These commands cannot use the sandbox of the daily checks, because they
-  need tools like `mysqldump`. A site owner can use one of these moments to run code unjailed, as their own user.
+- **WP-CLI outside the jail.** See the next section: it decides whether this module fits your server.
 - **A clone to another client** runs the code of the source in the account of that client, by nature. The panel asks
   for a confirmation; do it only between clients you trust.
 - **A compromised panel** can read `secret.key`, so it can decrypt stored secrets, and it can use the Remote API account.
@@ -45,6 +43,41 @@ Known and accepted for now:
 - **Encrypted secrets stay in `sys_datalog`** until ISPConfig prunes it, also after they are cleared from `wpm_site`.
 - **After a timeout** a command gets a termination signal, and a process that ignores it keeps running as the site user.
 - **Backups** belong to the site user, who can read and change them. A restore trusts their content as much as the site.
+
+## WP-CLI runs outside the jail
+
+Read this before using the module on a server where site owners are jailed and you do not trust them.
+
+WP-CLI runs on the node as the site user, but with the PHP CLI: outside jailkit and without the PHP limits of the site.
+Code that the site owner controls runs at these moments:
+
+| Moment | Code of the site that runs | Sandbox |
+|--------|----------------------------|---------|
+| Daily check | `wp-config.php`, must-use plugins | Yes |
+| Plugin, theme and core update | `wp-config.php`, must-use plugins | Yes |
+| Backup, restore, **and the backup that comes before every update** | `wp-config.php` | **No** |
+| Install and clone | `wp-config.php`, must-use plugins | **No** |
+
+`--skip-plugins` does not stop must-use plugins. Backups and restores cannot use the sandbox yet, because WP-CLI starts
+`mysqldump` and `mysql` for them.
+
+**The sandbox does not close this.** Because of the backup, a site owner who edits `wp-config.php` runs code without the
+sandbox at the next update, and automatic updates are on by default. That code can start programs, keep a process running
+and read what the site user can read, outside the jail.
+
+It still runs as the site user. It does not become root, and it cannot read the sites of other clients. In the test VM
+the sites of **one** client can read each other, database passwords included, with or without this module: that comes
+from the permissions ISPConfig gives them.
+
+What to do:
+
+- If your clients have a normal shell, or you are the only owner of the sites, this adds nothing to what they can do.
+- If you rely on the jail to contain your clients, turn off automatic updates (`updates.auto`, or per site) and start
+  updates, backups and clones only on sites whose owner you trust. Automatic updates off does not protect against an
+  admin who presses a button on a hostile site.
+
+The sandbox itself is a limit on PHP and not a wall. It was tested against FFI, `LD_PRELOAD` and Imagick, but other
+extensions loaded on your node may offer another way.
 
 ## What the review found
 
@@ -54,6 +87,7 @@ Fixed:
 |----------|---------|
 | High | `config.php` belonged to the panel user and root ran it every minute: panel access meant root |
 | High | The new site form skipped CSRF and validators when it had not been opened in that session |
+| High | The sandbox could be left through FFI and through `putenv(LD_PRELOAD)` with `mail()` or `error_log()`, so a must-use plugin ran programs during the daily check |
 | Medium | Must-use plugins ran outside the jail during the daily check |
 | Medium | Endless output of a site could fill the memory of the root worker |
 | Medium | `wp-cli.yml` of the source was copied to a clone and read by WP-CLI as the clone user |

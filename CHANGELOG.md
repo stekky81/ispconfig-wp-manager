@@ -11,6 +11,7 @@
 - Automatic updates of plugins, themes and minor core releases, on by default
 - Clone to a new domain on the same node, serialized data included
 - Switch between WP-Cron and a real cron job
+- Updates run in the same PHP sandbox as the daily checks, which no longer lets code leave through FFI or `LD_PRELOAD`
 - Fixes from the first run on ISPConfig 3.3.2: server module for `wpm_site`, `standard_index.html`, http URL
   without a certificate, list filter and sorting, spaced retries, unique names for long domains
 - `dev/regression.sh` checks that existing sites did not change

@@ -28,6 +28,18 @@ final class WpCliTest extends TestCase
         self::assertStringContainsString('display_errors=0', $line);
     }
 
+    // Regression: in the VM a must-use plugin left the sandbox through FFI, and through
+    // putenv(LD_PRELOAD) with mail() or error_log(), and ran programs as the site user.
+    public function testTheSandboxClosesTheWaysAroundDisableFunctions(): void
+    {
+        $wp = WpCli::sandboxed('/usr/local/bin/wp', '/usr/bin/php', '/var/www/clients/client1/web1', 'web1');
+        $argv = $wp->pluginUpdateAll()->argv();
+
+        self::assertContains('ffi.enable=0', $argv);
+        self::assertContains('sendmail_path=/bin/true', $argv);
+        self::assertMatchesRegularExpression('/disable_functions=\S*\bputenv\b/', implode(' ', $argv));
+    }
+
     public function testASlugCanNotBeAnOption(): void
     {
         $this->expectException(ValidationException::class);

@@ -55,6 +55,9 @@ first, set this in `config.php` before changing `dry_run`:
 
 They can be changed later in **WordPress → Settings** and for each site on its page.
 
+If you rely on the jail to contain your clients, read
+[WP-CLI runs outside the jail](security.md#wp-cli-runs-outside-the-jail) before turning them on.
+
 Backups go to the `tmp` folder of each site and count towards its quota. If ISPConfig uses backup mode `userzip` with a
 tar format, its own backups will include them: see [architecture.md](architecture.md#backups).
 

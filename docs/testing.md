@@ -121,6 +121,9 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] A client with the module enabled is refused by every page
 - [x] A forged POST without a CSRF token creates nothing, also if the form was never opened
 - [x] A must-use plugin in the daily check cannot run programs or leave the site folder
+- [x] FFI and `putenv(LD_PRELOAD)` with `mail()` or `error_log()` do not get out of the sandbox
+- [x] Core, plugin and theme updates work in the sandbox, automatic and from the panel
+- [x] A must-use plugin that dies in the sandbox makes the update roll back, with the reason in the message
 - [x] Endless output is stopped and the worker carries on
 - [x] A hostile `home` option and a `wp-cli.yml` in the source do not reach the clone
 

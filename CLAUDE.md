@@ -103,6 +103,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 12. `$app->tform->getCurrentTab()` is empty if the form was not opened in that session, and `getSQL()` then
     returns at once, skipping CSRF and validators: always pass the tab name.
 13. The first full load of WordPress after an install rewrites its `cron` option, as a first visit would.
+14. `disable_functions` is not enough in the CLI: FFI is on by default there (`ffi.enable=preload`), and
+    `putenv(LD_PRELOAD)` with `mail()` or `error_log()` runs a library of the site. `wp db export` and `db import` load
+    `wp-config.php`, but not must-use plugins.
 
 
 ## Current status (2026-11-05)

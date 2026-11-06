@@ -27,7 +27,8 @@ It has not run on production servers yet.
 - **Clone** to a new domain on the same node, replacing the old address everywhere in the database,
   serialized data included.
 - **WP-Cron switch**: move a site between WP-Cron and a real cron job.
-- **Safety first**: dry-run mode, no changes to folders that are not empty, everything runs as the site user.
+- **Safety first**: dry-run mode, no changes to folders that are not empty, everything runs as the site user,
+  checks and updates in a PHP sandbox.
 
 > [!IMPORTANT]
 > Automatic updates start as soon as `dry_run` is turned off, also on sites this module did not create.
@@ -95,6 +96,11 @@ composer test
 ## Security
 
 The design, what a review found and the risks that remain are in [docs/security.md](docs/security.md).
+
+> [!IMPORTANT]
+> WP-CLI runs outside the jail of a site. A site owner can use a backup or an update to run code as their own user,
+> outside jailkit. If you rely on the jail to contain your clients, read
+> [WP-CLI runs outside the jail](docs/security.md#wp-cli-runs-outside-the-jail) first.
 
 ## Contributing
 

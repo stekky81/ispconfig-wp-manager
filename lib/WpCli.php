@@ -23,15 +23,21 @@ final class WpCli
     }
 
     /**
-     * For the unattended read-only checks. WordPress and must-use plugins load under the PHP CLI,
-     * outside the jail and the limits of the site: here they stay inside the folder of the site
-     * and cannot start programs. Commands that need mysqldump, as backups do, cannot use this.
+     * For the daily checks and the updates, which start with nobody looking. WordPress and must-use
+     * plugins load under the PHP CLI, outside the jail and the limits of the site: here they stay
+     * inside the folder of the site and cannot start programs. Commands that need mysqldump, as
+     * backups do, cannot use this.
+     *
+     * This limits PHP, it is not a jail. disable_functions alone is not enough: FFI calls libc
+     * directly, and putenv(LD_PRELOAD) with anything that runs sendmail loads a library of the site.
      */
     public static function sandboxed(string $wpBinary, string $phpBinary, string $siteRoot, string $systemUser): self
     {
         $options = [
             'open_basedir' => "{$siteRoot}:{$wpBinary}",
-            'disable_functions' => 'exec,shell_exec,system,passthru,popen,proc_open,pcntl_exec,pcntl_fork,dl',
+            'disable_functions' => 'exec,shell_exec,system,passthru,popen,proc_open,pcntl_exec,pcntl_fork,dl,putenv',
+            'ffi.enable' => '0',
+            'sendmail_path' => '/bin/true',
             'sys_temp_dir' => "{$siteRoot}/tmp",
             'upload_tmp_dir' => "{$siteRoot}/tmp",
             'memory_limit' => '512M',
