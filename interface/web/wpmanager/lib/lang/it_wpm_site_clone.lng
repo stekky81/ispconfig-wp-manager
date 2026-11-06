@@ -6,6 +6,7 @@ $wb['client_txt'] = 'Cliente';
 $wb['access_type_txt'] = 'Accesso ai file';
 $wb['confirm_client_txt'] = 'Se il cliente è diverso: so che il codice di questo sito, plugin compresi, girerà nell\'account di quel cliente.';
 $wb['confirm_client_error_txt'] = 'Per clonare verso un altro cliente, conferma che il suo codice può girare in quell\'account.';
+$wb['client_denied_txt'] = 'Solo un amministratore può clonare un sito verso un altro cliente.';
 $wb['clone_btn_txt'] = 'Clona';
 $wb['cancel_txt'] = 'Annulla';
 $wb['source_not_found_txt'] = 'Si può clonare solo un sito installato.';

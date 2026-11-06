@@ -91,6 +91,15 @@ final class SiteCloner
         return array_merge($report, $left, $runner->log());
     }
 
+    /**
+     * The code of the source runs in the account of the target client and, through the group of that
+     * client, can read the other sites of the target. Only an admin decides that.
+     */
+    public static function mayCloneToClient(string $userType, int $sourceClient, int $targetClient): bool
+    {
+        return $sourceClient === $targetClient || $userType === 'admin';
+    }
+
     /** The home option belongs to the owner of the source: only a real address is used. */
     public static function safeUrl(string $url, string $domain): string
     {

@@ -6,6 +6,7 @@ $wb['client_txt'] = 'Client';
 $wb['access_type_txt'] = 'File access';
 $wb['confirm_client_txt'] = 'If the client is a different one: I know that the code of this site, plugins included, will run in the account of that client.';
 $wb['confirm_client_error_txt'] = 'To clone to another client, confirm that its code can run in that account.';
+$wb['client_denied_txt'] = 'Only an administrator can clone a site to another client.';
 $wb['clone_btn_txt'] = 'Clone';
 $wb['cancel_txt'] = 'Cancel';
 $wb['source_not_found_txt'] = 'Only an installed site can be cloned.';

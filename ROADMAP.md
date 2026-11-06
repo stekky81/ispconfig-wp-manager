@@ -73,7 +73,8 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [ ] SFTP login with SSH keys instead of a password
 - [ ] Security: known-vulnerability check for plugins/themes (check the data feed's terms of use),
       file permission check, hardening for existing sites
-- [ ] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them)
+- [ ] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them);
+      a clone to another client stays admin only
 - [ ] Full site removal (website, DB, users) with double confirmation and a final backup
 - [ ] Audit log (who did what, when) and notifications (install done, update failed, vulnerability)
 - [ ] Declared compatibility matrix (ISPConfig, Ubuntu/Debian, PHP versions)

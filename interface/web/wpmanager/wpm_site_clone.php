@@ -40,6 +40,10 @@ if (isset($_POST['domain'])) {
         if ($app->db->queryOneRecord('SELECT wpm_site_id FROM wpm_site WHERE domain = ?', $domain)) {
             throw new \WpManager\ValidationException($wb['domain_taken_txt']);
         }
+        // Stays when the module opens to clients and the check at the top of this page goes.
+        if (!\WpManager\SiteCloner::mayCloneToClient((string)$_SESSION['s']['user']['typ'], (int)$source['client_id'], (int)$_POST['client_id'])) {
+            throw new \WpManager\ValidationException($wb['client_denied_txt']);
+        }
         // The code of the source will run in the account of the other client.
         if ((int)$_POST['client_id'] !== (int)$source['client_id'] && empty($_POST['confirm_client'])) {
             throw new \WpManager\ValidationException($wb['confirm_client_error_txt']);

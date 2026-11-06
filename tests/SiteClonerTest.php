@@ -229,4 +229,17 @@ final class SiteClonerTest extends TestCase
         $this->expectException(\RuntimeException::class);
         SiteCloner::tablePrefix("wp_'; DROP");
     }
+
+    public function testOnlyAnAdminClonesToAnotherClient(): void
+    {
+        self::assertTrue(SiteCloner::mayCloneToClient('admin', 1, 2));
+        self::assertFalse(SiteCloner::mayCloneToClient('user', 1, 2));
+        self::assertFalse(SiteCloner::mayCloneToClient('', 1, 2));
+    }
+
+    public function testAClientClonesInsideTheirOwnAccount(): void
+    {
+        self::assertTrue(SiteCloner::mayCloneToClient('user', 1, 1));
+        self::assertTrue(SiteCloner::mayCloneToClient('admin', 1, 1));
+    }
 }

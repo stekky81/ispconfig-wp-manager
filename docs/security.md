@@ -36,8 +36,9 @@ penetration test, and multiserver setups were not covered. Please report problem
 Known and accepted for now:
 
 - **WP-CLI outside the jail.** See the next section: it decides whether this module fits your server.
-- **A clone to another client** runs the code of the source in the account of that client, by nature. The panel asks
-  for a confirmation; do it only between clients you trust.
+- **A clone to another client** runs the code of the source in the account of that client, by nature, and that code can
+  read the other sites of that client. Only an admin can do it, also once the module opens to clients, and the panel asks
+  for a confirmation. Do it only for sites you trust.
 - **A compromised panel** can read `secret.key`, so it can decrypt stored secrets, and it can use the Remote API account.
   It cannot become root through this module.
 - **Encrypted secrets stay in `sys_datalog`** until ISPConfig prunes it, also after they are cleared from `wpm_site`.
