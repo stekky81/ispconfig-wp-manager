@@ -18,6 +18,8 @@ final class Runner
         private readonly bool $dryRun,
         private readonly array $secrets = [],
         private readonly int $timeout = 600,
+        /** Commands of a site are not trusted: their output must not fill the memory of root. */
+        private readonly int $maxOutput = 33554432,
     ) {
     }
 
@@ -55,6 +57,10 @@ final class Runner
             if (time() - $start > $this->timeout) {
                 proc_terminate($proc);
                 throw new \RuntimeException('Timeout: ' . $line);
+            }
+            if (strlen($stdout) + strlen($stderr) > $this->maxOutput) {
+                proc_terminate($proc);
+                throw new \RuntimeException('Too much output: ' . $line);
             }
             usleep(100_000);
         }
@@ -114,6 +120,11 @@ final class Runner
                 proc_terminate($source);
                 proc_terminate($target);
                 throw new \RuntimeException('Timeout: ' . $line);
+            }
+            if (fstat($fromError)['size'] + fstat($toError)['size'] > $this->maxOutput) {
+                proc_terminate($source);
+                proc_terminate($target);
+                throw new \RuntimeException('Too much output: ' . $line);
             }
             usleep(100_000);
         }

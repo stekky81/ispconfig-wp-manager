@@ -73,6 +73,22 @@ final class RunnerTest extends TestCase
         );
     }
 
+    // Regression: a site could fill the memory of the root worker with endless output.
+    public function testEndlessOutputIsStopped(): void
+    {
+        $this->expectExceptionMessage('Too much output');
+        (new Runner(false, [], 10, 100000))->run(new Command(['/bin/sh', '-c', 'head -c 3000000 /dev/zero']));
+    }
+
+    public function testEndlessErrorsInAPipeAreStopped(): void
+    {
+        $this->expectExceptionMessage('Too much output');
+        (new Runner(false, [], 10, 100000))->pipe(
+            new Command(['/bin/sh', '-c', 'head -c 3000000 /dev/zero >&2; sleep 5']),
+            new Command(['/bin/sh', '-c', 'cat > /dev/null']),
+        );
+    }
+
     public function testPipeDoesNothingInDryRun(): void
     {
         $runner = new Runner(true);

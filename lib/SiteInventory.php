@@ -25,8 +25,9 @@ final class SiteInventory
     public function collect(array $site, ?Runner $runner = null): array
     {
         $runner ??= new Runner($this->config->isDryRun(), [], 120);
-        $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
+        $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
+        $wp = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
 
         $report = self::report(
             $runner->mustRun($wp->coreVersion()),

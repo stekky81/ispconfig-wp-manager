@@ -11,19 +11,44 @@ namespace WpManager;
  */
 final class WpCli
 {
+    /** @param list<string> $phpArguments */
     public function __construct(
         private readonly string $wpBinary,
         private readonly string $webRoot,
         private readonly string $systemUser,
         private readonly ?string $phpBinary = null,
+        private readonly array $phpArguments = [],
     ) {
         Validator::systemUser($systemUser);
+    }
+
+    /**
+     * For the unattended read-only checks. WordPress and must-use plugins load under the PHP CLI,
+     * outside the jail and the limits of the site: here they stay inside the folder of the site
+     * and cannot start programs. Commands that need mysqldump, as backups do, cannot use this.
+     */
+    public static function sandboxed(string $wpBinary, string $phpBinary, string $siteRoot, string $systemUser): self
+    {
+        $options = [
+            'open_basedir' => "{$siteRoot}:{$wpBinary}",
+            'disable_functions' => 'exec,shell_exec,system,passthru,popen,proc_open,pcntl_exec,pcntl_fork,dl',
+            'sys_temp_dir' => "{$siteRoot}/tmp",
+            'upload_tmp_dir' => "{$siteRoot}/tmp",
+            'memory_limit' => '512M',
+            'display_errors' => '0',
+            'log_errors' => '0',
+        ];
+        $arguments = [];
+        foreach ($options as $name => $value) {
+            array_push($arguments, '-d', "{$name}={$value}");
+        }
+        return new self($wpBinary, $siteRoot . '/web', $systemUser, $phpBinary, $arguments);
     }
 
     private function cmd(array $args, ?string $stdin = null): Command
     {
         $base = $this->phpBinary !== null
-            ? [$this->phpBinary, $this->wpBinary]
+            ? array_merge([$this->phpBinary], $this->phpArguments, [$this->wpBinary])
             : [$this->wpBinary];
         return new Command(
             array_merge($base, $args, ['--path=' . $this->webRoot, '--no-color']),
@@ -124,10 +149,7 @@ final class WpCli
 
     public function pluginInstall(string $slug, bool $activate = true): Command
     {
-        if (!preg_match('/^[a-z0-9-]{1,100}$/', $slug)) {
-            throw new ValidationException("Invalid plugin slug: {$slug}");
-        }
-        $args = ['plugin', 'install', $slug];
+        $args = ['plugin', 'install', Validator::wpSlug($slug)];
         if ($activate) {
             $args[] = '--activate';
         }
@@ -136,10 +158,7 @@ final class WpCli
 
     public function themeInstall(string $slug, bool $activate = true): Command
     {
-        if (!preg_match('/^[a-z0-9-]{1,100}$/', $slug)) {
-            throw new ValidationException("Invalid theme slug: {$slug}");
-        }
-        $args = ['theme', 'install', $slug];
+        $args = ['theme', 'install', Validator::wpSlug($slug)];
         if ($activate) {
             $args[] = '--activate';
         }

@@ -61,6 +61,11 @@ final class HealthCheckTest extends TestCase
         self::assertTrue($this->check($this->healthy(['/' => ['code' => 200, 'body' => 'How to fix a fatal error in PHP']]))['home']);
     }
 
+    public function testOnlyTheBeginningOfAPageIsKept(): void
+    {
+        self::assertSame(HealthCheck::MAX_BODY, strlen(HealthCheck::limited(str_repeat('a', HealthCheck::MAX_BODY + 5))));
+    }
+
     public function testOnlyWhatWorkedBeforeCanRegress(): void
     {
         $before = ['home' => true, 'login' => false];

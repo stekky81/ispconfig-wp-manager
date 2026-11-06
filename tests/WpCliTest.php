@@ -13,6 +13,27 @@ use WpManager\WpCli;
 
 final class WpCliTest extends TestCase
 {
+    // Regression: a must-use plugin ran outside the jail and the limits of the site during the
+    // daily check, which nobody starts by hand.
+    public function testSandboxLimitsThePhpOfTheCheck(): void
+    {
+        $wp = WpCli::sandboxed('/usr/local/bin/wp', '/usr/bin/php', '/var/www/clients/client1/web1', 'web1');
+        $argv = $wp->pluginList()->argv();
+        $line = implode(' ', $argv);
+
+        self::assertSame(['sudo', '-u', 'web1', '-H', '--', '/usr/bin/php'], array_slice($argv, 0, 6));
+        self::assertStringContainsString('open_basedir=/var/www/clients/client1/web1:/usr/local/bin/wp', $line);
+        self::assertStringContainsString('disable_functions=', $line);
+        self::assertStringContainsString('proc_open', $line);
+        self::assertStringContainsString('display_errors=0', $line);
+    }
+
+    public function testASlugCanNotBeAnOption(): void
+    {
+        $this->expectException(ValidationException::class);
+        (new WpCli('/usr/local/bin/wp', '/var/www/clients/client1/web1/web', 'web1'))->pluginInstall('--require=x.php');
+    }
+
     public function testCoreVersionRunsAsTheSiteUser(): void
     {
         $argv = (new WpCli('/usr/local/bin/wp', '/var/www/clients/client1/web1/web', 'web1'))->coreVersion()->argv();

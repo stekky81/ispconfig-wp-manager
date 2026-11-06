@@ -14,6 +14,9 @@ final class HealthCheck
     /** Only what PHP and WordPress print themselves, not a page that talks about errors. */
     private const BROKEN_PAGE = '/<b>(Fatal|Parse) error<\/b>|PHP (Fatal|Parse) error:|Error establishing a database connection/';
 
+    /** A page of a site is not trusted: only this much of it is read. */
+    public const MAX_BODY = 2097152;
+
     /** @var callable(string $url): array{code:int, body:string} */
     private $fetch;
 
@@ -48,23 +51,33 @@ final class HealthCheck
         return $answer['code'] >= 200 && $answer['code'] < 400 && !preg_match(self::BROKEN_PAGE, $answer['body']);
     }
 
+    public static function limited(string $body): string
+    {
+        return substr($body, 0, self::MAX_BODY);
+    }
+
     /** The site is on this node: ask it directly, whatever the public DNS says. */
     private function curlFetch(string $url): array
     {
         $parts = parse_url($url);
         $port = ($parts['scheme'] ?? 'http') === 'https' ? 443 : 80;
+        $body = '';
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RESOLVE => ["{$parts['host']}:{$port}:{$this->address}"],
-            CURLOPT_RETURNTRANSFER => true,
+            // Stops reading at the limit: curl ends the transfer when less is taken than offered.
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body): int {
+                $body .= $chunk;
+                return strlen($body) > self::MAX_BODY ? 0 : strlen($chunk);
+            },
             CURLOPT_TIMEOUT => 30,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_USERAGENT => 'ispconfig-wp-manager health check',
         ]);
-        $body = curl_exec($ch);
+        curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
-        return ['code' => $code, 'body' => is_string($body) ? $body : ''];
+        return ['code' => $code, 'body' => self::limited($body)];
     }
 }
