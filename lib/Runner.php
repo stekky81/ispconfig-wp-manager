@@ -50,8 +50,10 @@ final class Runner
         $stdout = $stderr = '';
         $start = time();
         while (true) {
-            $stdout .= (string)stream_get_contents($pipes[1]);
-            $stderr .= (string)stream_get_contents($pipes[2]);
+            // Before the status: a process can write everything and end between two checks.
+            $stdout .= (string)stream_get_contents($pipes[1], $this->maxOutput);
+            $stderr .= (string)stream_get_contents($pipes[2], $this->maxOutput);
+            $this->assertOutputLimit($stdout, $stderr, $proc, $line);
             $status = proc_get_status($proc);
             if (!$status['running']) {
                 break;
@@ -60,19 +62,25 @@ final class Runner
                 proc_terminate($proc);
                 throw new \RuntimeException('Timeout: ' . $line);
             }
-            if (strlen($stdout) + strlen($stderr) > $this->maxOutput) {
-                proc_terminate($proc);
-                throw new \RuntimeException('Too much output: ' . $line);
-            }
             usleep(100_000);
         }
-        $stdout .= (string)stream_get_contents($pipes[1]);
-        $stderr .= (string)stream_get_contents($pipes[2]);
+        $stdout .= (string)stream_get_contents($pipes[1], $this->maxOutput);
+        $stderr .= (string)stream_get_contents($pipes[2], $this->maxOutput);
+        $this->assertOutputLimit($stdout, $stderr, $proc, $line);
         fclose($pipes[1]);
         fclose($pipes[2]);
         proc_close($proc);
 
         return ['exit' => (int)$status['exitcode'], 'stdout' => $stdout, 'stderr' => $stderr];
+    }
+
+    /** @param resource $proc */
+    private function assertOutputLimit(string $stdout, string $stderr, $proc, string $line): void
+    {
+        if (strlen($stdout) + strlen($stderr) > $this->maxOutput) {
+            proc_terminate($proc);
+            throw new \RuntimeException('Too much output: ' . $line);
+        }
     }
 
     public function isDryRun(): bool

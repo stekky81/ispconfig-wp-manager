@@ -80,6 +80,20 @@ final class RunnerTest extends TestCase
         (new Runner(false, [], 10, 100000))->run(new Command(['/bin/sh', '-c', 'head -c 3000000 /dev/zero']));
     }
 
+    // Regression: the limit was only checked while the process ran, and in CI one that wrote
+    // everything and ended between two checks got past it.
+    public function testTooMuchOutputIsStoppedAlsoIfTheProcessHasEnded(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            try {
+                (new Runner(false, [], 10, 1000))->run(new Command(['/bin/sh', '-c', 'head -c 2000 /dev/zero']));
+                self::fail('The limit was ignored');
+            } catch (\RuntimeException $e) {
+                self::assertStringContainsString('Too much output', $e->getMessage());
+            }
+        }
+    }
+
     public function testEndlessErrorsInAPipeAreStopped(): void
     {
         $this->expectExceptionMessage('Too much output');
