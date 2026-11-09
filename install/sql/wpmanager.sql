@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `secret_db` text,
   `secret_wp` text,
   `secret_access` text,
+  -- When the generated passwords became available: they expire after a week if nobody looks at them
+  `secret_since` datetime DEFAULT NULL,
   `status` enum('queued','installing','installed','error') NOT NULL DEFAULT 'queued',
   `status_message` text,
   `wp_version` varchar(20) NOT NULL DEFAULT '',
@@ -186,6 +188,17 @@ SET @wpm_sql = (
        ADD `wp_theme` varchar(100) NOT NULL DEFAULT \'\' AFTER `wp_plugins`')
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'wp_locale'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions where the generated passwords did not expire.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` ADD `secret_since` datetime DEFAULT NULL AFTER `secret_access`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'secret_since'
 );
 PREPARE wpm_stmt FROM @wpm_sql;
 EXECUTE wpm_stmt;

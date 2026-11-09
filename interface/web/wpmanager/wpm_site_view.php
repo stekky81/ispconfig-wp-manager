@@ -102,8 +102,8 @@ if (isset($_POST['reveal'])) {
     if ($credentials->canReveal($site)) {
         $shown = $credentials->reveal($site);
         // Clear first: if this fails the passwords stay stored and nothing is shown.
-        $app->db->datalogUpdate('wpm_site', ['secret_wp' => null, 'secret_access' => null], 'wpm_site_id', $id);
-        $site['secret_wp'] = $site['secret_access'] = null;
+        $app->db->datalogUpdate('wpm_site', ['secret_wp' => null, 'secret_access' => null, 'secret_since' => null], 'wpm_site_id', $id);
+        $site['secret_wp'] = $site['secret_access'] = $site['secret_since'] = null;
         $app->tpl->setVar('revealed', 1);
         $app->tpl->setVar(array_map($escape, $shown));
     }
@@ -116,6 +116,7 @@ $app->tpl->setVar('id', $id);
 $app->tpl->setVar('site_url', $escape($site['site_url'] ?: 'http://' . $site['domain']));
 $app->tpl->setVar('status_message', $escape($site['status_message'] ?? ''));
 $app->tpl->setVar('can_reveal', $credentials->canReveal($site) ? 1 : 0);
+$app->tpl->setVar('credentials_expired', \WpManager\SiteCredentials::hasExpired($site) ? 1 : 0);
 $app->tpl->setVar('is_installed', $site['status'] === 'installed' ? 1 : 0);
 $app->tpl->setVar('website_redirect', rawurlencode('sites/web_vhost_domain_edit.php?id=' . (int)$site['domain_id'] . '&type=domain'));
 

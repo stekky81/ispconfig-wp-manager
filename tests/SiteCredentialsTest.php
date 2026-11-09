@@ -74,4 +74,43 @@ final class SiteCredentialsTest extends TestCase
         $this->expectException(\RuntimeException::class);
         (new SiteCredentials($this->crypto))->reveal($this->site(['status' => 'queued']));
     }
+
+    public function testTheClockStartsWhenTheSiteIsReady(): void
+    {
+        $now = 1_800_000_000;
+
+        self::assertSame(SiteCredentials::START_CLOCK, SiteCredentials::housekeeping($this->site(['secret_since' => null]), $now));
+        self::assertSame(SiteCredentials::START_CLOCK, SiteCredentials::housekeeping($this->site(['status' => 'error']), $now));
+        self::assertSame('', SiteCredentials::housekeeping($this->site(['status' => 'queued']), $now));
+        self::assertSame('', SiteCredentials::housekeeping($this->site(['status' => 'installing']), $now));
+    }
+
+    public function testPasswordsNobodyLookedAtExpireAfterAWeek(): void
+    {
+        $now = 1_800_000_000;
+        $week = SiteCredentials::EXPIRY_DAYS * 86400;
+
+        self::assertSame(7, SiteCredentials::EXPIRY_DAYS);
+        self::assertSame('', SiteCredentials::housekeeping($this->site(['secret_since' => (string)($now - $week + 60)]), $now));
+        self::assertSame(SiteCredentials::EXPIRE, SiteCredentials::housekeeping($this->site(['secret_since' => (string)($now - $week)]), $now));
+        self::assertSame(SiteCredentials::EXPIRE, SiteCredentials::housekeeping($this->site(['secret_since' => $now - 30 * 86400]), $now));
+    }
+
+    public function testNothingToDoOnceThePasswordsAreGone(): void
+    {
+        $now = 1_800_000_000;
+
+        self::assertSame('', SiteCredentials::housekeeping($this->site(['secret_access' => null, 'secret_since' => $now - 30 * 86400]), $now));
+        // Detected sites never had any.
+        self::assertSame('', SiteCredentials::housekeeping(['status' => 'installed', 'secret_access' => null, 'secret_since' => null], $now));
+    }
+
+    // A reveal clears secret_since too: the page then says "already shown", not "expired".
+    public function testExpiredIsToldApartFromAlreadyShown(): void
+    {
+        self::assertTrue(SiteCredentials::hasExpired($this->site(['secret_wp' => null, 'secret_access' => null, 'secret_since' => '2026-11-01 10:00:00'])));
+        self::assertFalse(SiteCredentials::hasExpired($this->site(['secret_wp' => null, 'secret_access' => null, 'secret_since' => null])));
+        self::assertFalse(SiteCredentials::hasExpired($this->site(['secret_since' => '2026-11-01 10:00:00'])));
+        self::assertFalse(SiteCredentials::hasExpired(['status' => 'installed']));
+    }
 }

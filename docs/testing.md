@@ -73,6 +73,8 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
 - [x] Secrets cleared from `wpm_site` after install (DB password) and after the reveal (the other two)
 - [x] Passwords shown once on the site detail page, and they work
+- [x] Passwords nobody looked at are deleted 7 days after the site is ready, and the page says they expired;
+      after a reveal it says they were already shown
 - [ ] Defaults applied (PHP version, SSL, plugins)
 
 ### New site — failure cases

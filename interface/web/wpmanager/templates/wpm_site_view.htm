@@ -131,7 +131,11 @@
             <input type="hidden" name="reveal" value="1" />
             <button class="btn btn-default formbutton-success" type="button" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_view.php">{tmpl_var name='reveal_txt'}</button>
         <tmpl_else>
+            <tmpl_if name="credentials_expired">
+            <p id="credentials_gone">{tmpl_var name='credentials_expired_txt'}</p>
+            <tmpl_else>
             <p id="credentials_gone">{tmpl_var name='credentials_unavailable_txt'}</p>
+            </tmpl_if>
         </tmpl_if>
     </tmpl_if>
 

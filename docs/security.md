@@ -40,7 +40,8 @@ Known and accepted for now:
   read the other sites of that client. Only an admin can do it, also once the module opens to clients, and the panel asks
   for a confirmation. Do it only for sites you trust.
 - **A compromised panel** can read `secret.key`, so it can decrypt stored secrets, and it can use the Remote API account.
-  It cannot become root through this module.
+  It cannot become root through this module. To keep fewer secrets around, the generated passwords nobody looked at are
+  deleted 7 days after the site is ready.
 - **Encrypted secrets stay in `sys_datalog`** until ISPConfig prunes it, also after they are cleared from `wpm_site`.
 - **After a timeout** a command gets a termination signal, and a process that ignores it keeps running as the site user.
 - **Backups** belong to the site user, who can read and change them. A restore trusts their content as much as the site:
@@ -97,4 +98,5 @@ Fixed:
 | Low | The list and delete pages had no admin check |
 | Low | A failed restore could not run again and could leave the database dump behind |
 | Low | The database password stayed encrypted in `wpm_site` after a final install error |
+| Low | Generated passwords nobody looked at stayed encrypted in `wpm_site` for ever |
 | Low | The worker log was readable by every user, and an unreadable backup folder could stop the worker |

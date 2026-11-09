@@ -39,6 +39,7 @@ use WpManager\RetryPolicy;
 use WpManager\Settings;
 use WpManager\SiteBackup;
 use WpManager\SiteCloner;
+use WpManager\SiteCredentials;
 use WpManager\SiteInventory;
 use WpManager\SiteScanner;
 use WpManager\SiteUpdater;
@@ -182,6 +183,25 @@ foreach ($queue->pending() as $name) {
             $job['not_before'] = time() + $delay;
             $report($siteId, 'queued', 'Attempt ' . $job['attempts'] . ' failed, next try in ' . intdiv($delay, 60) . ' minutes: ' . $e->getMessage());
             $queue->update($name, $job);
+        }
+    }
+}
+
+// One-time passwords nobody looked at: the clock starts when the site is ready, and after
+// SiteCredentials::EXPIRY_DAYS they are deleted. Direct updates, like the database password above.
+if (!$config->isDryRun()) {
+    $stored = $app->dbmaster->queryAllRecords(
+        "SELECT wpm_site_id, status, secret_access, UNIX_TIMESTAMP(secret_since) AS secret_since FROM wpm_site
+         WHERE server_id = ? AND secret_access IS NOT NULL AND secret_access != ''",
+        $conf['server_id'],
+    );
+    foreach ($stored ?: [] as $site) {
+        $step = SiteCredentials::housekeeping($site, time());
+        if ($step === SiteCredentials::START_CLOCK) {
+            $app->dbmaster->query('UPDATE wpm_site SET secret_since = NOW() WHERE wpm_site_id = ? AND secret_since IS NULL', $site['wpm_site_id']);
+        } elseif ($step === SiteCredentials::EXPIRE) {
+            $app->dbmaster->query('UPDATE wpm_site SET secret_wp = NULL, secret_access = NULL WHERE wpm_site_id = ?', $site['wpm_site_id']);
+            $app->log('wpmanager: one-time passwords of site ' . (int)$site['wpm_site_id'] . ' expired', LOGLEVEL_DEBUG);
         }
     }
 }
