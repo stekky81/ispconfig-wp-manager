@@ -48,8 +48,10 @@ Known and accepted for now:
   nobody looked at. Deleting them sooner would mean changing an internal table of ISPConfig that keeps the nodes in
   sync, which is a larger risk than a few days. On a node of a multiserver setup the local copy of `wpm_site` also keeps
   them, but no panel runs there and the database of ISPConfig on a node is not open to site users.
-- **Backups** belong to the site user, who can read and change them. A restore trusts their content as much as the site:
-  a changed backup can bring back any file or row, but its dump cannot give commands to the `mysql` client.
+- **Backups** belong to the site user, who can read, change and delete them. A restore trusts their content as much as
+  the site: a changed backup can bring back any file or row, but its dump cannot give commands to the `mysql` client.
+  They exist for the rollback of an update and for going back after a change, not for disaster recovery: a hacked site
+  can infect its own backups, so do not use them to clean it. Keep the backups of ISPConfig, or external ones, for that.
 
 ## WP-CLI runs outside the jail
 

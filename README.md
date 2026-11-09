@@ -23,7 +23,8 @@ It has not run on production servers yet.
 - **Safe updates**: a health check, a backup and an automatic rollback around every update, with a separate
   button for a new major version of WordPress.
 - **Automatic updates**, on by default: plugins, themes and minor WordPress releases.
-- **Backups and restore** from the site page, optionally without `wp-content/uploads` on large sites.
+- **Backups and restore** from the site page, optionally without `wp-content/uploads` on large sites. They are meant
+  for rollbacks and do not replace the backups of ISPConfig.
 - **Clone** to a new domain on the same node, replacing the old address everywhere in the database,
   serialized data included.
 - **WP-Cron switch**: move a site between WP-Cron and a real cron job.

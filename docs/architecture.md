@@ -44,7 +44,8 @@ owner, so it is limited on the node and escaped in the panel. The report is stor
 ## Backups
 
 Backups are taken by the worker as the site user, in `<site>/tmp/wpmanager-backups/<id>/`: database dump and files,
-verified, then marked with a `COMPLETE` file. The last 3 are kept. The folder was chosen after reading ISPConfig 3.3.2:
+verified, then marked with a `COMPLETE` file. The last 3 are kept. They are meant for rollbacks, not as the backups
+of the server: the site user can change them (see [security.md](security.md)). The folder was chosen after reading ISPConfig 3.3.2:
 
 - `<site>/backup` is root-only and ISPConfig deletes files older than 3 days from it.
 - A new folder next to `web` would need the immutable flag of the site folder removed, and ISPConfig would back it up.
