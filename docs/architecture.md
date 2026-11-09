@@ -93,6 +93,30 @@ is reported, including what looks like the old host inside base64 values, which 
 
 A clone is public, with "Discourage search engines" turned on so that it does not compete with its source.
 
+## Staging
+
+Planned, decided with the maintainer on 2026-11-09. A staging is a clone with a link to its production site, and the
+two actions that make it a staging.
+
+- **One staging per site**, on the same node and for the same client, at `staging.<domain>` by default (the DNS record
+  is up to the admin, as for a clone). Its website gets the PHP version of the production site and two settings of its
+  own, which live in the ISPConfig website and not in the files, so a push never carries them:
+  - `sendmail_path = /bin/true` in its PHP settings: a copy of a shop has real customers, and its cron must not mail them.
+    A plugin that talks to an SMTP server by itself still sends mail: the panel says so.
+  - `Header set X-Robots-Tag "noindex, nofollow"` in its Apache directives, besides "Discourage search engines".
+    No password: whoever knows the address can open it.
+- **Update staging from production** replaces the files and the database of the staging with those of production,
+  after a backup of the staging.
+- **Push to production** copies **everything**, files and the whole database, the other way. A partial copy tends to
+  leave other inconsistencies, so it is all or nothing, as in other control panels. Before it, the panel lists what will be
+  lost: what reached production since the copy (orders, comments, users, form entries) and any core, plugin or theme
+  version that is newer on production; the admin confirms by typing the production domain. Then the worker takes a
+  backup of production, puts it in maintenance mode (`.maintenance`), copies, replaces the staging address, puts back
+  the "Discourage search engines" value of production, leaves maintenance mode and runs the health check. If production
+  works less than before, the backup is restored, as after an update.
+- `wp-config.php`, `wp-cli.yml` and `.maintenance` are never copied, in either direction: constants added by hand on the
+  staging have to be added by hand on production.
+
 ## WP-Cron
 
 A site can move between WP-Cron and a real cron job. The job is an ISPConfig cron job of type URL, every 5 minutes, which

@@ -119,7 +119,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   backups, updates with health check and automatic rollback, automatic updates; clone on the same node;
   WP-Cron switch; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: staging needs a decision first. Multiserver and clone across nodes are set aside for now.
+- **Next**: staging, decided in `docs/architecture.md` (Staging). Multiserver and clone across nodes are set aside for now.
   Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.
