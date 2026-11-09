@@ -75,6 +75,8 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
       file permission check, hardening for existing sites
 - [ ] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them);
       a clone to another client stays admin only
+- [ ] Optional: install in a subfolder of an existing website (`example.com/blog`); the subfolder must
+      be new or empty, the rest of the web root stays untouched
 - [ ] Full site removal (website, DB, users) with double confirmation and a final backup
 - [ ] Audit log (who did what, when) and notifications (install done, update failed, vulnerability)
 - [ ] Declared compatibility matrix (ISPConfig, Ubuntu/Debian, PHP versions)
