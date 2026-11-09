@@ -55,3 +55,6 @@ $wb['credentials_once_txt'] = 'Save these passwords now: they will not be shown 
 $wb['reveal_txt'] = 'Show passwords';
 $wb['log_txt'] = 'Installation log';
 $wb['back_txt'] = 'Back';
+$wb['create_staging_txt'] = 'Create staging';
+$wb['staging_txt'] = 'Staging site';
+$wb['staging_of_txt'] = 'Staging of';

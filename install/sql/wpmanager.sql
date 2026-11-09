@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `domain_id` int(11) unsigned NOT NULL DEFAULT 0,
   `origin` enum('created','detected') NOT NULL DEFAULT 'created',
   `clone_of` int(11) unsigned NOT NULL DEFAULT 0,
+  -- A staging site points to its production site, which has at most one
+  `staging_of` int(11) unsigned NOT NULL DEFAULT 0,
   `domain` varchar(255) NOT NULL DEFAULT '',
   `site_url` varchar(255) NOT NULL DEFAULT '',
   `system_user` varchar(64) NOT NULL DEFAULT '',
@@ -199,6 +201,17 @@ SET @wpm_sql = (
     'ALTER TABLE `wpm_site` ADD `secret_since` datetime DEFAULT NULL AFTER `secret_access`')
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'secret_since'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions without staging.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` ADD `staging_of` int(11) unsigned NOT NULL DEFAULT 0 AFTER `clone_of`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'staging_of'
 );
 PREPARE wpm_stmt FROM @wpm_sql;
 EXECUTE wpm_stmt;

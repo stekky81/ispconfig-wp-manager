@@ -3,6 +3,7 @@
 //
 // Clones a site into a new website of the same node. The ISPConfig objects are created like
 // for a new site; the worker then copies the files and the database instead of installing.
+// With staging=1 the clone becomes the staging site of its source: same client, no PHP mail.
 
 require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
@@ -32,6 +33,18 @@ if (!is_array($source)) {
 }
 
 $config = wpm_config($app);
+
+$staging = !empty($_REQUEST['staging']);
+if ($staging) {
+    try {
+        $current = $app->db->queryOneRecord('SELECT domain FROM wpm_site WHERE staging_of = ?', $id);
+        \WpManager\SiteStaging::assertCanCreate($source, is_array($current) ? $current : null);
+    } catch (\RuntimeException $e) {
+        $app->error($escape($e->getMessage()));
+    }
+    // A staging belongs to the client of its production site.
+    $_POST['client_id'] = (int)$source['client_id'];
+}
 
 if (isset($_POST['domain'])) {
     $app->auth->csrf_token_check();
@@ -66,7 +79,7 @@ if (isset($_POST['domain'])) {
         $transport = $config->isDryRun() ? new \WpManager\DryRunTransport() : null;
         $api = \WpManager\IspconfigApi::fromConfig($config, $transport);
         $provisioner = new \WpManager\SiteProvisioner($api, $config, \WpManager\Crypto::fromFile($config->get('key_file')));
-        $record = $provisioner->provision($request);
+        $record = $provisioner->provision($request, $staging ? \WpManager\SiteStaging::WEBSITE : []);
         $api->logout();
 
         if ($config->isDryRun()) {
@@ -77,13 +90,14 @@ if (isset($_POST['domain'])) {
             $record['wp_admin_user'] = '';
             $record['wp_title'] = '';
             $record['clone_of'] = (int)$source['wpm_site_id'];
+            $record['staging_of'] = $staging ? (int)$source['wpm_site_id'] : 0;
             $record['sys_userid'] = (int)$_SESSION['s']['user']['userid'];
             $record['sys_groupid'] = (int)$_SESSION['s']['user']['default_group'];
             $record['sys_perm_user'] = 'riud';
             $record['sys_perm_group'] = 'riud';
             $record['sys_perm_other'] = '';
             $app->db->datalogInsert('wpm_site', $record, 'wpm_site_id');
-            header('Location: wpm_site_list.php');
+            header('Location: ' . ($staging ? 'wpm_site_view.php?id=' . $id : 'wpm_site_list.php'));
             exit;
         }
     } catch (\Throwable $e) {
@@ -99,7 +113,8 @@ foreach ($app->db->queryAllRecords("SELECT client_id, CONCAT(IF(company_name != 
 
 $app->tpl->setVar('id', $id);
 $app->tpl->setVar('source_domain', $escape($source['domain']));
-$app->tpl->setVar('domain', $escape($_POST['domain'] ?? ''));
+$app->tpl->setVar('domain', $escape($_POST['domain'] ?? ($staging ? \WpManager\SiteStaging::defaultDomain((string)$source['domain']) : '')));
+$app->tpl->setVar('staging', $staging ? 1 : 0);
 $app->tpl->setVar('client_options', $clients);
 
 $csrf_token = $app->auth->csrf_token_get('wpm_site_clone');

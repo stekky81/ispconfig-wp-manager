@@ -11,3 +11,6 @@ $wb['clone_btn_txt'] = 'Clona';
 $wb['cancel_txt'] = 'Annulla';
 $wb['source_not_found_txt'] = 'Si può clonare solo un sito installato.';
 $wb['domain_taken_txt'] = 'Questo dominio è già gestito dal modulo WordPress.';
+$wb['staging_head_txt'] = 'Crea lo staging di';
+$wb['staging_desc_txt'] = 'Una copia di questo sito per provare le modifiche, sullo stesso nodo e per lo stesso cliente. PHP non invia email da qui, perché la copia di un negozio ha clienti veri: un plugin che usa da solo un server SMTP però le invia lo stesso. È pubblica, senza password, ma i motori di ricerca vengono invitati a non indicizzarla. Poi potrai aggiornarla dalla produzione o pubblicarla in produzione.';
+$wb['staging_btn_txt'] = 'Crea lo staging';

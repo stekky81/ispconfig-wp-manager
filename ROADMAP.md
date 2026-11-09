@@ -64,7 +64,7 @@ for the security review and what it left open.
       `https`, `www`; report what could not be replaced, such as base64 values
 - [ ] Clone across nodes
 - [x] Staging: decisions (see [architecture.md](docs/architecture.md#staging))
-- [ ] Staging: create one per site, without outgoing PHP mail and with `X-Robots-Tag: noindex`
+- [x] Staging: create one per site, without outgoing PHP mail and with `X-Robots-Tag: noindex`
 - [ ] Staging: update it from production
 - [ ] Staging: push everything to production, with the list of what is lost, typed confirmation, backup,
       maintenance mode, health check and automatic rollback

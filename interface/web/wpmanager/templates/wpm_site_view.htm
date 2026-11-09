@@ -10,6 +10,7 @@
         <a class="btn btn-default formbutton-default" href="{tmpl_var name='site_url'}/wp-admin/" target="_blank" rel="noopener">{tmpl_var name='open_admin_txt'}</a>
         </tmpl_if>
         <tmpl_if name="is_installed"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_clone.php?id={tmpl_var name='id'}">{tmpl_var name='clone_txt'}</button></tmpl_if>
+        <tmpl_if name="can_stage"><button class="btn btn-default formbutton-default" type="button" id="create_staging" data-load-content="wpmanager/wpm_site_clone.php?id={tmpl_var name='id'}&amp;staging=1">{tmpl_var name='create_staging_txt'}</button></tmpl_if>
         <a class="btn btn-default formbutton-default" href="#" onclick="ISPConfig.capp('sites', '{tmpl_var name='website_redirect'}'); return false;">{tmpl_var name='open_website_txt'}</a>
     </p>
 
@@ -17,6 +18,12 @@
         <tbody>
             <tr><th>{tmpl_var name='status_txt'}</th><td id="site_status">{tmpl_var name='status'}</td></tr>
             <tr><th>{tmpl_var name='origin_txt'}</th><td>{tmpl_var name='origin'}</td></tr>
+            <tmpl_if name="staging_id">
+            <tr><th>{tmpl_var name='staging_txt'}</th><td id="staging_link"><a href="#" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='staging_id'}">{tmpl_var name='staging_domain'}</a></td></tr>
+            </tmpl_if>
+            <tmpl_if name="production_id">
+            <tr><th>{tmpl_var name='staging_of_txt'}</th><td id="production_link"><a href="#" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='production_id'}">{tmpl_var name='production_domain'}</a></td></tr>
+            </tmpl_if>
             <tr><th>{tmpl_var name='wp_version_txt'}</th><td>{tmpl_var name='wp_version'}</td></tr>
             <tmpl_if name="access_user">
             <tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td>{tmpl_var name='wp_admin_user'}</td></tr>

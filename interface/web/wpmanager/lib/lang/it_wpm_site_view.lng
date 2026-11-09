@@ -55,3 +55,6 @@ $wb['credentials_once_txt'] = 'Salva subito queste password: non verranno mostra
 $wb['reveal_txt'] = 'Mostra le password';
 $wb['log_txt'] = 'Log di installazione';
 $wb['back_txt'] = 'Indietro';
+$wb['create_staging_txt'] = 'Crea staging';
+$wb['staging_txt'] = 'Sito di staging';
+$wb['staging_of_txt'] = 'Staging di';

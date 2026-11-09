@@ -113,6 +113,15 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [ ] Objects of plugin classes, with a real plugin (Elementor, WooCommerce)
 - [ ] A large and busy site
 
+### Staging
+
+- [x] Created from the production page, at `staging.<domain>`, for the same client, custom table prefix kept
+- [x] Its PHP pool has `sendmail_path = /bin/true`, production keeps its own
+- [x] `X-Robots-Tag: noindex, nofollow` and the robots meta tag on the staging only
+- [x] Each page links to the other; a second staging and a staging of a staging are refused
+- [ ] Update from production
+- [ ] Push to production: warning, typed confirmation, maintenance mode, health check, rollback
+
 ### WP-Cron
 
 - [x] To real cron and back: job and crontab line appear and go, `wp-config.php` ends up identical

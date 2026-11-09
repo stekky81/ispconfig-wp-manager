@@ -10,6 +10,7 @@
 - Updates with health check and automatic rollback, separate button for a new major version of WordPress
 - Automatic updates of plugins, themes and minor core releases, on by default
 - Clone to a new domain on the same node, serialized data included
+- Staging site, one per site: no mail from PHP, `X-Robots-Tag: noindex` (update and push to production follow)
 - Switch between WP-Cron and a real cron job
 - Updates, backups, restores and the WP-Cron switch run in the same PHP sandbox as the daily checks, which no longer lets
   code leave through FFI or `LD_PRELOAD`; backups use `mysqldump` and `mysql` directly, and a restore ignores client

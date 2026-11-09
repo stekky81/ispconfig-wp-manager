@@ -11,3 +11,6 @@ $wb['clone_btn_txt'] = 'Clone';
 $wb['cancel_txt'] = 'Cancel';
 $wb['source_not_found_txt'] = 'Only an installed site can be cloned.';
 $wb['domain_taken_txt'] = 'This domain is already managed by the WordPress module.';
+$wb['staging_head_txt'] = 'Create staging of';
+$wb['staging_desc_txt'] = 'A copy of this site for trying changes, on the same node and for the same client. PHP sends no mail from it, because a copy of a shop has real customers: a plugin that talks to an SMTP server by itself still sends mail. It is public, without password, but search engines are told not to index it. Later you can update it from production, or push it to production.';
+$wb['staging_btn_txt'] = 'Create staging';

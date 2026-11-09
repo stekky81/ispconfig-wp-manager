@@ -113,6 +113,13 @@ foreach (['domain', 'status', 'origin', 'access_type', 'access_user', 'wp_admin_
     $app->tpl->setVar($field, $escape($site[$field]));
 }
 $app->tpl->setVar('id', $id);
+$stagingSite = $app->db->queryOneRecord('SELECT wpm_site_id, domain FROM wpm_site WHERE staging_of = ?', $id);
+$production = (int)$site['staging_of'] > 0 ? $app->db->queryOneRecord('SELECT wpm_site_id, domain FROM wpm_site WHERE wpm_site_id = ?', $site['staging_of']) : null;
+$app->tpl->setVar('staging_id', is_array($stagingSite) ? (int)$stagingSite['wpm_site_id'] : 0);
+$app->tpl->setVar('staging_domain', is_array($stagingSite) ? $escape($stagingSite['domain']) : '');
+$app->tpl->setVar('production_id', is_array($production) ? (int)$production['wpm_site_id'] : 0);
+$app->tpl->setVar('production_domain', is_array($production) ? $escape($production['domain']) : '');
+$app->tpl->setVar('can_stage', $site['status'] === 'installed' && (int)$site['staging_of'] === 0 && !is_array($stagingSite) ? 1 : 0);
 $app->tpl->setVar('site_url', $escape($site['site_url'] ?: 'http://' . $site['domain']));
 $app->tpl->setVar('status_message', $escape($site['status_message'] ?? ''));
 $app->tpl->setVar('can_reveal', $credentials->canReveal($site) ? 1 : 0);

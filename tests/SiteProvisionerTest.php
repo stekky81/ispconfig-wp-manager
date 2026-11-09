@@ -249,4 +249,32 @@ final class SiteProvisionerTest extends TestCase
 
         self::assertSame('sftp', $this->provisioner($t)->provision($this->request())['access_type']);
     }
+
+    public function testAStagingWebsiteGetsItsOwnSettings(): void
+    {
+        $api = new IspconfigApi('https://panel.test/remote/json.php', 'u', 'p', new DryRunTransport());
+        (new SiteProvisioner($api, Config::fromArray([]), $this->crypto))->provision($this->request(), \WpManager\SiteStaging::WEBSITE);
+
+        $add = array_values(array_filter($api->calls(), fn($c) => $c['method'] === 'sites_web_domain_add'))[0];
+        self::assertSame('sendmail_path = /bin/true', $add['params']['params']['custom_php_ini']);
+        self::assertSame('Header set X-Robots-Tag "noindex, nofollow"', $add['params']['params']['apache_directives']);
+        self::assertSame('shop.example.com', $add['params']['params']['domain']);
+    }
+
+    public function testANormalWebsiteHasNoExtraSettings(): void
+    {
+        $api = new IspconfigApi('https://panel.test/remote/json.php', 'u', 'p', new DryRunTransport());
+        (new SiteProvisioner($api, Config::fromArray([]), $this->crypto))->provision($this->request());
+
+        $add = array_values(array_filter($api->calls(), fn($c) => $c['method'] === 'sites_web_domain_add'))[0];
+        self::assertArrayNotHasKey('custom_php_ini', $add['params']['params']);
+        self::assertArrayNotHasKey('apache_directives', $add['params']['params']);
+    }
+
+    // Only what the module means to set: never the domain, the user or the document root.
+    public function testOtherWebsiteSettingsAreRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->provisioner(new DryRunTransport())->provision($this->request(), ['domain' => 'other.example.com']);
+    }
 }

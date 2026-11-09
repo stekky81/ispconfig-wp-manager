@@ -29,8 +29,16 @@ final class SiteProvisioner
     /**
      * @return array<string, mixed> the values to store in the wpm_site record
      */
-    public function provision(SiteRequest $req): array
+    /** Website settings a caller may add, on top of the defaults: see SiteStaging::WEBSITE. */
+    private const WEBSITE_EXTRAS = ['custom_php_ini', 'apache_directives'];
+
+    /** @param array<string, string> $website extra settings of the ISPConfig website */
+    public function provision(SiteRequest $req, array $website = []): array
     {
+        $unknown = array_diff(array_keys($website), self::WEBSITE_EXTRAS);
+        if ($unknown !== []) {
+            throw new \InvalidArgumentException('Unknown website setting: ' . implode(', ', $unknown));
+        }
         $this->created = [];
         $d = $this->config->get('site_defaults');
         $wp = $this->config->get('wordpress');
@@ -75,7 +83,7 @@ final class SiteProvisioner
                     'http_port' => 80,
                     'https_port' => 443,
                     'active' => 'y',
-                ],
+                ] + $website,
                 'readonly' => false,
             ]);
 
