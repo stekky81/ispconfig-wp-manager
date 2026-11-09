@@ -42,7 +42,12 @@ Known and accepted for now:
 - **A compromised panel** can read `secret.key`, so it can decrypt stored secrets, and it can use the Remote API account.
   It cannot become root through this module. To keep fewer secrets around, the generated passwords nobody looked at are
   deleted 7 days after the site is ready.
-- **Encrypted secrets stay in `sys_datalog`** until ISPConfig prunes it, also after they are cleared from `wpm_site`.
+- **Encrypted secrets stay in `sys_datalog`** after they are cleared from `wpm_site`: the record of each change keeps
+  them, the reveal included. ISPConfig deletes datalog records older than 7 days once every node applied them
+  (`server/lib/classes/cron.d/200-logfiles.inc.php` in 3.3.2), so they stay there about as long as the passwords that
+  nobody looked at. Deleting them sooner would mean changing an internal table of ISPConfig that keeps the nodes in
+  sync, which is a larger risk than a few days. On a node of a multiserver setup the local copy of `wpm_site` also keeps
+  them, but no panel runs there and the database of ISPConfig on a node is not open to site users.
 - **After a timeout** a command gets a termination signal, and a process that ignores it keeps running as the site user.
 - **Backups** belong to the site user, who can read and change them. A restore trusts their content as much as the site:
   a changed backup can bring back any file or row, but its dump cannot give commands to the `mysql` client.
