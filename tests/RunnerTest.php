@@ -127,4 +127,77 @@ final class RunnerTest extends TestCase
         $this->expectExceptionMessageMatches('/^Command failed \(3\): Error: bad \*{8}$/');
         $runner->mustRun(new Command(['/bin/sh', '-c', 'echo "Warning: noise" >&2; echo "Error: bad S3cret" >&2; exit 3']));
     }
+
+    private static function gone(int $pid): bool
+    {
+        $state = trim((string)shell_exec('ps -o stat= -p ' . $pid));
+        return $state === '' || str_starts_with($state, 'Z');
+    }
+
+    // Found in the VM: a site can ignore SIGTERM, and the sudo waiting for it kept the lock of the worker.
+    public function testACommandThatIgnoresSigtermIsKilledAfterTheTimeout(): void
+    {
+        $pidFile = tempnam(sys_get_temp_dir(), 'wpm');
+        $start = microtime(true);
+        try {
+            (new Runner(false, [], 1, 100000, 1))->run(new Command(['/bin/sh', '-c', 'trap "" TERM; echo $$ > ' . $pidFile . '; while :; do sleep 1; done']));
+            self::fail('No timeout');
+        } catch (\RuntimeException $e) {
+            self::assertStringStartsWith('Timeout: ', $e->getMessage());
+        }
+        $pid = (int)file_get_contents($pidFile);
+        unlink($pidFile);
+        self::assertGreaterThan(0, $pid);
+        self::assertTrue(self::gone($pid), 'still running after the grace time');
+        self::assertLessThan(8, microtime(true) - $start);
+    }
+
+    public function testWhatTheCommandStartedIsKilledToo(): void
+    {
+        if (!is_dir('/proc/self')) {
+            self::markTestSkipped('needs /proc (Linux)');
+        }
+        $pidFile = tempnam(sys_get_temp_dir(), 'wpm');
+        try {
+            (new Runner(false, [], 1, 100000, 1))->run(new Command(['/bin/sh', '-c', 'trap "" TERM; sleep 30 & echo $! > ' . $pidFile . '; wait']));
+            self::fail('No timeout');
+        } catch (\RuntimeException $e) {
+            self::assertStringStartsWith('Timeout: ', $e->getMessage());
+        }
+        $pid = (int)file_get_contents($pidFile);
+        unlink($pidFile);
+        self::assertGreaterThan(0, $pid);
+        usleep(200_000);
+        self::assertTrue(self::gone($pid), 'the child of the command is still running');
+    }
+
+    public function testBothSidesOfAPipeAreKilledAfterTheTimeout(): void
+    {
+        $pidFile = tempnam(sys_get_temp_dir(), 'wpm');
+        try {
+            (new Runner(false, [], 1, 100000, 1))->pipe(
+                new Command(['/bin/sh', '-c', 'trap "" TERM; echo $$ > ' . $pidFile . '; while :; do sleep 1; done']),
+                new Command(['/bin/sh', '-c', 'trap "" TERM; cat > /dev/null']),
+            );
+            self::fail('No timeout');
+        } catch (\RuntimeException $e) {
+            self::assertStringStartsWith('Timeout: ', $e->getMessage());
+        }
+        $pid = (int)file_get_contents($pidFile);
+        unlink($pidFile);
+        self::assertTrue(self::gone($pid), 'the source is still running');
+    }
+
+    public function testACommandThatStopsOnSigtermIsNotKept(): void
+    {
+        $start = microtime(true);
+        try {
+            (new Runner(false, [], 1, 100000, 30))->run(new Command(['/bin/sh', '-c', 'exec sleep 30']));
+            self::fail('No timeout');
+        } catch (\RuntimeException $e) {
+            self::assertStringStartsWith('Timeout: ', $e->getMessage());
+        }
+        // The grace time ends as soon as the command is gone.
+        self::assertLessThan(5, microtime(true) - $start);
+    }
 }

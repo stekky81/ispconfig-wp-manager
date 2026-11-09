@@ -22,6 +22,8 @@ final class Runner
         private readonly int $timeout = 600,
         /** Commands of a site are not trusted: their output must not fill the memory of root. */
         private readonly int $maxOutput = 33554432,
+        /** Seconds between SIGTERM and SIGKILL when a command has to be stopped. */
+        private readonly int $grace = 5,
     ) {
     }
 
@@ -59,7 +61,7 @@ final class Runner
                 break;
             }
             if (time() - $start > $this->timeout) {
-                proc_terminate($proc);
+                $this->stop($proc);
                 throw new \RuntimeException('Timeout: ' . $line);
             }
             usleep(100_000);
@@ -78,9 +80,80 @@ final class Runner
     private function assertOutputLimit(string $stdout, string $stderr, $proc, string $line): void
     {
         if (strlen($stdout) + strlen($stderr) > $this->maxOutput) {
-            proc_terminate($proc);
+            $this->stop($proc);
             throw new \RuntimeException('Too much output: ' . $line);
         }
+    }
+
+    /**
+     * SIGTERM first, then SIGKILL for whatever still runs after the grace time: the code of a site can
+     * ignore SIGTERM, and `sudo` waits for it while holding what the worker gave it.
+     *
+     * @param resource ...$procs
+     */
+    private function stop(...$procs): void
+    {
+        $running = [];
+        foreach ($procs as $proc) {
+            if (proc_get_status($proc)['running']) {
+                $running[] = $proc;
+                proc_terminate($proc);
+            }
+        }
+        $end = microtime(true) + $this->grace;
+        while ($running !== [] && microtime(true) < $end) {
+            usleep(100_000);
+            $running = array_values(array_filter($running, static fn($proc): bool => proc_get_status($proc)['running']));
+        }
+        if ($running === [] || !function_exists('posix_kill')) {
+            return;
+        }
+        $pids = array_map(static fn($proc): int => (int)proc_get_status($proc)['pid'], $running);
+        // Freeze first, so that nothing starts a new process while the tree is read again.
+        $seen = [];
+        for ($round = 0; $round < 5; $round++) {
+            $new = array_diff(self::tree($pids), $seen);
+            if ($new === []) {
+                break;
+            }
+            foreach ($new as $pid) {
+                if (defined('SIGSTOP')) {
+                    posix_kill($pid, \SIGSTOP);
+                }
+            }
+            $seen = array_merge($seen, $new);
+        }
+        foreach ($seen as $pid) {
+            posix_kill($pid, 9);
+        }
+    }
+
+    /**
+     * The processes and everything they started, read from /proc. Without /proc (not Linux) only
+     * the processes themselves.
+     *
+     * @param list<int> $roots
+     * @return list<int>
+     */
+    private static function tree(array $roots): array
+    {
+        $parents = [];
+        foreach (glob('/proc/[0-9]*/stat') ?: [] as $file) {
+            $stat = @file_get_contents($file);
+            if ($stat !== false) {
+                $fields = explode(' ', substr($stat, (int)strrpos($stat, ')') + 2));
+                $parents[(int)basename(dirname($file))] = (int)($fields[1] ?? 0);
+            }
+        }
+        $tree = $roots;
+        for ($i = 0; $i < count($tree); $i++) {
+            foreach ($parents as $child => $parent) {
+                if ($parent === $tree[$i] && !in_array($child, $tree, true)) {
+                    $tree[] = $child;
+                }
+            }
+        }
+        return $tree;
     }
 
     public function isDryRun(): bool
@@ -110,7 +183,7 @@ final class Runner
         $target = proc_open($to->argv(), [0 => $sourcePipes[1], 1 => ['file', '/dev/null', 'w'], 2 => $toError], $targetPipes, $to->cwd, self::PATH + $to->env);
         fclose($sourcePipes[1]);
         if (!is_resource($target)) {
-            proc_terminate($source);
+            $this->stop($source);
             throw new \RuntimeException('Cannot start: ' . $line);
         }
 
@@ -126,13 +199,11 @@ final class Runner
                 }
             }
             if (time() - $start > $this->timeout) {
-                proc_terminate($source);
-                proc_terminate($target);
+                $this->stop($source, $target);
                 throw new \RuntimeException('Timeout: ' . $line);
             }
             if (fstat($fromError)['size'] + fstat($toError)['size'] > $this->maxOutput) {
-                proc_terminate($source);
-                proc_terminate($target);
+                $this->stop($source, $target);
                 throw new \RuntimeException('Too much output: ' . $line);
             }
             usleep(100_000);

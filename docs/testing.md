@@ -130,6 +130,8 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
       all of it runs in the sandbox
 - [x] A dump with `\!` is refused and starts nothing
 - [x] The database password does not appear in `ps` or in the log during a backup
+- [x] A command of a site that ignores SIGTERM is killed after the timeout, with what it started, and the lock
+      of the worker is free again
 - [x] `DB_HOST` with a socket and with a port
 - [x] Endless output is stopped and the worker carries on
 - [x] A hostile `home` option and a `wp-cli.yml` in the source do not reach the clone

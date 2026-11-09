@@ -48,7 +48,6 @@ Known and accepted for now:
   nobody looked at. Deleting them sooner would mean changing an internal table of ISPConfig that keeps the nodes in
   sync, which is a larger risk than a few days. On a node of a multiserver setup the local copy of `wpm_site` also keeps
   them, but no panel runs there and the database of ISPConfig on a node is not open to site users.
-- **After a timeout** a command gets a termination signal, and a process that ignores it keeps running as the site user.
 - **Backups** belong to the site user, who can read and change them. A restore trusts their content as much as the site:
   a changed backup can bring back any file or row, but its dump cannot give commands to the `mysql` client.
 
@@ -98,6 +97,7 @@ Fixed:
 | High | The sandbox could be left through FFI and through `putenv(LD_PRELOAD)` with `mail()` or `error_log()`, so a must-use plugin ran programs during the daily check |
 | Medium | Must-use plugins ran outside the jail during the daily check |
 | Medium | Endless output of a site could fill the memory of the root worker |
+| Medium | A command that ignored SIGTERM after a timeout kept running, and the `sudo` waiting for it kept the lock, so the worker of the whole node stopped |
 | Medium | `wp-cli.yml` of the source was copied to a clone and read by WP-CLI as the clone user |
 | Low | The `home` option of the source reached WP-CLI as an argument, and stayed in the clone |
 | Low | The list and delete pages had no admin check |

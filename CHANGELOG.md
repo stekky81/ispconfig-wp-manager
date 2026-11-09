@@ -15,6 +15,8 @@
   code leave through FFI or `LD_PRELOAD`; backups use `mysqldump` and `mysql` directly, and a restore ignores client
   commands in a dump
 - Generated passwords nobody looked at are deleted 7 days after the site is ready
+- After a timeout, a command that ignores SIGTERM is killed with what it started, and can no longer keep the lock
+  of the worker
 - A clone to another client stays admin only, also once clients can use the module
 - Fixes from the first run on ISPConfig 3.3.2: server module for `wpm_site`, `standard_index.html`, http URL
   without a certificate, list filter and sorting, spaced retries, unique names for long domains

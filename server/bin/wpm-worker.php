@@ -21,8 +21,8 @@ if (PHP_SAPI !== 'cli' || posix_geteuid() !== 0) {
     exit(1);
 }
 
-// One worker at a time.
-$lock = fopen('/run/ispconfig-wp-manager.lock', 'c');
+// One worker at a time. Close-on-exec ('e'): a command that outlives the worker must not keep the lock.
+$lock = fopen('/run/ispconfig-wp-manager.lock', 'ce');
 if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
     exit(0);
 }

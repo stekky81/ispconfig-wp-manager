@@ -108,6 +108,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
     `wp-config.php`, but not must-use plugins, and any WP-CLI command runs a `require:` of `wp-cli.yml`.
 15. The `mysql` client obeys `\!` in a file it reads, unless started with `--binary-mode`.
 16. A site's table prefix is not always `wp_`: read it from `wp-config.php` in a test script.
+17. `proc_terminate()` sends SIGTERM to `sudo`, which the code of a site can ignore; `sudo` then waits and keeps
+    every file it inherited, the worker lock included. Open long-lived handles with `fopen(..., 'e')`.
 
 
 ## Current status (2026-11-05)
