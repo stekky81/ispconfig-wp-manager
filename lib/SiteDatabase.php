@@ -63,6 +63,43 @@ final class SiteDatabase
     }
 
     /**
+     * The whole database of one site into the database of another, each side as its own user, through
+     * a pipe: root never holds the data, and the target only receives SQL, never client commands.
+     */
+    public function copy(array $from, array $to, Runner $runner): void
+    {
+        $source = $this->settings($from, $runner);
+        $target = $this->settings($to, $runner);
+        if (!$runner->isDryRun() && $source['name'] === $target['name']) {
+            throw new \RuntimeException("Both sites use the database {$target['name']}");
+        }
+        $runner->pipe(
+            new Command(
+                array_merge(
+                    [self::tool('mysqldump', 'mariadb-dump'), '--no-defaults'],
+                    self::connection($source),
+                    ['--single-transaction', '--quick', '--no-tablespaces', '--', $source['name']],
+                ),
+                (string)$from['system_user'],
+                null,
+                null,
+                ['MYSQL_PWD' => $source['password']],
+            ),
+            new Command(
+                array_merge(
+                    [self::tool('mysql', 'mariadb'), '--no-defaults'],
+                    self::connection($target),
+                    ['--binary-mode', '--database=' . $target['name']],
+                ),
+                (string)$to['system_user'],
+                null,
+                null,
+                ['MYSQL_PWD' => $target['password']],
+            ),
+        );
+    }
+
+    /**
      * Whatever a site writes in wp-config.php reaches these tools, each value as one whole argument.
      *
      * @return array{name:string, user:string, password:string, host:string, charset:string}

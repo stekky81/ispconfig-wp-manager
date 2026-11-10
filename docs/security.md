@@ -67,6 +67,7 @@ moments:
 | Plugin, theme and core update, with its backup and rollback | Yes |
 | Backup and restore | Yes: only the database settings are read in it, then `mysqldump` and `mysql` start from the worker |
 | WP-Cron switch | Yes |
+| Staging: update from production and push to production | Yes, with the database copied by `mysqldump` and `mysql` between the two site users |
 | Install | **No** |
 | Clone | **No** |
 

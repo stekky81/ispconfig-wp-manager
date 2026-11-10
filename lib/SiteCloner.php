@@ -13,7 +13,7 @@ namespace WpManager;
 final class SiteCloner
 {
     /** The config of the source would point the clone to the database of the source. */
-    private const NOT_COPIED = ['./wp-config.php', './wp-cli.yml', './wp-cli.local.yml', './.maintenance', './wp-content/cache'];
+    public const NOT_COPIED = ['./wp-config.php', './wp-cli.yml', './wp-cli.local.yml', './.maintenance', './wp-content/cache'];
 
     public function __construct(
         private readonly Config $config,

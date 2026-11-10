@@ -42,6 +42,7 @@ use WpManager\SiteCloner;
 use WpManager\SiteCredentials;
 use WpManager\SiteInventory;
 use WpManager\SiteScanner;
+use WpManager\SiteSync;
 use WpManager\SiteUpdater;
 use WpManager\WpCron;
 use WpManager\WordPressInstaller;
@@ -64,6 +65,7 @@ $installer = new WordPressInstaller(
 $cloner = new SiteCloner($config, Crypto::fromFile($config->get('key_file')), new PathGuard($config->get('web_root_base')));
 $backups = new SiteBackup($config, new PathGuard($config->get('web_root_base')));
 $updater = new SiteUpdater($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
+$sync = new SiteSync($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
 
 // A site owner can make this folder unreadable: that must not stop the worker for every site.
 $listBackups = static function (array $site) use ($backups): array {
@@ -92,7 +94,7 @@ foreach ($queue->pending() as $name) {
     $siteId = (int)$job['site_id'];
 
     // Actions on existing sites run once: a failed restore must not start again by itself.
-    if (in_array($job['type'], ['backup', 'restore', 'update', 'wpcron'], true)) {
+    if (in_array($job['type'], ['backup', 'restore', 'update', 'wpcron', 'refresh', 'push'], true)) {
         $queue->remove($name);
         $record = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $siteId);
         if (!is_array($record) || $record['action_request'] !== $job['type'] || $config->isDryRun()) {
@@ -115,6 +117,26 @@ foreach ($queue->pending() as $name) {
                 (new WpCron($config, new PathGuard($config->get('web_root_base'))))->apply($record, (string)$record['action_param']);
                 $app->dbmaster->query('UPDATE wpm_site SET wp_cron = ? WHERE wpm_site_id = ?', $record['action_param'], $siteId);
                 $finish('done', 'WordPress cron mode: ' . $record['action_param'] . '.');
+            } elseif ($job['type'] === 'refresh' || $job['type'] === 'push') {
+                $production = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', (int)$record['staging_of']);
+                if (!is_array($production) || (int)$record['staging_of'] === 0) {
+                    throw new \RuntimeException('The production site of this staging no longer exists');
+                }
+                if ($job['type'] === 'push') {
+                    $app->dbmaster->query("UPDATE wpm_site SET action_status = 'running', action_message = ? WHERE wpm_site_id = ?", 'Push from ' . $record['domain'], $production['wpm_site_id']);
+                    $result = $sync->push($record, $production);
+                    $app->dbmaster->query(
+                        'UPDATE wpm_site SET action_status = ?, action_message = ?, backups_json = ?, last_check = NULL WHERE wpm_site_id = ?',
+                        $result['outcome'],
+                        mb_substr($result['message'], 0, 2000),
+                        json_encode($listBackups($production), JSON_THROW_ON_ERROR),
+                        $production['wpm_site_id'],
+                    );
+                } else {
+                    $result = $sync->refresh($record, $production);
+                }
+                $finish($result['outcome'], $result['message']);
+                $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
             } elseif ($job['type'] === 'update') {
                 $result = $updater->update($record, (string)$record['action_param']);
                 $finish($result['outcome'], $result['message']);

@@ -80,4 +80,38 @@ final class HealthCheckTest extends TestCase
         self::assertSame('http://a.test', HealthCheck::baseUrl(['site_url' => 'http://a.test/', 'domain' => 'a.test']));
         self::assertSame('http://b.test', HealthCheck::baseUrl(['site_url' => '', 'domain' => 'b.test']));
     }
+
+    public function testAFailedCheckSaysWhy(): void
+    {
+        $answers = ['http://a.test/' => ['code' => 200, 'body' => '<b>Fatal error</b>: boom'], 'http://a.test/wp-login.php' => ['code' => 0, 'body' => '']];
+        $health = new HealthCheck(static fn(string $url): array => $answers[$url], '127.0.0.1', 0);
+        $health->run(['site_url' => 'http://a.test', 'domain' => 'a.test']);
+
+        self::assertSame('home (HTTP 200, the page says "<b>Fatal error</b>"), login (no answer)', $health->describe(['home', 'login']));
+    }
+
+    public function testAfterAChangeABadAnswerIsCheckedOnceMore(): void
+    {
+        $codes = [500, 200];
+        $calls = 0;
+        $health = new HealthCheck(static function (string $url) use (&$codes, &$calls): array {
+            $calls++;
+            return ['code' => str_ends_with($url, '/wp-login.php') ? 200 : array_shift($codes), 'body' => ''];
+        }, '127.0.0.1', 0);
+
+        self::assertSame([], $health->regressionsAfterChange(['site_url' => 'http://a.test'], ['home' => true, 'login' => true]));
+        self::assertSame(4, $calls);
+    }
+
+    public function testAfterAChangeAHealthySiteIsCheckedOnce(): void
+    {
+        $calls = 0;
+        $health = new HealthCheck(static function (string $url) use (&$calls): array {
+            $calls++;
+            return ['code' => 200, 'body' => ''];
+        }, '127.0.0.1', 0);
+
+        self::assertSame([], $health->regressionsAfterChange(['site_url' => 'http://a.test'], ['home' => true, 'login' => true]));
+        self::assertSame(2, $calls);
+    }
 }

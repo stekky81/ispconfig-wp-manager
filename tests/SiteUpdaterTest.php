@@ -68,7 +68,7 @@ final class SiteUpdaterTest extends TestCase
             }
             return ['code' => $homeCodes[min($i++, count($homeCodes) - 1)], 'body' => ''];
         };
-        return new SiteUpdater(Config::fromArray([]), new PathGuard($this->root), $this->fakeBackups(), new HealthCheck($fetch));
+        return new SiteUpdater(Config::fromArray([]), new PathGuard($this->root), $this->fakeBackups(), new HealthCheck($fetch, '127.0.0.1', 0));
     }
 
     public function testHealthyUpdateKeepsTheBackup(): void
@@ -111,7 +111,7 @@ final class SiteUpdaterTest extends TestCase
 
     public function testABrokenSiteIsRolledBack(): void
     {
-        $result = $this->updater([200, 500, 200])->update($this->site(), 'plugins', new Runner(true));
+        $result = $this->updater([200, 500, 500, 200])->update($this->site(), 'plugins', new Runner(true));
 
         self::assertSame('rolled_back', $result['outcome']);
         self::assertSame(['backup', 'restore 20260101-000000'], $this->events);
@@ -132,7 +132,7 @@ final class SiteUpdaterTest extends TestCase
             Config::fromArray(['wp_cli' => '/nonexistent/wp']),
             new PathGuard($this->root),
             $this->fakeBackups(),
-            new HealthCheck(static fn(string $url): array => ['code' => 200, 'body' => '']),
+            new HealthCheck(static fn(string $url): array => ['code' => 200, 'body' => ''], '127.0.0.1', 0),
         );
         $result = $updater->update($this->site(), 'core', new Runner(false, [], 5));
 
@@ -208,7 +208,7 @@ final class SiteUpdaterTest extends TestCase
 
     public function testAMajorUpdateIsRolledBackToo(): void
     {
-        $result = $this->updater([200, 500, 200])->update($this->site(), 'major', new Runner(true));
+        $result = $this->updater([200, 500, 500, 200])->update($this->site(), 'major', new Runner(true));
 
         self::assertSame('rolled_back', $result['outcome']);
     }
@@ -246,5 +246,21 @@ final class SiteUpdaterTest extends TestCase
             self::assertStringContainsString("open_basedir={$this->root}/client1/web7:", $line);
             self::assertStringContainsString('ffi.enable=0', $line);
         }
+    }
+
+    // PHP may run the old code for a moment after the files changed: one bad answer is not enough.
+    public function testABrokenAnswerThatGoesAwayIsNotARollback(): void
+    {
+        $result = $this->updater([200, 500, 200])->update($this->site(), 'plugins', new Runner(true));
+
+        self::assertSame('updated', $result['outcome']);
+        self::assertSame(['backup'], $this->events);
+    }
+
+    public function testTheMessageSaysWhatTheCheckSaw(): void
+    {
+        $result = $this->updater([200, 500, 500, 200])->update($this->site(), 'plugins', new Runner(true));
+
+        self::assertStringContainsString('Broken after the update: home (HTTP 500)', $result['message']);
     }
 }

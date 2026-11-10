@@ -112,18 +112,18 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
     every file it inherited, the worker lock included. Open long-lived handles with `fopen(..., 'e')`.
 
 
-## Current status (2026-11-05)
+## Current status (2026-11-10)
 
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
   with one-time passwords; spaced retries; detection of existing sites; settings page; update overview;
   backups, updates with health check and automatic rollback, automatic updates; clone on the same node;
-  WP-Cron switch; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  staging (create, update from production, push to production); WP-Cron switch; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: staging, decided in `docs/architecture.md` (Staging). Multiserver and clone across nodes are set aside for now.
+- **Next**: to be decided with Stefano; staging is done. Multiserver and clone across nodes are set aside for now.
   Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.
-- The VM has a remote user `wpmanager`, a client `testclient` and test sites; its `config.php` has
+- The VM has a remote user `wpmanager`, a client `testclient` and test sites, `staging.sito17.ispc.test` among them; its `config.php` has
   `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
 
 ## Known open issues / roadmap

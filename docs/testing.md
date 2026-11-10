@@ -119,8 +119,12 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] Its PHP pool has `sendmail_path = /bin/true`, production keeps its own
 - [x] `X-Robots-Tag: noindex, nofollow` and the robots meta tag on the staging only
 - [x] Each page links to the other; a second staging and a staging of a staging are refused
-- [ ] Update from production
-- [ ] Push to production: warning, typed confirmation, maintenance mode, health check, rollback
+- [x] Update from production: a wrong domain is refused; staging files and database replaced, its address,
+      `wp-config.php` and "Discourage search engines" kept, production untouched
+- [x] Push to production: warning with the newer versions, a wrong domain is refused, maintenance mode (503) during
+      the copy, address, `wp-config.php` and search engine setting of production kept, no staging address left
+- [x] A push that breaks production is rolled back, and the message says what the check saw
+- [x] Production restored to the backup before the first push matches the regression snapshot
 
 ### WP-Cron
 

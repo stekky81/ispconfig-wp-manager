@@ -20,7 +20,11 @@ final class HealthCheck
     /** @var callable(string $url): array{code:int, body:string} */
     private $fetch;
 
-    public function __construct(?callable $fetch = null, private readonly string $address = '127.0.0.1')
+    /** @var array<string, string> why each failed check of the last run failed */
+    private array $problems = [];
+
+    /** @param int $settle seconds to wait after a change: opcache of PHP-FPM rechecks files every 2 seconds */
+    public function __construct(?callable $fetch = null, private readonly string $address = '127.0.0.1', private readonly int $settle = 3)
     {
         $this->fetch = $fetch ?? $this->curlFetch(...);
     }
@@ -28,11 +32,35 @@ final class HealthCheck
     /** @return array{home:bool, login:bool} */
     public function run(array $site): array
     {
+        $this->problems = [];
         $base = self::baseUrl($site);
         return [
-            'home' => self::healthy(($this->fetch)($base . '/')),
-            'login' => self::healthy(($this->fetch)($base . '/wp-login.php')),
+            'home' => $this->check('home', $base . '/'),
+            'login' => $this->check('login', $base . '/wp-login.php'),
         ];
+    }
+
+    /**
+     * After files changed, PHP can run the old code for a moment: wait, and look again at what
+     * seems broken before calling it broken.
+     *
+     * @return list<string> what worked before and does not work now
+     */
+    public function regressionsAfterChange(array $site, array $before): array
+    {
+        sleep($this->settle);
+        $broken = self::regressions($before, $this->run($site));
+        if ($broken !== []) {
+            sleep($this->settle);
+            $broken = self::regressions($before, $this->run($site));
+        }
+        return $broken;
+    }
+
+    /** @param list<string> $checks names of failed checks, with what the last run saw */
+    public function describe(array $checks): string
+    {
+        return implode(', ', array_map(fn(string $check): string => isset($this->problems[$check]) ? "{$check} ({$this->problems[$check]})" : $check, $checks));
     }
 
     /** @return list<string> what worked before and does not work now */
@@ -46,9 +74,19 @@ final class HealthCheck
         return rtrim((string)($site['site_url'] ?? '') ?: 'http://' . $site['domain'], '/');
     }
 
-    private static function healthy(array $answer): bool
+    private function check(string $name, string $url): bool
     {
-        return $answer['code'] >= 200 && $answer['code'] < 400 && !preg_match(self::BROKEN_PAGE, $answer['body']);
+        $answer = ($this->fetch)($url);
+        $code = (int)$answer['code'];
+        if ($code < 200 || $code >= 400) {
+            $this->problems[$name] = $code === 0 ? 'no answer' : "HTTP {$code}";
+            return false;
+        }
+        if (preg_match(self::BROKEN_PAGE, (string)$answer['body'], $match)) {
+            $this->problems[$name] = "HTTP {$code}, the page says \"{$match[0]}\"";
+            return false;
+        }
+        return true;
     }
 
     public static function limited(string $body): string

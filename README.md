@@ -27,6 +27,9 @@ It has not run on production servers yet.
   for rollbacks and do not replace the backups of ISPConfig.
 - **Clone** to a new domain on the same node, replacing the old address everywhere in the database,
   serialized data included.
+- **Staging**, one per site: a copy that sends no mail from PHP and asks search engines to stay away, updated from
+  production or pushed to production as a whole, with a list of what will be lost, typed confirmation, backup,
+  maintenance mode, health check and automatic rollback.
 - **WP-Cron switch**: move a site between WP-Cron and a real cron job.
 - **Safety first**: dry-run mode, no changes to folders that are not empty, everything runs as the site user,
   checks, updates and backups in a PHP sandbox.
@@ -44,7 +47,7 @@ It has not run on production servers yet.
 | 0.2 | New WordPress site, detection of existing sites | done, except multiserver and email |
 | 0.3 | Update overview | done, except summary email and production pilot |
 | 0.4 | Backups, safe and automatic updates | done |
-| 0.5 | Clone and staging | clone on the same node done |
+| 0.5 | Clone and staging | done on the same node; clone across nodes later |
 
 The detailed list of planned work is in [ROADMAP.md](ROADMAP.md).
 

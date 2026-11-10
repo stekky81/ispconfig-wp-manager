@@ -46,9 +46,9 @@ final class SiteUpdater
             return $this->rollback($site, $backup, $before, $runner, 'Update failed: ' . $e->getMessage());
         }
 
-        $broken = HealthCheck::regressions($before, $this->health->run($site));
+        $broken = $this->health->regressionsAfterChange($site, $before);
         if ($broken !== []) {
-            return $this->rollback($site, $backup, $before, $runner, 'Broken after the update: ' . implode(', ', $broken));
+            return $this->rollback($site, $backup, $before, $runner, 'Broken after the update: ' . $this->health->describe($broken));
         }
         return ['outcome' => 'updated', 'message' => "Updated ({$scope}). Backup {$backup} kept."];
     }
@@ -80,9 +80,9 @@ final class SiteUpdater
         } catch (\RuntimeException $e) {
             return ['outcome' => 'rollback_failed', 'message' => "{$reason}. Restore of backup {$backup} failed: " . $e->getMessage()];
         }
-        $still = HealthCheck::regressions($before, $this->health->run($site));
+        $still = $this->health->regressionsAfterChange($site, $before);
         if ($still !== []) {
-            return ['outcome' => 'rollback_failed', 'message' => "{$reason}. Backup {$backup} restored, but still broken: " . implode(', ', $still)];
+            return ['outcome' => 'rollback_failed', 'message' => "{$reason}. Backup {$backup} restored, but still broken: " . $this->health->describe($still)];
         }
         return ['outcome' => 'rolled_back', 'message' => "{$reason}. Backup {$backup} restored."];
     }

@@ -1,0 +1,15 @@
+<?php
+$wb['refresh_head_txt'] = 'Aggiorna lo staging dalla produzione';
+$wb['push_head_txt'] = 'Pubblica lo staging in produzione';
+$wb['refresh_warning_txt'] = 'File e database dello staging vengono sostituiti con quelli della produzione. Le modifiche fatte sullo staging si perdono. Prima viene fatto un backup dello staging, che torna indietro se la copia non riesce.';
+$wb['push_warning_txt'] = 'File e database interi della produzione vengono sostituiti con quelli dello staging. Tutto ciò che è arrivato in produzione dopo la copia dello staging si perde: ordini, commenti, utenti, invii dei form, file caricati. Usalo solo se nel frattempo la produzione non è cambiata, o se perdere quei dati va bene.';
+$wb['lost_txt'] = 'La produzione ha anche plugin, temi o WordPress più nuovi o in più, che il push riporta indietro o rimuove. Dagli ultimi controlli giornalieri (produzione / staging):';
+$wb['push_steps_txt'] = 'Durante la copia la produzione ha un backup ed è in manutenzione. Poi vengono rimessi il suo indirizzo e la sua impostazione per i motori di ricerca e, se funziona meno di prima, il backup viene ripristinato da solo.';
+$wb['not_copied_txt'] = 'wp-config.php e wp-cli.yml non vengono mai copiati: le costanti aggiunte a mano da una parte vanno aggiunte a mano dall\'altra. La cache delle pagine del sito sovrascritto viene svuotata.';
+$wb['confirm_txt'] = 'Per confermare scrivi';
+$wb['confirm_error_txt'] = 'Il dominio scritto non corrisponde: non è stato fatto nulla.';
+$wb['busy_txt'] = 'Lo staging o la produzione hanno un\'azione in corso: aspetta che finisca.';
+$wb['refresh_btn_txt'] = 'Aggiorna lo staging';
+$wb['push_btn_txt'] = 'Pubblica in produzione';
+$wb['cancel_txt'] = 'Annulla';
+$wb['invalid_txt'] = 'Questo non è un sito di staging con il suo sito di produzione.';

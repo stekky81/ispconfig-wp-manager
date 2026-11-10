@@ -95,7 +95,7 @@ A clone is public, with "Discourage search engines" turned on so that it does no
 
 ## Staging
 
-Decided with the maintainer on 2026-11-09; creating a staging works, updating and pushing are next. A staging is a clone with a link to its production site, and the
+Decided with the maintainer on 2026-11-09, implemented in `SiteStaging` and `SiteSync`. A staging is a clone with a link to its production site, and the
 two actions that make it a staging.
 
 - **One staging per site**, on the same node and for the same client, at `staging.<domain>` by default (the DNS record

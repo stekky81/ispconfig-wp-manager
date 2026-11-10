@@ -78,6 +78,15 @@
     </p>
     </tmpl_if>
 
+    <tmpl_if name="production_id"><tmpl_if name="is_installed">
+    <h2>{tmpl_var name='staging_txt'}</h2>
+    <p class="fieldDescription">{tmpl_var name='staging_desc_txt'}</p>
+    <p id="staging_actions"><tmpl_unless name="action_busy">
+        <button class="btn btn-default formbutton-default" type="button" id="staging_refresh" data-load-content="wpmanager/wpm_site_sync.php?id={tmpl_var name='id'}&amp;direction=refresh">{tmpl_var name='staging_refresh_txt'}</button>
+        <button class="btn btn-default formbutton-danger" type="button" id="staging_push" data-load-content="wpmanager/wpm_site_sync.php?id={tmpl_var name='id'}&amp;direction=push">{tmpl_var name='staging_push_txt'}</button>
+    </tmpl_unless></p>
+    </tmpl_if></tmpl_if>
+
     <tmpl_if name="is_installed">
     <h2>{tmpl_var name='cron_txt'}</h2>
     <p id="wp_cron_mode">

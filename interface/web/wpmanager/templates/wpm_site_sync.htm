@@ -1,0 +1,41 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<div class='page-header'>
+    <h1><tmpl_if name="is_push">{tmpl_var name='push_head_txt'}<tmpl_else>{tmpl_var name='refresh_head_txt'}</tmpl_if></h1>
+</div>
+
+<tmpl_if name="error_msg"><div class="alert alert-danger" id="sync_error">{tmpl_var name='error_msg'}</div></tmpl_if>
+
+<div class="panel" style="padding:20px;">
+    <p><strong>{tmpl_var name='staging_domain'}</strong> <tmpl_if name="is_push">→<tmpl_else>←</tmpl_if> <strong>{tmpl_var name='production_domain'}</strong></p>
+
+    <tmpl_if name="is_push">
+    <div class="alert alert-danger" id="push_warning">{tmpl_var name='push_warning_txt'}</div>
+    <tmpl_if name="has_lost">
+    <div class="alert alert-warning" id="push_lost">
+        <p>{tmpl_var name='lost_txt'} ({tmpl_var name='checked_at'})</p>
+        <ul><tmpl_loop name="lost"><li>{tmpl_var name='line'}</li></tmpl_loop></ul>
+    </div>
+    </tmpl_if>
+    <p class="fieldDescription">{tmpl_var name='push_steps_txt'}</p>
+    <tmpl_else>
+    <div class="alert alert-warning" id="refresh_warning">{tmpl_var name='refresh_warning_txt'}</div>
+    </tmpl_if>
+    <p class="fieldDescription">{tmpl_var name='not_copied_txt'}</p>
+
+    <div class="form-group">
+        <label for="confirm_domain" class="col-sm-3 control-label">{tmpl_var name='confirm_txt'} <strong>{tmpl_var name='target_domain'}</strong></label>
+        <div class="col-sm-9"><input type="text" name="confirm_domain" id="confirm_domain" value="" class="form-control" autocomplete="off" /></div>
+    </div>
+
+    <input type="hidden" name="id" value="{tmpl_var name='id'}" />
+    <input type="hidden" name="direction" value="{tmpl_var name='direction'}" />
+    <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
+    <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />
+
+    <div class="clear">
+        <div class="right">
+            <button class="btn btn-default formbutton-danger" type="button" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_sync.php"><tmpl_if name="is_push">{tmpl_var name='push_btn_txt'}<tmpl_else>{tmpl_var name='refresh_btn_txt'}</tmpl_if></button>
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}">{tmpl_var name='cancel_txt'}</button>
+        </div>
+    </div>
+</div>

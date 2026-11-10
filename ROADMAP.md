@@ -3,8 +3,8 @@
 Planned work, by milestone. Tick items as they land (with the commit or PR).
 Pre-release: no milestone is considered done until it has passed `docs/testing.md` in the test VM.
 
-**Next:** staging, as decided in [docs/architecture.md](docs/architecture.md#staging). See [docs/security.md](docs/security.md)
-for the security review and what it left open.
+**Next:** to be decided (staging is done, see [docs/architecture.md](docs/architecture.md#staging)). See
+[docs/security.md](docs/security.md) for the security review and what it left open.
 
 ## 0.1 — Skeleton (in progress)
 
@@ -65,8 +65,8 @@ for the security review and what it left open.
 - [ ] Clone across nodes
 - [x] Staging: decisions (see [architecture.md](docs/architecture.md#staging))
 - [x] Staging: create one per site, without outgoing PHP mail and with `X-Robots-Tag: noindex`
-- [ ] Staging: update it from production
-- [ ] Staging: push everything to production, with the list of what is lost, typed confirmation, backup,
+- [x] Staging: update it from production
+- [x] Staging: push everything to production, with the list of what is lost, typed confirmation, backup,
       maintenance mode, health check and automatic rollback
 
 ## 1.0 — Complete product

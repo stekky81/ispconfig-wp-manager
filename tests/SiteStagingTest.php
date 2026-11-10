@@ -46,4 +46,37 @@ final class SiteStagingTest extends TestCase
         self::assertSame('sendmail_path = /bin/true', SiteStaging::WEBSITE['custom_php_ini']);
         self::assertStringContainsString('X-Robots-Tag "noindex, nofollow"', SiteStaging::WEBSITE['apache_directives']);
     }
+
+    public function testAPushListsWhatProductionWouldLose(): void
+    {
+        $production = [
+            'version' => '7.1.5',
+            'plugins' => [
+                ['name' => 'akismet', 'version' => '5.8'],
+                ['name' => 'woocommerce', 'version' => '10.1.0'],
+                ['name' => 'hello', 'version' => '1.7.2'],
+            ],
+            'themes' => [['name' => 'twentytwentyfive', 'version' => '1.5']],
+        ];
+        $staging = [
+            'version' => '7.1.4',
+            'plugins' => [['name' => 'akismet', 'version' => '5.7.2'], ['name' => 'hello', 'version' => '1.7.2'], ['name' => 'new-on-staging', 'version' => '1.0']],
+            'themes' => [['name' => 'twentytwentyfive', 'version' => '1.6']],
+        ];
+
+        self::assertSame([
+            'WordPress 7.1.5 (staging 7.1.4)',
+            'plugin akismet 5.8 (staging 5.7.2)',
+            'plugin woocommerce 10.1.0 (not on the staging: it will be removed)',
+        ], SiteStaging::lostOnPush($production, $staging));
+    }
+
+    public function testNothingLostWhenTheStagingIsAhead(): void
+    {
+        $site = ['version' => '7.1.4', 'plugins' => [['name' => 'akismet', 'version' => '5.7.2']], 'themes' => []];
+        self::assertSame([], SiteStaging::lostOnPush($site, $site));
+        // No report yet, or a failed check: nothing to compare, nothing invented.
+        self::assertSame([], SiteStaging::lostOnPush([], []));
+        self::assertSame([], SiteStaging::lostOnPush(['error' => 'timeout'], $site));
+    }
 }

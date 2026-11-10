@@ -58,3 +58,6 @@ $wb['back_txt'] = 'Back';
 $wb['create_staging_txt'] = 'Create staging';
 $wb['staging_txt'] = 'Staging site';
 $wb['staging_of_txt'] = 'Staging of';
+$wb['staging_desc_txt'] = 'Results appear under Backups, here and on the production site.';
+$wb['staging_refresh_txt'] = 'Update from production';
+$wb['staging_push_txt'] = 'Push to production';

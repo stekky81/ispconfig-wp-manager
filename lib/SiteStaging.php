@@ -26,6 +26,38 @@ final class SiteStaging
         return 'staging.' . (str_starts_with($production, 'www.') ? substr($production, 4) : $production);
     }
 
+    /**
+     * What a push would take back or remove on production, from the reports of the daily check:
+     * newer versions, and plugins and themes that the staging does not have.
+     *
+     * @return list<string>
+     */
+    public static function lostOnPush(array $production, array $staging): array
+    {
+        $lines = [];
+        $core = (string)($production['version'] ?? '');
+        $stagingCore = (string)($staging['version'] ?? '');
+        if ($core !== '' && $stagingCore !== '' && version_compare($core, $stagingCore, '>')) {
+            $lines[] = "WordPress {$core} (staging {$stagingCore})";
+        }
+        foreach (['plugins' => 'plugin', 'themes' => 'theme'] as $list => $kind) {
+            $onStaging = array_column(is_array($staging[$list] ?? null) ? $staging[$list] : [], 'version', 'name');
+            foreach (is_array($production[$list] ?? null) ? $production[$list] : [] as $item) {
+                $name = (string)($item['name'] ?? '');
+                $version = (string)($item['version'] ?? '');
+                if ($name === '') {
+                    continue;
+                }
+                if (!array_key_exists($name, $onStaging)) {
+                    $lines[] = "{$kind} {$name} {$version} (not on the staging: it will be removed)";
+                } elseif ($version !== '' && version_compare($version, (string)$onStaging[$name], '>')) {
+                    $lines[] = "{$kind} {$name} {$version} (staging {$onStaging[$name]})";
+                }
+            }
+        }
+        return $lines;
+    }
+
     /** @param array|null $staging the current staging of the site, if any */
     public static function assertCanCreate(array $production, ?array $staging): void
     {
