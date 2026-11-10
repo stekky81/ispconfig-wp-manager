@@ -77,6 +77,8 @@ final class SiteCloner
             $changed = trim($runner->mustRun($to->searchReplace($pattern, $replacement)));
             $report[] = "Replaced {$changed} values: {$pattern}";
         }
+        $database = new SiteDatabase($this->config, $this->guard);
+        $report = array_merge($report, self::replaceInObjects($database, $target, $plan, $runner));
 
         // Not left to the rules above: a value they cannot match, even a hostile one, must not stay.
         $home = (string)parse_url($oldUrl, PHP_URL_PATH);
@@ -85,6 +87,9 @@ final class SiteCloner
 
         // A clone is public but must not compete with its source in search engines.
         $runner->mustRun($to->optionUpdate('blog_public', '0'));
+
+        // Pages built with the old address, some encoded where no replace reaches.
+        $database->query($target, SiteCaches::clearSql($prefix), $runner);
 
         $left = $this->remaining($to, $plan, $runner);
         // The summary first: the status message keeps only the beginning of a long log.
@@ -119,11 +124,55 @@ final class SiteCloner
         }
     }
 
-    /** Lines of `wp db search --one_line`, without guid: it stays as it is on purpose. */
-    public static function countMentions(string $output): int
+    /**
+     * What WP-CLI skipped: objects of plugin classes. Not a reason to stop: what is left is reported.
+     *
+     * @return list<string>
+     */
+    public static function replaceInObjects(SiteDatabase $database, array $site, SearchReplacePlan $plan, Runner $runner): array
+    {
+        try {
+            $changed = (new ObjectReplacer($database))->run($site, $plan, $runner);
+        } catch (\RuntimeException $e) {
+            return ['Warning: the values inside objects of plugins were not checked: ' . $e->getMessage()];
+        }
+        return ["Replaced {$changed} values inside objects of plugins"];
+    }
+
+    /**
+     * Lines of `wp db search --one_line`, without guid: it stays as it is on purpose. With a plan, only
+     * lines that name the old host itself, not a longer host that ends with it.
+     */
+    public static function countMentions(string $output, ?SearchReplacePlan $plan = null): int
+    {
+        return count(self::mentionLines($output, $plan));
+    }
+
+    /**
+     * Where the lines of `wp db search --one_line` are: "wp_options.option_value (row 12)", the
+     * first few, for the admin to find them. Names come from the site: odd ones are not shown.
+     */
+    public static function mentionPlaces(string $output, ?SearchReplacePlan $plan = null, int $max = 3): string
+    {
+        $places = [];
+        foreach (self::mentionLines($output, $plan) as $line) {
+            if (preg_match('/^([A-Za-z0-9_$]{1,64}):([A-Za-z0-9_$]{1,64}):(?:(\d{1,20}):)?/', $line, $m)) {
+                $places[] = "{$m[1]}.{$m[2]}" . (isset($m[3]) && $m[3] !== '' ? " (row {$m[3]})" : '');
+            }
+        }
+        $places = array_values(array_unique($places));
+        $more = count($places) > $max ? ' and others' : '';
+        return implode(', ', array_slice($places, 0, $max)) . $more;
+    }
+
+    /** @return list<string> */
+    private static function mentionLines(string $output, ?SearchReplacePlan $plan): array
     {
         $lines = array_filter(explode("\n", trim($output)));
-        return count(array_filter($lines, static fn(string $line): bool => !preg_match('/^[^:]+:guid:/', $line)));
+        return array_values(array_filter(
+            $lines,
+            static fn(string $line): bool => !preg_match('/^[^:]+:guid:/', $line) && ($plan === null || $plan->mentions($line)),
+        ));
     }
 
     public static function tablePrefix(string $output): string
@@ -155,21 +204,27 @@ final class SiteCloner
     }
 
     /**
-     * What the regexes cannot reach, for the admin to look at: mentions of the old domain, which
-     * can be correct (an email address), and base64 values, which no replace can change.
+     * What is left for the admin to look at: mentions of the old domain, which can be correct (an
+     * email address, a domain in a text), and base64 values, which no replace can change.
      *
      * @return list<string>
      */
     private function remaining(WpCli $wp, SearchReplacePlan $plan, Runner $runner): array
     {
         $report = [];
-        $mentions = self::countMentions($runner->mustRun($wp->dbSearch($plan->oldHost())));
+        $found = $runner->mustRun($wp->dbSearch($plan->oldHost()));
+        $mentions = self::countMentions($found, $plan);
         if ($mentions > 0) {
-            $report[] = "Warning: {$mentions} values still mention {$plan->oldHost()}, such as email addresses. Check them.";
+            $where = self::mentionPlaces($found, $plan);
+            $report[] = "Warning: {$mentions} values still mention {$plan->oldHost()}" . ($where === '' ? '' : ", in {$where}")
+                . '. They can be right, as email addresses or text: check them.';
         }
         foreach ($plan->base64Needles() as $needle) {
-            if (self::countMentions($runner->mustRun($wp->dbSearch($needle))) > 0) {
-                $report[] = "Warning: {$plan->oldHost()} seems to be inside a base64 value, which cannot be replaced. Check it.";
+            $found = $runner->mustRun($wp->dbSearch($needle));
+            if (self::countMentions($found) > 0) {
+                $where = self::mentionPlaces($found);
+                $report[] = "Warning: {$plan->oldHost()} seems to be inside a base64 value" . ($where === '' ? '' : ", in {$where}")
+                    . ', which cannot be replaced. Check it.';
                 break;
             }
         }

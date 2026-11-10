@@ -117,7 +117,9 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] A value in base64 is reported
 - [x] Custom table prefix is kept
 - [x] "Discourage search engines" is on in the clone, not in the source
-- [ ] Objects of plugin classes, with a real plugin (Elementor, WooCommerce)
+- [x] Objects of plugin classes, with a real plugin (Elementor, WooCommerce): replaced, the caches of Elementor
+      deleted and built again, the clone page without the old address; the same after an update of a staging
+- [x] A staging at `staging.<domain>` does not report its own address as a mention of the domain
 - [ ] A large and busy site
 
 ### Staging

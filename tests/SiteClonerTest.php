@@ -10,6 +10,7 @@ use WpManager\Config;
 use WpManager\Crypto;
 use WpManager\PathGuard;
 use WpManager\Runner;
+use WpManager\SearchReplacePlan;
 use WpManager\SiteCloner;
 
 final class SiteClonerTest extends TestCase
@@ -216,6 +217,56 @@ final class SiteClonerTest extends TestCase
 
         self::assertSame(1, SiteCloner::countMentions($output));
         self::assertSame(0, SiteCloner::countMentions("\n"));
+    }
+
+    public function testTheReportSaysWhereTheMentionsAre(): void
+    {
+        $output = "wp_posts:guid:1:http://old.com/?p=1\nwp_options:option_value:412:a:1:{s:4:\"rate\"...old.com\n"
+            . "wp_users:user_email:1:info@old.com\nwp_users:user_email:2:x@old.com\nbad name:col:3:old.com\n";
+
+        self::assertSame('wp_options.option_value (row 412), wp_users.user_email (row 1), wp_users.user_email (row 2)', SiteCloner::mentionPlaces($output));
+        self::assertSame('wp_options.option_value (row 412) and others', SiteCloner::mentionPlaces($output, null, 1));
+        self::assertSame('', SiteCloner::mentionPlaces(''));
+    }
+
+    // Regression (VM): the new address of staging.old.com counted as a mention of old.com.
+    public function testALongerHostThatEndsWithTheOldOneIsNoMention(): void
+    {
+        $plan = new SearchReplacePlan('http://old.com', 'http://staging.old.com', '/a', '/b');
+        $output = "wp_options:option_value:2:http://staging.old.com\n"
+            . "wp_options:option_value:3:http://staging.old.com/x [...] ://staging.old.com\n"
+            . "wp_posts:post_content:7:mail info@old.com now\n"
+            . "wp_posts:post_content:8:http://staging.old.com/ and http://old.com/\n"
+            . "wp_posts:post_content:9:see www.old.com.\n"
+            . "wp_posts:post_content:10:WWW.OLD.COM\n"
+            . "wp_posts:post_content:11:old.com is ours\n"
+            . "wp_posts:post_content:12:http://myold.com and old.com.au and old.company.it\n";
+
+        self::assertSame(5, SiteCloner::countMentions($output, $plan));
+        self::assertSame('wp_posts.post_content (row 7), wp_posts.post_content (row 8), wp_posts.post_content (row 9) and others', SiteCloner::mentionPlaces($output, $plan));
+    }
+
+    public function testTheFinalSearchShowsTheCharactersAroundEachMatch(): void
+    {
+        self::assertStringContainsString("'db' 'search' 'old.com' '--all-tables' '--one_line' '--before_context=8' '--after_context=8'", $this->log());
+    }
+
+    // Regression (VM, Elementor): a cache of built pages kept the old address in base64.
+    public function testCachesAreDeletedAfterTheReplaceAndBeforeTheFinalSearch(): void
+    {
+        $lines = explode("\n", $this->log());
+        $mysql = array_keys(array_filter($lines, static fn(string $l): bool => str_contains($l, "'--batch'")));
+        $replace = array_keys(array_filter($lines, static fn(string $l): bool => str_contains($l, "'search-replace'")));
+        $search = array_keys(array_filter($lines, static fn(string $l): bool => str_contains($l, "'db' 'search'")));
+
+        // The objects of plugins: the schema, then the caches.
+        self::assertCount(2, $mysql);
+        self::assertGreaterThan(max($replace), min($mysql));
+        self::assertLessThan(min($search), max($mysql));
+        foreach ($mysql as $i) {
+            self::assertStringContainsString("'-u' 'web9'", $lines[$i]);
+            self::assertStringContainsString("'--binary-mode'", $lines[$i]);
+        }
     }
 
     public function testTablePrefixOfTheSourceIsKept(): void

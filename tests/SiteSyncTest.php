@@ -176,7 +176,8 @@ final class SiteSyncTest extends TestCase
         $runner = new Runner(true);
         $this->sync()->refresh($this->staging(), $this->production(), $runner);
 
-        $pipe = self::lines($runner, '--binary-mode');
+        // The other mysql commands of a sync only receive SQL of this module, on stdin.
+        $pipe = array_values(array_filter(self::lines($runner, '--binary-mode'), static fn(string $line): bool => str_contains($line, ' | ')));
         self::assertCount(1, $pipe);
         self::assertMatchesRegularExpression("/'-u' 'web7' '--preserve-env=MYSQL_PWD' '-H' '--' '(mysqldump|mariadb-dump)'.* \\| .*'-u' 'web8' '--preserve-env=MYSQL_PWD' '-H' '--' '(mysql|mariadb)'/", $pipe[0]);
         self::assertStringNotContainsString('--result-file', $pipe[0]);

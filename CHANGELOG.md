@@ -9,7 +9,8 @@
 - Backups and restore, optionally without `wp-content/uploads`
 - Updates with health check and automatic rollback, separate button for a new major version of WordPress
 - Automatic updates of plugins, themes and minor core releases, on by default
-- Clone to a new domain on the same node, serialized data included
+- Clone to a new domain on the same node, serialized data included, also inside objects of plugin classes; caches
+  of built pages (transients, Elementor) are deleted, and what is left is reported with its table, column and row
 - Staging site, one per site: no mail from PHP, `X-Robots-Tag: noindex`; update it from production, push it to
   production with typed confirmation, backup, maintenance mode, health check and automatic rollback
 - The health check after a change waits for the opcache of PHP, looks again at what seems broken, and says why

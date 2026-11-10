@@ -88,8 +88,22 @@ new one points to.
 The old address is replaced with `wp search-replace --regex --all-tables`, which unserializes every value and serializes
 it again, so lengths stay right. The rules in `SearchReplacePlan` cover http and https, `www`, addresses without a scheme,
 JSON with escaped slashes, URL encoding and paths on disk, and they require the end of the host name, so `old.com`
-does not match `old.company.it`. `guid` stays as it is, and so do email addresses and bare domains in a text. What is left
-is reported, including what looks like the old host inside base64 values, which no replace can reach.
+does not match `old.company.it`. `guid` stays as it is, and so do email addresses and bare domains in a text.
+
+WP-CLI runs without plugins, so it cannot rebuild an object of a plugin class (WooCommerce keeps some in options and
+sessions) and skips it. `ObjectReplacer` then looks for serialized values that still mention the old site and passes
+them to `SerializedReplacer`, which reads the serialized format itself, without unserializing: no object is created and
+no code of a plugin runs. Only string values change, with their lengths written again; keys, property and class
+names, numbers and references stay. A value it cannot read entirely (broken lengths, `C:` custom serialization, more
+than 256 levels) is left as it is. It runs as the site user with the `mysql` client, with every value of the site as a
+hex literal and every name quoted, and each `UPDATE` names the old value too.
+
+Caches that hold pages built with the old address are deleted afterwards (`SiteCaches`): transients, and the element
+cache and generated CSS of Elementor, whose element cache keeps HTML in base64. WordPress and the plugins build them
+again on the first visit. A staging update and a push do the same two steps.
+
+What is left is reported with where it is (table, column, row), including what looks like the old host inside base64
+values, which no replace can reach.
 
 A clone is public, with "Discourage search engines" turned on so that it does not compete with its source.
 

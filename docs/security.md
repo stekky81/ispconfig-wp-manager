@@ -29,6 +29,9 @@ penetration test, and multiserver setups were not covered. Please report problem
 - **Disabled sites** are not checked and not updated.
 - **Every state change in the panel needs a CSRF token**, and every printed value is escaped.
 - **Values from a site are validated** before reaching a command. Commands are argument lists, never shell strings.
+- **SQL of the module** (objects of plugins and caches after a clone or a sync) runs as the site user, on stdin, with
+  `--binary-mode`. Values of the site travel as hex in both directions and names are quoted, so no text of a site
+  becomes SQL. Serialized values of a site are read by a parser of the module, never by `unserialize()` in root.
 - **Passwords** travel on stdin, are masked in logs and are encrypted at rest with the shared key.
 
 ## Remaining risks

@@ -100,6 +100,32 @@ final class SiteDatabase
     }
 
     /**
+     * SQL of this module, on stdin, as the site user: tab-separated rows without a header. The SQL is
+     * never built from text of the site except as hex literals or quoted names.
+     */
+    public function query(array $site, string $sql, Runner $runner): string
+    {
+        $db = $this->settings($site, $runner);
+        return $runner->mustRun(new Command(
+            array_merge(
+                [self::tool('mysql', 'mariadb'), '--no-defaults'],
+                self::connection($db),
+                ['--binary-mode', '--batch', '--skip-column-names', '--database=' . $db['name']],
+            ),
+            (string)$site['system_user'],
+            null,
+            $sql,
+            ['MYSQL_PWD' => $db['password']],
+        ));
+    }
+
+    /** A table or column name for SQL: whatever it contains, it stays one name. */
+    public static function quoteName(string $name): string
+    {
+        return '`' . str_replace('`', '``', $name) . '`';
+    }
+
+    /**
      * Whatever a site writes in wp-config.php reaches these tools, each value as one whole argument.
      *
      * @return array{name:string, user:string, password:string, host:string, charset:string}

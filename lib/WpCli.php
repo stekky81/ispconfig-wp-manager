@@ -131,7 +131,8 @@ final class WpCli
     /** Read-only: one line for each value holding the text. */
     public function dbSearch(string $text): Command
     {
-        return $this->cmd(['db', 'search', $text, '--all-tables', '--one_line', '--skip-plugins', '--skip-themes']);
+        // The characters around each match tell a mention from the end of a longer host name.
+        return $this->cmd(['db', 'search', $text, '--all-tables', '--one_line', '--before_context=8', '--after_context=8', '--skip-plugins', '--skip-themes']);
     }
 
     public function coreInstall(string $url, string $title, string $adminUser, string $adminPassword, string $adminEmail): Command

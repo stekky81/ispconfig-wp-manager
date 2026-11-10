@@ -15,13 +15,10 @@ final class SearchReplacePlanTest extends TestCase
         return new SearchReplacePlan($old, $new, '/var/www/clients/client1/web7', '/var/www/clients/client2/web9');
     }
 
-    /** Applies the rules the way WP-CLI does with --regex and --regex-delimiter=#. */
+    /** apply() works as WP-CLI does with --regex, --regex-delimiter=# and --regex-flags=i. */
     private function apply(string $text, ?SearchReplacePlan $plan = null): string
     {
-        foreach (($plan ?? $this->plan())->rules() as [$pattern, $replacement]) {
-            $text = (string)preg_replace('#' . $pattern . '#i', $replacement, $text);
-        }
-        return $text;
+        return ($plan ?? $this->plan())->apply($text);
     }
 
     /** @dataProvider urls */

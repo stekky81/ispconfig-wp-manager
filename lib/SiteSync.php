@@ -36,13 +36,13 @@ final class SiteSync
         $runner ??= $this->runner();
         $backup = $this->backups->create($staging, $runner);
         try {
-            $count = $this->copy($production, $staging, $runner);
+            [$count, $note] = $this->copy($production, $staging, $runner);
             // Production may be public: its copy must not be.
             $runner->mustRun($this->wp($staging)->optionUpdate('blog_public', '0'));
         } catch (\RuntimeException $e) {
             return $this->restore($staging, $backup, $runner, 'Update from production failed: ' . $e->getMessage());
         }
-        return ['outcome' => 'done', 'message' => "Staging updated from production ({$count} values replaced). Backup {$backup} of the staging kept."];
+        return ['outcome' => 'done', 'message' => "Staging updated from production ({$count} values replaced). Backup {$backup} of the staging kept.{$note}"];
     }
 
     /**
@@ -66,7 +66,7 @@ final class SiteSync
         $user = (string)$production['system_user'];
         try {
             $runner->mustRun(new Command(['tee', '--', $maintenance], $user, null, '<?php $upgrading = ' . time() . ";\n"));
-            $count = $this->copy($staging, $production, $runner);
+            [$count, $note] = $this->copy($staging, $production, $runner);
             $runner->mustRun($wp->optionUpdate('blog_public', $blogPublic));
         } catch (\RuntimeException $e) {
             return $this->rollback($production, $backup, $before, $runner, 'Push failed: ' . $e->getMessage());
@@ -78,7 +78,7 @@ final class SiteSync
         if ($broken !== []) {
             return $this->rollback($production, $backup, $before, $runner, 'Broken after the push: ' . $this->health->describe($broken));
         }
-        return ['outcome' => 'done', 'message' => "Staging pushed to production ({$count} values replaced). Backup {$backup} of production kept."];
+        return ['outcome' => 'done', 'message' => "Staging pushed to production ({$count} values replaced). Backup {$backup} of production kept.{$note}"];
     }
 
     /** A staging and its own production site, on one node, with two databases. */
@@ -115,8 +115,8 @@ final class SiteSync
         return trim($output) === '0' ? '0' : '1';
     }
 
-    /** @return int how many values the address replace changed */
-    private function copy(array $from, array $to, Runner $runner): int
+    /** @return array{int, string} how many values the address replace changed, and a warning or '' */
+    private function copy(array $from, array $to, Runner $runner): array
     {
         $source = $this->wp($from);
         $target = $this->wp($to);
@@ -151,17 +151,27 @@ final class SiteSync
             $runner->run(new Command(['rm', '-rf', '--', $incoming], $toUser));
         }
 
-        (new SiteDatabase($this->config, $this->guard))->copy($from, $to, $runner);
+        $database = new SiteDatabase($this->config, $this->guard);
+        $database->copy($from, $to, $runner);
 
         $plan = new SearchReplacePlan($oldUrl, self::base($home), rtrim((string)$from['document_root'], '/'), rtrim((string)$to['document_root'], '/'));
         $count = 0;
         foreach ($plan->rules() as [$pattern, $replacement]) {
             $count += (int)trim($runner->mustRun($target->searchReplace($pattern, $replacement)));
         }
+        $note = '';
+        try {
+            $count += (new ObjectReplacer($database))->run($to, $plan, $runner);
+        } catch (\RuntimeException $e) {
+            // The copy itself is complete: only these values may still name the other site.
+            $note = ' Warning: the values inside objects of plugins were not checked: ' . $e->getMessage();
+        }
         // The addresses of the target, exactly as they were.
         $runner->mustRun($target->optionUpdate('home', $home));
         $runner->mustRun($target->optionUpdate('siteurl', $siteUrl));
-        return $count;
+        // Pages built with the address of the other site.
+        $database->query($to, SiteCaches::clearSql($prefix), $runner);
+        return [$count, $note];
     }
 
     /** @return array{outcome:string, message:string} */

@@ -61,6 +61,31 @@ final class SearchReplacePlan
         ];
     }
 
+    /** The rules applied here, as WP-CLI applies them to each value. */
+    public function apply(string $text): string
+    {
+        foreach ($this->rules() as [$pattern, $replacement]) {
+            $text = (string)preg_replace('#' . $pattern . '#i', $replacement, $text);
+        }
+        return $text;
+    }
+
+    /**
+     * The old host as a name of its own, with or without www, also in an email address: not as the
+     * end of a longer host (staging.old.com is the new address of a staging of old.com).
+     */
+    public function mentions(string $text): bool
+    {
+        $host = preg_quote($this->oldHost, '#');
+        return (bool)preg_match('#(?:(?<![a-z0-9.-])www\.|(?<![a-z0-9.-]))' . $host . self::HOST_END . '#i', $text);
+    }
+
+    /** Text of the database rows worth a second look after WP-CLI: they mention the old site. */
+    public function needles(): array
+    {
+        return [$this->oldHost, $this->oldPath];
+    }
+
     /**
      * Pieces of the old host in base64, at the three possible offsets: a plain search finds
      * encoded values, which no replace can reach and which the report must mention.
