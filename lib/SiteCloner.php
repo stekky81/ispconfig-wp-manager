@@ -22,8 +22,12 @@ final class SiteCloner
     ) {
     }
 
-    /** @return list<string> executed commands and what the search-replace found */
-    public function clone(array $target, array $source, ?Runner $runner = null): array
+    /**
+     * @param bool $resume an earlier attempt of the same job wrote into the web root of the clone: every
+     *                     step runs again over those files (see wpm-worker.php)
+     * @return list<string> executed commands and what the search-replace found
+     */
+    public function clone(array $target, array $source, ?Runner $runner = null, bool $resume = false): array
     {
         $this->assertCloneable($target, $source);
         $dbPassword = $this->crypto->decrypt((string)$target['secret_db']);
@@ -36,8 +40,8 @@ final class SiteCloner
         if (!is_file($sourceWeb . '/wp-config.php')) {
             throw new \RuntimeException("{$source['domain']} has no WordPress to clone");
         }
-        if (!$this->guard->isPristineWebRoot($targetWeb)) {
-            throw new \RuntimeException("Refusing to install: {$targetWeb} is not empty");
+        if (!$resume && !$this->guard->isPristineWebRoot($targetWeb)) {
+            throw new \RuntimeException("Refusing to install: {$targetWeb} is not empty: the module never installs over existing files");
         }
 
         $sourceUser = (string)$source['system_user'];
@@ -45,21 +49,32 @@ final class SiteCloner
         $from = new WpCli($this->config->get('wp_cli'), $sourceWeb, $sourceUser);
         $to = new WpCli($this->config->get('wp_cli'), $targetWeb, $targetUser);
 
-        $oldUrl = self::safeUrl(trim($runner->mustRun($from->optionGet('home'))), (string)$source['domain']);
-        $prefix = self::tablePrefix($runner->mustRun($from->configGet('table_prefix')));
+        $step = static function (string $what, callable $do) {
+            try {
+                return $do();
+            } catch (\RuntimeException $e) {
+                throw new \RuntimeException(FailureMessage::step($what, $e->getMessage()), 0, $e);
+            }
+        };
+        [$oldUrl, $prefix] = $step("Reading the settings of {$source['domain']}", static fn(): array => [
+            self::safeUrl(trim($runner->mustRun($from->optionGet('home'))), (string)$source['domain']),
+            self::tablePrefix($runner->mustRun($from->configGet('table_prefix'))),
+        ]);
 
         foreach (['index.html', 'standard_index.html'] as $placeholder) {
             $runner->mustRun(new Command(['rm', '-f', '--', "{$targetWeb}/{$placeholder}"], $targetUser));
         }
 
         $exclude = array_map(static fn(string $path): string => "--exclude={$path}", self::NOT_COPIED);
-        $runner->pipe(
+        $step('Copy of the files', static fn() => $runner->pipe(
             new Command(array_merge(['tar', '-cz'], $exclude, ['-C', $sourceWeb, '.']), $sourceUser),
             new Command(['tar', '-xz', '-C', $targetWeb], $targetUser),
-        );
+        ));
 
-        $runner->mustRun($to->configCreate((string)$target['db_name'], (string)$target['db_user'], $dbPassword, (string)$target['db_host'], $prefix));
-        $runner->mustRun(new Command(['chmod', '0640', '--', "{$targetWeb}/wp-config.php"], $targetUser));
+        $step('Creation of wp-config.php', static function () use ($runner, $to, $target, $dbPassword, $prefix, $resume, $targetWeb, $targetUser): void {
+            $runner->mustRun($to->configCreate((string)$target['db_name'], (string)$target['db_user'], $dbPassword, (string)$target['db_host'], $prefix, $resume));
+            $runner->mustRun(new Command(['chmod', '0640', '--', "{$targetWeb}/wp-config.php"], $targetUser));
+        });
 
         // Every write below goes to the database named here: stop if it is not the one of the clone.
         $database = $runner->mustRun($to->configGet('DB_NAME'));
@@ -67,14 +82,14 @@ final class SiteCloner
             self::assertOwnDatabase($database, (string)$target['db_name'], (string)$source['db_name']);
         }
 
-        $runner->pipe($from->dbExport('-'), $to->dbImport('-'));
+        $step('Copy of the database', static fn() => $runner->pipe($from->dbExport('-'), $to->dbImport('-')));
 
         $newUrl = (string)($target['site_url'] ?? '') ?: 'http://' . $target['domain'];
         $plan = new SearchReplacePlan($oldUrl, $newUrl, $sourceRoot, $targetRoot);
         $report = [];
         foreach ($plan->rules() as [$pattern, $replacement]) {
             // preg_replace needs its escapes, WP-CLI receives the same text.
-            $changed = trim($runner->mustRun($to->searchReplace($pattern, $replacement)));
+            $changed = trim($step('Replacement of the old address', static fn(): string => $runner->mustRun($to->searchReplace($pattern, $replacement))));
             $report[] = "Replaced {$changed} values: {$pattern}";
         }
         $database = new SiteDatabase($this->config, $this->guard);

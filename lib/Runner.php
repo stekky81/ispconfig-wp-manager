@@ -248,12 +248,16 @@ final class Runner
         return $result['stdout'];
     }
 
-    /** The output of a failed command without the warnings that come before the real error. */
+    /**
+     * The output of a failed command with the real error first: warnings come after it, because they
+     * can explain it ("Couldn't find 'x' in the WordPress.org plugin directory").
+     */
     public static function failureText(string $output): string
     {
         $lines = preg_split('/\R/', trim($output)) ?: [];
-        $rest = array_filter($lines, static fn(string $line): bool => !str_starts_with($line, 'Warning: '));
-        return implode("\n", $rest === [] ? $lines : $rest);
+        $warning = static fn(string $line): bool => str_starts_with($line, 'Warning: ');
+        $rest = array_filter($lines, static fn(string $line): bool => !$warning($line));
+        return implode("\n", array_merge($rest, array_filter($lines, $warning)));
     }
 
     /** @return list<string> */

@@ -16,6 +16,8 @@
 - The health check after a change waits for the opcache of PHP, looks again at what seems broken, and says why
 - A new site or clone that does not answer after the install gets a warning on its page
 - The worker writes its PHP errors with date and time
+- Failures say which step failed, the likely cause and what to check; a plugin or theme that cannot be installed is a
+  warning on an installed site; a retry continues over the files of its own earlier attempt instead of refusing them
 - Switch between WP-Cron and a real cron job
 - Updates, backups, restores and the WP-Cron switch run in the same PHP sandbox as the daily checks, which no longer lets
   code leave through FFI or `LD_PRELOAD`; backups use `mysqldump` and `mysql` directly, and a restore ignores client

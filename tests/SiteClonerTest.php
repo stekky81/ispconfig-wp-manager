@@ -160,6 +160,16 @@ final class SiteClonerTest extends TestCase
         self::assertStringNotContainsString('DbPw123', $this->log());
     }
 
+    // Regression (VM): a retry refused the files of its own first attempt.
+    public function testAResumedCloneRunsAgainOverItsOwnFiles(): void
+    {
+        file_put_contents($this->root . '/client2/web9/web/index.php', '<?php // first attempt');
+        $runner = new Runner(true);
+        $this->cloner()->clone($this->target(), $this->source(), $runner, true);
+
+        self::assertMatchesRegularExpression("/'config' 'create' .*'--force'/", implode("\n", $runner->log()));
+    }
+
     public function testATargetThatIsNotEmptyIsRefused(): void
     {
         file_put_contents($this->root . '/client2/web9/web/index.php', '<?php');

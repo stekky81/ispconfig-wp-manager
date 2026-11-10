@@ -13,11 +13,20 @@ final class RunnerTest extends TestCase
 {
     // Regression: a WP-CLI warning came first and filled the short message in the site list,
     // hiding the real error.
-    public function testWarningsAreDroppedWhenThereIsAnError(): void
+    public function testTheErrorComesBeforeTheWarnings(): void
     {
         $text = "Warning: Failed to create directory '/x/.wp-cli/cache/': mkdir(): Operation not permitted.\nError: Failed to get url";
 
-        self::assertSame('Error: Failed to get url', Runner::failureText($text));
+        self::assertSame("Error: Failed to get url\nWarning: Failed to create directory '/x/.wp-cli/cache/': mkdir(): Operation not permitted.", Runner::failureText($text));
+    }
+
+    // Regression (VM): "No plugins installed." alone did not say which plugin, nor why.
+    public function testAWarningThatExplainsTheErrorIsKept(): void
+    {
+        $text = "Warning: Couldn't find 'xyz' in the WordPress.org plugin directory.\nWarning: The 'xyz' plugin could not be found.\nError: No plugins installed.";
+
+        self::assertStringStartsWith('Error: No plugins installed.', Runner::failureText($text));
+        self::assertStringContainsString("Couldn't find 'xyz'", Runner::failureText($text));
     }
 
     public function testOnlyWarningsAreKept(): void
@@ -124,7 +133,7 @@ final class RunnerTest extends TestCase
     public function testMustRunReportsTheRealErrorWithoutSecrets(): void
     {
         $runner = new Runner(false, ['S3cret']);
-        $this->expectExceptionMessageMatches('/^Command failed \(3\): Error: bad \*{8}$/');
+        $this->expectExceptionMessageMatches('/^Command failed \(3\): Error: bad \*{8}\nWarning: noise$/');
         $runner->mustRun(new Command(['/bin/sh', '-c', 'echo "Warning: noise" >&2; echo "Error: bad S3cret" >&2; exit 3']));
     }
 

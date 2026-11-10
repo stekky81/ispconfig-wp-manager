@@ -37,6 +37,7 @@ require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 use WpManager\Config;
 use WpManager\AutoUpdatePolicy;
 use WpManager\Crypto;
+use WpManager\FailureMessage;
 use WpManager\HealthCheck;
 use WpManager\JobQueue;
 use WpManager\PathGuard;
@@ -154,7 +155,7 @@ foreach ($queue->pending() as $name) {
             }
         } catch (\Throwable $e) {
             $app->log("wpmanager: {$job['type']} of {$record['domain']} failed: " . $e->getMessage(), LOGLEVEL_WARN);
-            $finish('failed', $job['type'] . ' failed: ' . $e->getMessage());
+            $finish('failed', FailureMessage::step(ucfirst($job['type']), $e->getMessage()));
         }
         continue;
     }
@@ -177,15 +178,29 @@ foreach ($queue->pending() as $name) {
     }
 
     $report($siteId, 'installing', '');
+    // Only this job may write over what it wrote itself in an earlier attempt: the flag lives in the
+    // spool, which only root can change, and is set when an attempt found the web root empty and left
+    // it not empty.
+    $resume = (bool)($job['resume'] ?? false);
+    $webRoot = rtrim((string)$site['document_root'], '/') . '/web';
+    $guard = new PathGuard($config->get('web_root_base'));
+    $isEmpty = static function () use ($guard, $webRoot): bool {
+        try {
+            return $guard->isPristineWebRoot($webRoot);
+        } catch (\Throwable) {
+            return false;
+        }
+    };
+    $wasEmpty = $isEmpty();
     try {
         if ((int)($site['clone_of'] ?? 0) > 0) {
             $origin = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $site['clone_of']);
             if (!is_array($origin)) {
                 throw new \RuntimeException('Refusing to install: the site to clone no longer exists');
             }
-            $log = $cloner->clone($site, $origin);
+            $log = $cloner->clone($site, $origin, null, $resume);
         } else {
-            $log = $installer->install($site);
+            $log = $installer->install($site, null, $resume);
         }
         $warnings = array_values(array_filter($log, static fn(string $line): bool => str_starts_with($line, 'Warning: ')));
         if (!$config->isDryRun()) {
@@ -205,16 +220,20 @@ foreach ($queue->pending() as $name) {
         $queue->remove($name);
     } catch (\Throwable $e) {
         $job['attempts'] = (int)$job['attempts'] + 1;
-        $app->log("wpmanager: install of {$site['domain']} failed: " . $e->getMessage(), LOGLEVEL_WARN);
+        $message = FailureMessage::explain($e->getMessage());
+        $app->log("wpmanager: install of {$site['domain']} failed: " . $message, LOGLEVEL_WARN);
+        if ($wasEmpty && !$isEmpty()) {
+            $job['resume'] = true;
+        }
         // "not empty" is never retried: something else is in that folder.
         if ($job['attempts'] >= WPM_MAX_ATTEMPTS || str_contains($e->getMessage(), 'Refusing to install')) {
             // Final: nothing will use the database password again.
-            $report($siteId, 'error', $e->getMessage(), true);
+            $report($siteId, 'error', $message, true);
             $queue->remove($name);
         } else {
             $delay = RetryPolicy::delayAfter($job['attempts']);
             $job['not_before'] = time() + $delay;
-            $report($siteId, 'queued', 'Attempt ' . $job['attempts'] . ' failed, next try in ' . intdiv($delay, 60) . ' minutes: ' . $e->getMessage());
+            $report($siteId, 'queued', 'Attempt ' . $job['attempts'] . ' failed, next try in ' . intdiv($delay, 60) . ' minutes: ' . $message);
             $queue->update($name, $job);
         }
     }

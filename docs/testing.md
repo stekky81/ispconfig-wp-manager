@@ -96,6 +96,11 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] A theme or plugin that installs fine but breaks the site (the wordpress.org theme `default` under PHP 8) →
       status `installed` with a warning that says what the check saw
 - [x] Two sites created at the same moment → both installed, no mix-up
+- [x] A plugin that does not exist on wordpress.org → status `installed` with a warning that names the plugin, the
+      other plugins installed
+- [x] The database refuses the first attempt after WordPress was downloaded → "Installation of WordPress failed" with
+      the error of WordPress; the retry runs over the files of that attempt and installs the site
+- [x] Every failure names its step and, when it is known, the cause in plain words, with the output as details
 
 ### Backups and updates
 

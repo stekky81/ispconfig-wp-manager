@@ -25,13 +25,15 @@ final class WordPressInstaller
 
     /**
      * @param array $site the wpm_site record (with encrypted secrets)
-     * @return list<string> executed commands, secrets masked
+     * @param bool $resume an earlier attempt of the same job wrote into the web root, which is not empty
+     *                     because of it: every step runs again over those files (see wpm-worker.php)
+     * @return list<string> warnings first, then the executed commands, secrets masked
      */
-    public function install(array $site, ?Runner $runner = null): array
+    public function install(array $site, ?Runner $runner = null, bool $resume = false): array
     {
         $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        if (!$this->guard->isPristineWebRoot($webRoot)) {
-            throw new \RuntimeException("Refusing to install: {$webRoot} is not empty");
+        if (!$resume && !$this->guard->isPristineWebRoot($webRoot)) {
+            throw new \RuntimeException("Refusing to install: {$webRoot} is not empty: the module never installs over existing files");
         }
 
         $dbPassword = $this->crypto->decrypt((string)$site['secret_db']);
@@ -50,10 +52,18 @@ final class WordPressInstaller
             }
         }
 
-        $runner->mustRun($wp->coreDownload((string)($site['wp_locale'] ?? $wpCfg['locale'])));
-        $runner->mustRun($wp->configCreate((string)$site['db_name'], (string)$site['db_user'], $dbPassword, (string)$site['db_host']));
-        $runner->mustRun(new Command(['chmod', '0640', '--', $webRoot . '/wp-config.php'], (string)$site['system_user']));
-        $runner->mustRun($wp->coreInstall(
+        $step = static function (string $what, Command $command) use ($runner): void {
+            try {
+                $runner->mustRun($command);
+            } catch (\RuntimeException $e) {
+                throw new \RuntimeException(FailureMessage::step($what, $e->getMessage()), 0, $e);
+            }
+        };
+        $step('Download of WordPress', $wp->coreDownload((string)($site['wp_locale'] ?? $wpCfg['locale']), $resume));
+        $step('Creation of wp-config.php', $wp->configCreate((string)$site['db_name'], (string)$site['db_user'], $dbPassword, (string)$site['db_host'], 'wp_', $resume));
+        $step('Creation of wp-config.php', new Command(['chmod', '0640', '--', $webRoot . '/wp-config.php'], (string)$site['system_user']));
+        // Again after an earlier attempt: WP-CLI says it is installed and changes nothing.
+        $step('Installation of WordPress', $wp->coreInstall(
             $url,
             (string)$site['wp_title'],
             (string)$site['wp_admin_user'],
@@ -62,19 +72,30 @@ final class WordPressInstaller
         ));
 
         foreach ($wpCfg['constants'] as $name => [$value, $raw]) {
-            $runner->mustRun($wp->configSet((string)$name, (string)$value, (bool)$raw));
+            $step("Setting {$name} in wp-config.php", $wp->configSet((string)$name, (string)$value, (bool)$raw));
         }
+
+        // WordPress works without them: the admin can add them later, so they only give warnings.
+        $warnings = [];
+        $optional = static function (string $what, Command $command) use ($runner, &$warnings): void {
+            try {
+                $runner->mustRun($command);
+            } catch (\RuntimeException $e) {
+                $warnings[] = 'Warning: ' . FailureMessage::step($what, $e->getMessage());
+            }
+        };
         // The record wins, also when empty: the admin may have removed a default from the form.
         $plugins = isset($site['wp_plugins']) ? Validator::wpSlugList((string)$site['wp_plugins']) : $wpCfg['plugins'];
         foreach ($plugins as $slug) {
-            $runner->mustRun($wp->pluginInstall((string)$slug));
+            $optional("Installation of the plugin {$slug}", $wp->pluginInstall((string)$slug));
         }
         $theme = $site['wp_theme'] ?? $wpCfg['theme'];
         if (!empty($theme)) {
-            $runner->mustRun($wp->themeInstall((string)$theme));
+            $optional("Installation of the theme {$theme}", $wp->themeInstall((string)$theme));
         }
 
-        return $runner->log();
+        // The summary first: the status message keeps only the beginning of a long log.
+        return array_merge($warnings, $runner->log());
     }
 
     /** The installed version, or '' when it cannot be read: a finished install must not fail for this. */

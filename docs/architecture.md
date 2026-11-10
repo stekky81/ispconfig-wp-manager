@@ -163,7 +163,12 @@ therefore temporary. On a slave node this needs INSERT on `wpm_site`, see the mu
   `stats/`, `error/`, `.well-known/`).
 - **Path guard**: every path used by the worker must resolve inside `/var/www/clients/`.
 - **Run as site user**: WP-CLI always runs as the site's `webN` user, never as root.
-- **No half-installs overwritten**: a failed install is retried, after 5 and then 30 minutes, only while `web/` is still pristine.
+- **Only its own files overwritten**: a failed install is retried after 5 and then 30 minutes. A retry runs again over
+  `web/` only when the earlier attempt of the same job found it empty and left it not empty; the job keeps that flag in
+  the spool, which only root can change. Anything else in `web/` stops the install for good.
+- **Failures in plain words**: the status says which step failed, the likely cause (no internet or DNS, database
+  refused, disk or quota full, timeout, unknown plugin or theme, WP-CLI missing) and keeps the output as details
+  (`FailureMessage`). A plugin or theme that cannot be installed gives a warning, not an error: WordPress works without it.
   If WP-CLI already wrote files, the job ends in `error` and needs a manual look — never an automatic cleanup.
 - **Passwords shown once**: the site detail page decrypts the WP admin and SFTP/FTP passwords on request,
   after clearing them from `wpm_site`. Encrypted copies stay in `sys_datalog` until ISPConfig prunes it.

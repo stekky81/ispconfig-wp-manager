@@ -64,26 +64,28 @@ final class WpCli
         );
     }
 
-    public function coreDownload(string $locale): Command
+    /** @param bool $force over the files of an earlier attempt of the same job */
+    public function coreDownload(string $locale, bool $force = false): Command
     {
         if (!preg_match('/^[a-z]{2,3}(_[A-Z]{2})?(_[a-z]+)?$/', $locale)) {
             throw new ValidationException("Invalid locale: {$locale}");
         }
-        return $this->cmd(['core', 'download', '--locale=' . $locale]);
+        return $this->cmd(array_merge(['core', 'download', '--locale=' . $locale], $force ? ['--force'] : []));
     }
 
-    public function configCreate(string $dbName, string $dbUser, string $dbPassword, string $dbHost, string $dbPrefix = 'wp_'): Command
+    /** @param bool $force over the wp-config.php of an earlier attempt of the same job */
+    public function configCreate(string $dbName, string $dbUser, string $dbPassword, string $dbHost, string $dbPrefix = 'wp_', bool $force = false): Command
     {
         Validator::dbName($dbName);
         Validator::dbName($dbUser);
-        return $this->cmd([
+        return $this->cmd(array_merge([
             'config', 'create',
             '--dbname=' . $dbName,
             '--dbuser=' . $dbUser,
             '--dbhost=' . $dbHost,
             '--dbprefix=' . $dbPrefix,
             '--prompt=dbpass',
-        ], $dbPassword . "\n");
+        ], $force ? ['--force'] : []), $dbPassword . "\n");
     }
 
     public function configHas(string $name): Command

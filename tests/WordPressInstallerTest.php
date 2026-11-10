@@ -161,6 +161,23 @@ final class WordPressInstallerTest extends TestCase
         $this->installer()->install($this->site(), new Runner(true));
     }
 
+    // Regression (VM): the second attempt refused the files the first one had written, and the
+    // real cause of the failure was lost.
+    public function testAResumedJobRunsAgainOverItsOwnFiles(): void
+    {
+        file_put_contents($this->root . '/client3/web7/web/index.php', '<?php // written by the first attempt');
+        $log = implode("\n", $this->installer()->install($this->site(), new Runner(true), true));
+
+        self::assertStringContainsString("'core' 'download' '--locale=it_IT' '--force'", $log);
+        self::assertMatchesRegularExpression("/'config' 'create' .*'--force'/", $log);
+        self::assertStringContainsString("'core' 'install'", $log);
+    }
+
+    public function testAFirstAttemptNeverForces(): void
+    {
+        self::assertStringNotContainsString("'--force'", implode("\n", $this->installer()->install($this->site(), new Runner(true))));
+    }
+
     public function testRefusesDocumentRootOutsideClients(): void
     {
         $site = $this->site();
