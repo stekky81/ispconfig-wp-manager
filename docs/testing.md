@@ -61,7 +61,8 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 ### Install
 
 - [x] Installer runs twice in a row without errors (idempotent)
-- [ ] Installer after an ISPConfig update restores the module
+- [x] After an ISPConfig update (3.3.2p1 over itself, with services reconfigured) the module, its files, links,
+      grants, key and cron are unchanged and the sites too; our installer run again changes nothing
 - [x] `--uninstall` removes the module and leaves sites, tables and keys alone; the installer brings it back
 - [x] Module visible only to users who have it enabled: without it the menu has no entry and every page sends the
       user away; with it a client still gets "Only administrators" on every page

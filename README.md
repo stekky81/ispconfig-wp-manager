@@ -43,7 +43,7 @@ It has not run on production servers yet.
 
 | Milestone | Scope | Status |
 |-----------|-------|--------|
-| 0.1 | Module skeleton, installer, config, tests | test on an ISPConfig update missing |
+| 0.1 | Module skeleton, installer, config, tests | done |
 | 0.2 | New WordPress site, detection of existing sites | done, except multiserver and email |
 | 0.3 | Update overview | done, except summary email and production pilot |
 | 0.4 | Backups, safe and automatic updates | done |

@@ -15,7 +15,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] List and form pages load without errors in the panel
 - [x] Verify everything marked `VERIFY` in the code against ISPConfig 3.3.x
       (tform/listform flow, templates, `paging_tpl`, Remote API parameters)
-- [ ] Installer: run twice in a row, run after an ISPConfig update, `--uninstall`
+- [x] Installer: run twice in a row, run after an ISPConfig update, `--uninstall`
 
 ## 0.2 — Usable MVP: new WordPress site
 

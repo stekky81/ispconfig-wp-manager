@@ -21,6 +21,11 @@ if (PHP_SAPI !== 'cli' || posix_geteuid() !== 0) {
     exit(1);
 }
 
+// Errors of PHP with date and time: the cron line only appends what it prints.
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+ini_set('error_log', '/var/log/ispconfig-wp-manager.log');
+
 // One worker at a time. Close-on-exec ('e'): a command that outlives the worker must not keep the lock.
 $lock = fopen('/run/ispconfig-wp-manager.lock', 'ce');
 if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {

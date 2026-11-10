@@ -14,6 +14,7 @@
   production with typed confirmation, backup, maintenance mode, health check and automatic rollback
 - The health check after a change waits for the opcache of PHP, looks again at what seems broken, and says why
 - A new site or clone that does not answer after the install gets a warning on its page
+- The worker writes its PHP errors with date and time
 - Switch between WP-Cron and a real cron job
 - Updates, backups, restores and the WP-Cron switch run in the same PHP sandbox as the daily checks, which no longer lets
   code leave through FFI or `LD_PRELOAD`; backups use `mysqldump` and `mysql` directly, and a restore ignores client

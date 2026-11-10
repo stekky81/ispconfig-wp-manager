@@ -66,6 +66,12 @@ tar format, its own backups will include them: see [architecture.md](architectur
 The installer creates the tables in `dbispconfig` on the master. In a multiserver setup it also
 creates them on each node, because ISPConfig replicates datalog records into the node's local copy.
 
+## After an ISPConfig update
+
+The module stays: the updater of ISPConfig copies its own files over the old ones and leaves other folders alone,
+and it keeps our module and plugin enabled (checked with an update of 3.3.2p1 over itself). Running our installer
+again afterwards does no harm.
+
 ## Uninstall
 
 ```bash
