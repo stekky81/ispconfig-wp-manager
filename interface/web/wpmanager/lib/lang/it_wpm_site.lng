@@ -18,3 +18,4 @@ $wb['domain_error_unique'] = 'Questo dominio è già gestito dal modulo WordPres
 $wb['wp_title_error_empty'] = 'Il titolo del sito è vuoto.';
 $wb['wp_admin_user_error_empty'] = "L'utente amministratore WordPress è vuoto.";
 $wb['wp_admin_email_error_isemail'] = "L'email dell'amministratore WordPress non è valida.";
+$wb['wp_theme_help_txt'] = 'Vuoto: il tema predefinito di questa versione di WordPress. Un nome installa e attiva quel tema da wordpress.org (lì \'default\' è un tema molto vecchio che non funziona con PHP 8).';

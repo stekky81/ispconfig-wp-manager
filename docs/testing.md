@@ -63,7 +63,8 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] Installer runs twice in a row without errors (idempotent)
 - [ ] Installer after an ISPConfig update restores the module
 - [x] `--uninstall` removes the module and leaves sites, tables and keys alone; the installer brings it back
-- [ ] Module visible only to users who have it enabled
+- [x] Module visible only to users who have it enabled: without it the menu has no entry and every page sends the
+      user away; with it a client still gets "Only administrators" on every page
 
 ### New site — happy path
 
@@ -75,19 +76,24 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] Passwords shown once on the site detail page, and they work
 - [x] Passwords nobody looked at are deleted 7 days after the site is ready, and the page says they expired;
       after a reveal it says they were already shown
-- [ ] Defaults applied (PHP version, SSL, plugins)
+- [x] Defaults saved on the settings page reach the form and the site: PHP version, disk quota, SSL, `www`, language,
+      plugins, theme (a localized download leaves `WPLANG` empty: the package itself sets the language)
 
 ### New site — failure cases
 
 - [x] Domain already exists in ISPConfig → clear error, nothing created
 - [x] Database, database user or SFTP/FTP user name already taken → clear error, nothing created
 - [x] Two long domains with the same beginning → different names, both created
-- [ ] Client over quota → clear error, nothing created
+- [x] Client over quota: an admin is not limited, as in the ISPConfig panel, which checks only clients who log in
+      themselves, and the Remote API checks nothing. Limits come with client access (see ROADMAP)
 - [x] API fails halfway (e.g. missing permission) → clear error, created objects rolled back
 - [x] Wrong `database_server_id` → clear error, nothing created
 - [x] `web/` not empty → worker refuses, status `error`, no files touched
 - [x] WP-CLI missing on node → status `error` with message
-- [ ] Node offline for 10 minutes → job runs when it is back
+- [x] Node offline for 10 minutes (cron stopped) → the site waits in `queued`, nothing on disk; installed 95 s after
+      the node is back
+- [x] A theme or plugin that installs fine but breaks the site (the wordpress.org theme `default` under PHP 8) →
+      status `installed` with a warning that says what the check saw
 - [x] Two sites created at the same moment → both installed, no mix-up
 
 ### Backups and updates

@@ -13,6 +13,7 @@
 - Staging site, one per site: no mail from PHP, `X-Robots-Tag: noindex`; update it from production, push it to
   production with typed confirmation, backup, maintenance mode, health check and automatic rollback
 - The health check after a change waits for the opcache of PHP, looks again at what seems broken, and says why
+- A new site or clone that does not answer after the install gets a warning on its page
 - Switch between WP-Cron and a real cron job
 - Updates, backups, restores and the WP-Cron switch run in the same PHP sandbox as the daily checks, which no longer lets
   code leave through FFI or `LD_PRELOAD`; backups use `mysqldump` and `mysql` directly, and a restore ignores client

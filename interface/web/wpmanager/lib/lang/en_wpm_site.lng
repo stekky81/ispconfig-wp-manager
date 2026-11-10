@@ -18,3 +18,4 @@ $wb['domain_error_unique'] = 'This domain is already managed by the WordPress mo
 $wb['wp_title_error_empty'] = 'The site title is empty.';
 $wb['wp_admin_user_error_empty'] = 'The WordPress admin user is empty.';
 $wb['wp_admin_email_error_isemail'] = 'The WordPress admin email is not valid.';
+$wb['wp_theme_help_txt'] = 'Empty: the default theme of this WordPress release. A name installs and activates that theme from wordpress.org (\'default\' there is a very old theme that does not work with PHP 8).';

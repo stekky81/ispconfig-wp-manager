@@ -18,3 +18,4 @@ $wb['auto_updates_help_txt'] = 'Plugins, themes and minor WordPress releases of 
 $wb['yes_txt'] = 'Yes';
 $wb['no_txt'] = 'No';
 $wb['btn_save_txt'] = 'Save';
+$wb['theme_help_txt'] = 'Empty: the default theme of this WordPress release. A name installs and activates that theme from wordpress.org (\'default\' there is a very old theme that does not work with PHP 8).';

@@ -57,6 +57,18 @@ final class HealthCheck
         return $broken;
     }
 
+    /**
+     * A new site, installed or cloned: everything should answer. A theme or plugin can install
+     * without errors and still break every page.
+     *
+     * @return string a warning for the panel, or '' when the site answers
+     */
+    public function warningAfterInstall(array $site): string
+    {
+        $broken = $this->regressionsAfterChange($site, ['home' => true, 'login' => true]);
+        return $broken === [] ? '' : 'Warning: installed, but the site does not answer correctly: ' . $this->describe($broken) . '. Check the theme and the plugins.';
+    }
+
     /** @param list<string> $checks names of failed checks, with what the last run saw */
     public function describe(array $checks): string
     {

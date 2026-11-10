@@ -114,4 +114,22 @@ final class HealthCheckTest extends TestCase
         self::assertSame([], $health->regressionsAfterChange(['site_url' => 'http://a.test'], ['home' => true, 'login' => true]));
         self::assertSame(2, $calls);
     }
+
+    // Found in the VM: the wordpress.org theme 'default' installs fine and breaks every page under PHP 8.
+    public function testANewSiteThatDoesNotAnswerGetsAWarning(): void
+    {
+        $health = new HealthCheck(static fn(string $url): array => ['code' => str_ends_with($url, '/wp-login.php') ? 200 : 500, 'body' => ''], '127.0.0.1', 0);
+
+        self::assertSame(
+            'Warning: installed, but the site does not answer correctly: home (HTTP 500). Check the theme and the plugins.',
+            $health->warningAfterInstall(['site_url' => 'http://a.test']),
+        );
+    }
+
+    public function testANewSiteThatAnswersGetsNoWarning(): void
+    {
+        $health = new HealthCheck(static fn(string $url): array => ['code' => 200, 'body' => ''], '127.0.0.1', 0);
+
+        self::assertSame('', $health->warningAfterInstall(['site_url' => 'http://a.test']));
+    }
 }

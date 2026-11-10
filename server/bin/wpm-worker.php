@@ -179,16 +179,22 @@ foreach ($queue->pending() as $name) {
                 throw new \RuntimeException('Refusing to install: the site to clone no longer exists');
             }
             $log = $cloner->clone($site, $origin);
-            $warnings = array_values(array_filter($log, static fn(string $line): bool => str_starts_with($line, 'Warning: ')));
-            if ($warnings !== [] && !$config->isDryRun()) {
-                $app->dbmaster->query(
-                    "UPDATE wpm_site SET action_status = 'warning', action_message = ? WHERE wpm_site_id = ?",
-                    implode(' ', $warnings),
-                    $siteId,
-                );
-            }
         } else {
             $log = $installer->install($site);
+        }
+        $warnings = array_values(array_filter($log, static fn(string $line): bool => str_starts_with($line, 'Warning: ')));
+        if (!$config->isDryRun()) {
+            $health = (new HealthCheck())->warningAfterInstall($site);
+            if ($health !== '') {
+                $warnings[] = $health;
+            }
+        }
+        if ($warnings !== [] && !$config->isDryRun()) {
+            $app->dbmaster->query(
+                "UPDATE wpm_site SET action_status = 'warning', action_message = ? WHERE wpm_site_id = ?",
+                mb_substr(implode(' ', $warnings), 0, 2000),
+                $siteId,
+            );
         }
         $report($siteId, 'installed', implode("\n", $log), true, $installer->installedVersion($site));
         $queue->remove($name);
