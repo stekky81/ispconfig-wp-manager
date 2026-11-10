@@ -116,6 +116,8 @@ two actions that make it a staging.
   works less than before, the backup is restored, as after an update.
 - `wp-config.php`, `wp-cli.yml` and `.maintenance` are never copied, in either direction: constants added by hand on the
   staging have to be added by hand on production.
+- Tables that exist only on the target stay, unused: the database may be shared with something that is not WordPress,
+  so nothing outside the copied tables is dropped.
 
 ## WP-Cron
 
