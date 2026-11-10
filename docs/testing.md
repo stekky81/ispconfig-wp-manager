@@ -120,7 +120,11 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] Objects of plugin classes, with a real plugin (Elementor, WooCommerce): replaced, the caches of Elementor
       deleted and built again, the clone page without the old address; the same after an update of a staging
 - [x] A staging at `staging.<domain>` does not report its own address as a mention of the domain
-- [ ] A large and busy site
+- [x] A large and busy site (2026-11-10, VM with 2 CPUs and 3 GB): 600 MB of uploads that do not compress, 30,000
+      posts, two visitors without pause. Backup 112 s, plugin update 137 s, clone 308 s, all 200 to visitors except
+      about 2 s of the maintenance page of WordPress during the plugin update. Worker memory below 50 MB. When ISPConfig
+      creates the website of a clone it restarts Apache, like for any new site: about one second of errors on every
+      site of the node (13 of 5,567 requests)
 
 ### Staging
 
