@@ -16,6 +16,8 @@
 - The health check after a change waits for the opcache of PHP, looks again at what seems broken, and says why
 - A new site or clone that does not answer after the install gets a warning on its page
 - The worker writes its PHP errors with date and time
+- Multiserver: the master installer grants the module tables to the database account of every node, the node
+  installer creates the node's own `config.php`; tested with a second VM joined as a node
 - Failures say which step failed, the likely cause and what to check; a plugin or theme that cannot be installed is a
   warning on an installed site; a retry continues over the files of its own earlier attempt instead of refusing them
 - Switch between WP-Cron and a real cron job

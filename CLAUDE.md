@@ -67,6 +67,14 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - Install our module in the VM:
   `multipass exec ispc-master -- sudo /opt/ispconfig-wp-manager/install/install.sh --role=master --role=node`
 - Panel PHP errors: `multipass exec ispc-master -- sudo tail -50 /var/log/apache2/error.log`
+- VM `ispc-slave` (192.168.252.6, FQDN `ispc-slave.ispc.test`): ISPConfig node joined to the master as server 2, no
+  panel; snapshot `clean` = joined, our module NOT installed. Both VMs map each other in `/etc/hosts` and in the
+  cloud-init hosts template. Our module on it: copy `secret.key` from the master through a pipe, run
+  `install.sh --role=node`, set `dry_run => false` in its own `config.php`, then run the master installer again
+  for the grants. To join a new node without questions: the autoinstaller's `autoinstall.ini` with
+  `join_multiserver_setup=y` and the master fields, plus `mysql_master_port` and `mysql_master_ssl`, which it
+  leaves out (without them `install.php` waits for an answer, invisible, for ever). The autoinstaller needs
+  `php-cli` first (its bootstrap installs it). Use a temporary MariaDB account on the master for the join, then drop it.
 - Network: the home connection resets TLS connections that offer the post-quantum key share
   (`openssl s_client -groups X25519MLKEM768`) to some hosts, including `api.anthropic.com` and
   `api.wordpress.org`, so Claude Code drops with ECONNRESET. The Mac is not the cause: the same test passes on
@@ -76,6 +84,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   from `/etc/systemd/resolved.conf.d/90-wpm-test.conf` (`DNS=1.1.1.1 8.8.8.8`, `Domains=~.`).
 - A test that attacks something must first check that the deploy worked: one ran on old code and damaged
   `config.php`. Sessions also expire, so a blank answer from the panel proves nothing.
+- `pgrep -f pattern` inside `bash -c '...'` finds that shell itself: write the pattern as `[p]attern`.
 - A manual `wpm-worker.php` exits silently while the cron worker holds the lock: to test it, wait for cron.
 - `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
   The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
@@ -112,22 +121,25 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
     every file it inherited, the worker lock included. Open long-lived handles with `fopen(..., 'e')`.
 
 
-## Current status (2026-11-10)
+## Current status (2026-11-15)
 
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
   with one-time passwords; spaced retries; detection of existing sites; settings page; update overview;
   backups, updates with health check and automatic rollback, automatic updates; clone on the same node;
-  staging (create, update from production, push to production); WP-Cron switch; `--uninstall`. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  staging (create, update from production, push to production); WP-Cron switch; `--uninstall`; clear failure
+  messages with retries that resume; objects of plugin classes and page caches in clones; multiserver. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: to be decided with Stefano; staging is done. Multiserver and clone across nodes are set aside for now.
+- **Next**: optional emails (ISPConfig's `$app->functions->mail()` and its mail settings can be reused), then
+  clone across nodes if wanted; the production pilot comes last.
   Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.
-- The VM has a remote user `wpmanager`, a client `testclient` and test sites, `staging.sito17.ispc.test` among them; its `config.php` has
+- The VM has a remote user `wpmanager`, a client `testclient` and test sites (`sito*`, `clone*`, `big1`/`bigclone` without
+  their large files, `staging.sito17`, `staging.sito22`, `staging.clone9`; `nodo2a`, `nodo2b`, `staging.nodo2a` on the
+  slave); its `config.php` has
   `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
 
 ## Known open issues / roadmap
 
-- Multiserver: grant INSERT and UPDATE on `wpm_site` to the `ispcsrvN` users (see `docs/architecture.md`).
 - Admin-only for now; clients/resellers and quota checks later.
 - Planned work, by milestone: see [ROADMAP.md](ROADMAP.md).

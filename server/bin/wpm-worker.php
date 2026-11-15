@@ -243,12 +243,13 @@ foreach ($queue->pending() as $name) {
 // SiteCredentials::EXPIRY_DAYS they are deleted. Direct updates, like the database password above.
 if (!$config->isDryRun()) {
     $stored = $app->dbmaster->queryAllRecords(
-        "SELECT wpm_site_id, status, secret_access, UNIX_TIMESTAMP(secret_since) AS secret_since FROM wpm_site
+        "SELECT wpm_site_id, status, secret_access, UNIX_TIMESTAMP(secret_since) AS secret_since, UNIX_TIMESTAMP() AS now FROM wpm_site
          WHERE server_id = ? AND secret_access IS NOT NULL AND secret_access != ''",
         $conf['server_id'],
     );
     foreach ($stored ?: [] as $site) {
-        $step = SiteCredentials::housekeeping($site, time());
+        // The clock of the master, which wrote secret_since: a node may run ahead or behind it.
+        $step = SiteCredentials::housekeeping($site, (int)$site['now']);
         if ($step === SiteCredentials::START_CLOCK) {
             $app->dbmaster->query('UPDATE wpm_site SET secret_since = NOW() WHERE wpm_site_id = ? AND secret_since IS NULL', $site['wpm_site_id']);
         } elseif ($step === SiteCredentials::EXPIRE) {

@@ -71,7 +71,10 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 
 - [x] Site on master node: website, DB user, DB (linked to the site), SFTP user created
 - [x] Same with FTP access: FTP user created instead of the SFTP user, login works
-- [ ] Site on slave node (VM B)
+- [x] Site on slave node (VM B, joined as server 2): created from the panel of the master, website and database on
+      server 2, installed by the worker of the node, record updated on the master
+- [x] On the slave node: daily check, backup, plugin update, clone and staging with an update from production; a
+      WordPress site of the node not in the list is detected and added on the master
 - [x] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
 - [x] Secrets cleared from `wpm_site` after install (DB password) and after the reveal (the other two)
 - [x] Passwords shown once on the site detail page, and they work

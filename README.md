@@ -44,7 +44,7 @@ It has not run on production servers yet.
 | Milestone | Scope | Status |
 |-----------|-------|--------|
 | 0.1 | Module skeleton, installer, config, tests | done |
-| 0.2 | New WordPress site, detection of existing sites | done, except multiserver and email |
+| 0.2 | New WordPress site, detection of existing sites | done, except email |
 | 0.3 | Update overview | done, except summary email and production pilot |
 | 0.4 | Backups, safe and automatic updates | done |
 | 0.5 | Clone and staging | done on the same node; clone across nodes later |
@@ -74,11 +74,10 @@ Details in [docs/architecture.md](docs/architecture.md).
 
 ## Requirements
 
-- ISPConfig 3.3 (tested on 3.3.2), on a single server
+- ISPConfig 3.3 (tested on 3.3.2), on a single server or a multiserver setup (tested with a master and one node)
 - PHP 8.1+ with the `sodium` and `curl` extensions on the master and on every web node
 - [WP-CLI](https://wp-cli.org) in `/usr/local/bin/wp` on every web node, plus `sudo`, `rsync`, `tar`, `gzip`
   and a MySQL or MariaDB client
-- Multiserver setups are not supported yet
 - A dedicated ISPConfig remote user (System → Remote Users) with the permissions listed in
   [docs/installation.md](docs/installation.md)
 

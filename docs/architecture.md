@@ -179,10 +179,11 @@ Permissions, access levels and remaining risks are in [security.md](security.md)
 
 ## Open questions
 
-- **Multiserver grants (to do before multiserver tests, which are set aside for now)**: slave nodes reach the master's
-  dbispconfig as `ispcsrvN` users with per-table grants. The worker on a slave writes to
-  `wpm_site` on the master, so the master installer must grant INSERT and UPDATE on `wpm_site` to every
-  `ispcsrvN` user (and to new ones when a node is added).
+- **Multiserver grants**: slave nodes reach the master's dbispconfig as `ispcsrvN` users with per-table grants. The
+  worker on a node reads and writes `wpm_site` (INSERT for the sites it detects) and reads `wpm_setting`, so the
+  master installer grants SELECT, INSERT and UPDATE on `wpm_site` and SELECT on `wpm_setting` to every `ispcsrvN`
+  account it finds; it has to run again when a node is added. Times that the master writes (`secret_since`) are
+  compared with the clock of the master database, not with the clock of the node.
 
 - Remote API vs internal datalog calls for creating ISPConfig objects (Remote API chosen for 0.2:
   it is the documented, validated path).

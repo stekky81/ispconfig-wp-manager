@@ -40,6 +40,15 @@ sudo ./install/install.sh --role=node
 
 This installs the server module and plugin and the worker cron. WP-CLI must be in `/usr/local/bin/wp`.
 
+On a node that is not the master:
+
+- copy the shared key from the master first: `/etc/ispconfig-wp-manager/secret.key`, folder `0700`, file `0600`,
+  owner root;
+- the installer creates the node's own `config.php` (`0600 root:root`) with `dry_run = true`: each node decides for
+  itself, so set `dry_run` there too. The Remote API account is only needed on the master;
+- then run the master installer once more: it grants the module tables on the master to the database account of
+  every node (`ispcsrvN`). Do it again whenever a node is added.
+
 Sites with SFTP access log in with a password, so `sshd` on the node needs `PasswordAuthentication yes`.
 Ubuntu cloud images disable it (`/etc/ssh/sshd_config.d/60-cloudimg-settings.conf`).
 

@@ -109,6 +109,35 @@ create_tables() {
     done
 }
 
+# Nodes of a multiserver setup reach the master database as ispcsrvN users, with grants per table.
+# The worker of a node reads and writes wpm_site and reads the settings. Run again after adding a node.
+grant_nodes() {
+    local db=()
+    mapfile -t db < <(db_conf)
+    local host=${db[0]} admin=${db[1]} pass=${db[2]} name=${db[3]}
+    local accounts=() account user from
+    # Two columns, separated by a tab in batch mode.
+    mapfile -t accounts < <(MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -N -B -e \
+        "SELECT User, Host FROM mysql.user WHERE User REGEXP '^ispcsrv[0-9]+\$'")
+    for account in "${accounts[@]}"; do
+        user=${account%%$'\t'*} from=${account#*$'\t'}
+        # Names come from mysql.user and must look like ispcsrvN and a host name or address.
+        [[ $user =~ ^ispcsrv[0-9]+$ && $from =~ ^[A-Za-z0-9.:%_-]+$ ]] || continue
+        info "Granting the module tables to node account $user@$from"
+        MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
+            "GRANT SELECT, INSERT, UPDATE ON \`$name\`.\`wpm_site\` TO '$user'@'$from'; GRANT SELECT ON \`$name\`.\`wpm_setting\` TO '$user'@'$from'" \
+            || echo "WARNING: could not grant the module tables to '$user'@'$from'" >&2
+    done
+}
+
+# Every machine has its own config.php: dry_run is decided on each node.
+create_config() {
+    if [[ ! -f $APP_DIR/config.php ]]; then
+        install -m 0600 "$APP_DIR/config/config.example.php" "$APP_DIR/config.php"
+        info "Created $APP_DIR/config.php (dry_run = true). Edit it before use."
+    fi
+}
+
 # Root runs this code and requires config.php: nobody else may be able to change them.
 chown -R root:root "$APP_DIR"
 chmod -R go-w "$APP_DIR"
@@ -120,6 +149,7 @@ if [[ $MASTER -eq 1 ]]; then
     copy_tree "$APP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/sites"
 
     create_tables
+    grant_nodes
 
     # The panel runs as the ispconfig user: it must be able to traverse the key folder
     # (0710, group ispconfig) without being able to list it.
@@ -136,10 +166,7 @@ if [[ $MASTER -eq 1 ]]; then
     # The panel runs as the ispconfig user and must read the key.
     chown ispconfig:root "$KEY_FILE" 2>/dev/null || true
 
-    if [[ ! -f $APP_DIR/config.php ]]; then
-        install -m 0600 "$APP_DIR/config/config.example.php" "$APP_DIR/config.php"
-        info "Created $APP_DIR/config.php (dry_run = true). Edit it before use."
-    fi
+    create_config
     # The panel only reads it; root runs it. Also for files from older versions, owned by ispconfig.
     if getent group ispconfig >/dev/null; then
         chown root:ispconfig "$APP_DIR/config.php"
@@ -161,7 +188,12 @@ if [[ $NODE -eq 1 ]]; then
     install_server_file plugins wpmanager_plugin.inc.php
 
     # On a slave node the replicated tables live in the local dbispconfig as well.
-    [[ $MASTER -eq 1 ]] || create_tables
+    if [[ $MASTER -eq 0 ]]; then
+        create_tables
+        create_config
+        chown root:root "$APP_DIR/config.php"
+        chmod 0600 "$APP_DIR/config.php"
+    fi
 
     install -d -m 0700 "$SPOOL_DIR"
     touch /var/log/ispconfig-wp-manager.log
