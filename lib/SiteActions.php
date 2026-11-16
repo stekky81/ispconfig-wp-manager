@@ -13,14 +13,14 @@ final class SiteActions
 {
     public const ALL = [
         'backup', 'restore', 'update', 'wpcron', 'refresh', 'push',
-        'maintenance', 'debug', 'debuglog', 'login', 'password',
+        'maintenance', 'debug', 'debuglog', 'login', 'password', 'harden', 'fix_permissions',
         ...SiteExtensions::ACTIONS,
     ];
 
     /** The actions of the site page, with a parameter checked against allowedParams(). */
     public const SITE_PAGE = [
         'backup', 'restore', 'update', 'wpcron',
-        'maintenance', 'debug', 'debuglog', 'login', 'password',
+        'maintenance', 'debug', 'debuglog', 'login', 'password', 'harden', 'fix_permissions',
         ...SiteExtensions::ACTIONS,
     ];
 
@@ -63,7 +63,8 @@ final class SiteActions
             'plugin_delete' => $items('plugins', ['active', 'inactive']),
             'theme_activate' => $items('themes', ['inactive', 'parent']),
             'theme_delete' => $items('themes', ['inactive']),
-            'backup', 'debuglog', 'login' => [''],
+            'harden' => array_merge(...array_map(static fn(string $m): array => ["{$m}:on", "{$m}:off"], SiteHardening::MEASURES)),
+            'backup', 'debuglog', 'login', 'fix_permissions' => [''],
             default => [],
         };
     }

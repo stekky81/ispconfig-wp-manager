@@ -136,4 +136,30 @@ final class NotificationsTest extends TestCase
         ];
         self::assertNull(Notifications::summary('weekly', $sites, []));
     }
+
+    public function testANewVulnerabilityTellsHowItEndsAndCarriesTheCopyright(): void
+    {
+        $vulns = [
+            ['id' => 'a', 'type' => 'plugin', 'slug' => 'wpvivid-backuprestore', 'version' => '0.9.100', 'title' => 'Path Traversal', 'cvss_score' => 7.2, 'cvss_rating' => 'High', 'link' => 'https://www.wordfence.com/threat-intel/vulnerabilities/id/a', 'fixed_in' => '0.9.138'],
+            ['id' => 'b', 'type' => 'theme', 'slug' => 'old-theme', 'version' => '1.0', 'title' => 'XSS', 'cvss_score' => null, 'cvss_rating' => '', 'link' => 'https://www.wordfence.com/threat-intel/vulnerabilities/id/b', 'fixed_in' => ''],
+        ];
+        $mail = Notifications::vulnerabilities(['domain' => 'a.test', 'site_url' => 'https://a.test'], $vulns, "Copyright 2012-2026 Defiant Inc. License text.", true);
+
+        self::assertStringContainsString('a.test: 2', $mail['subject']);
+        self::assertStringContainsString('plugin wpvivid-backuprestore 0.9.100 [High 7.2]: Path Traversal', $mail['body']);
+        self::assertStringContainsString('fixed in 0.9.138', $mail['body']);
+        self::assertStringContainsString('no fixed version yet', $mail['body']);
+        self::assertStringContainsString('https://www.wordfence.com/threat-intel/vulnerabilities/id/a', $mail['body']);
+        self::assertStringContainsString('installed at the next run', $mail['body']);
+        self::assertStringContainsString('Copyright 2012-2026 Defiant Inc. License text.', $mail['body']);
+    }
+
+    public function testTheSummaryCountsVulnerableSites(): void
+    {
+        $mail = Notifications::summary('weekly', [['domain' => 'a.test', 'status' => 'installed', 'updates_count' => 0, 'vulns_count' => 2, 'vulns_fixable' => 1]], []);
+
+        self::assertNotNull($mail);
+        self::assertStringContainsString('1 vulnerable', $mail['subject']);
+        self::assertStringContainsString('a.test: 2, 1 with a fixed version', $mail['body']);
+    }
 }

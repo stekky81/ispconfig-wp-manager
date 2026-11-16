@@ -198,6 +198,17 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] No password in the log, also after a password reset that was shown
 - [x] Filters, pages of 50, rows older than a year deleted at the next request; the last rows on the site page
 
+### Security checks
+
+- [x] Each hardening measure on and off: 403 where expected, uploads and pages still served, `.htaccess` back as before
+- [x] Permissions: a file anyone can write and an open `wp-config.php` are reported and fixed; a file of root is only
+      reported
+- [x] A vulnerable plugin: listed with link and fixed version, email once with the notice of Defiant, automatic update
+      at the next run (2026-11-16: with the update simulated in the database, because the network of the test
+      VM resets the update check of WordPress; it started 30 s after, where the usual rule waits a day)
+- [x] A new site gets the measures of the settings
+- [x] A slave matches its sites against the feed downloaded by the master
+
 ### Security
 
 - [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write

@@ -144,6 +144,7 @@ final class Notifications
     {
         $problems = [];
         $updates = [];
+        $vulnerable = [];
         foreach ($sites as $site) {
             $domain = (string)$site['domain'];
             if (($site['status'] ?? '') === 'error') {
@@ -153,6 +154,10 @@ final class Notifications
             }
             if ((int)($site['updates_count'] ?? 0) > 0) {
                 $updates[] = "{$domain}: " . (int)$site['updates_count'];
+            }
+            // Only the numbers: the records of the feed travel with their notice, in the alert of each site.
+            if ((int)($site['vulns_count'] ?? 0) > 0) {
+                $vulnerable[] = "{$domain}: " . (int)$site['vulns_count'] . ', ' . (int)($site['vulns_fixable'] ?? 0) . ' with a fixed version';
             }
         }
         // The latest problem of each site in the period, unless the site is listed as broken already.
@@ -171,7 +176,7 @@ final class Notifications
             $done[] = substr((string)$event['created'], 0, 16) . ' ' . $event['domain'] . ': '
                 . (self::KINDS[$event['kind']] ?? $event['kind']) . ', ' . str_replace('_', ' ', (string)$event['outcome']);
         }
-        if ($problems === [] && $updates === [] && $done === []) {
+        if ($problems === [] && $updates === [] && $done === [] && $vulnerable === []) {
             return null;
         }
 
@@ -179,6 +184,7 @@ final class Notifications
         $body = '';
         foreach ([
             ['Sites that need a look', $problems],
+            ['Known vulnerabilities', $vulnerable],
             [$frequency === self::DAILY ? 'In the last 24 hours' : 'In the last 7 days', $done],
             ['Updates available', $updates],
         ] as [$title, $lines]) {
@@ -188,11 +194,40 @@ final class Notifications
         }
         $counts = array_filter([
             $problems === [] ? '' : count($problems) . ' to look at',
+            $vulnerable === [] ? '' : count($vulnerable) . ' vulnerable',
             $updates === [] ? '' : count($updates) . ' with updates',
         ]);
         return [
             'subject' => self::PREFIX . "{$period} summary" . ($counts === [] ? '' : ': ' . implode(', ', $counts)),
             'body' => $body . "Details on the pages of the sites in ISPConfig: WordPress > Sites.\n",
+        ];
+    }
+
+    /**
+     * New known vulnerabilities of a site, at once. Each with the link to its record and, at the end, the copyright
+     * notice and license that the data asks for.
+     *
+     * @param list<array> $vulnerabilities from VulnerabilityFeed::forSite()
+     * @return array{subject:string, body:string}
+     */
+    public static function vulnerabilities(array $site, array $vulnerabilities, string $attribution, bool $autoUpdate): array
+    {
+        $domain = (string)$site['domain'];
+        $lines = [];
+        $fixable = 0;
+        foreach ($vulnerabilities as $v) {
+            $score = $v['cvss_score'] === null ? '' : ' [' . trim($v['cvss_rating'] . ' ' . $v['cvss_score']) . ']';
+            $fix = $v['fixed_in'] === '' ? 'no fixed version yet: consider deactivating it' : "fixed in {$v['fixed_in']}";
+            $fixable += $v['fixed_in'] === '' ? 0 : 1;
+            $lines[] = '- ' . self::line("{$v['type']} {$v['slug']} {$v['version']}{$score}: {$v['title']}") . "\n  {$fix}\n  " . $v['link'];
+        }
+        $next = $fixable === 0 ? '' : ($autoUpdate
+            ? "\nAutomatic updates are on for this site: the fixed versions are installed at the next run of the worker, with a backup and a health check.\n"
+            : "\nAutomatic updates are off for this site: update it from its page.\n");
+        return [
+            'subject' => self::PREFIX . 'Known vulnerabilities on ' . $domain . ': ' . count($vulnerabilities),
+            'body' => 'New known vulnerabilities on ' . $domain . ":\n\n" . implode("\n", $lines) . "\n" . $next
+                . "\nSite: " . self::siteUrl($site) . "\nPage in ISPConfig: WordPress > Sites > {$domain}\n\n" . self::text($attribution) . "\n",
         ];
     }
 
@@ -219,6 +254,8 @@ final class Notifications
         'theme_activate' => 'theme activation',
         'theme_delete' => 'theme removal',
         'remove' => 'removal of the site',
+        'harden' => 'hardening',
+        'fix_permissions' => 'fix of the permissions',
     ];
 
     private static function siteUrl(array $site): string

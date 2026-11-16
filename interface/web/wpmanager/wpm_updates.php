@@ -24,9 +24,9 @@ $app->tpl->setVar($wb);
 $escape = static fn($value): string => $app->functions->htmlentities((string)$value);
 
 $rows = $app->db->queryAllRecords(
-    "SELECT s.wpm_site_id, s.domain, s.wp_version, s.updates_count, s.updates_json, s.last_check, s.action_status, s.action_message, v.server_name
+    "SELECT s.wpm_site_id, s.domain, s.wp_version, s.updates_count, s.updates_json, s.last_check, s.action_status, s.action_message, s.vulns_count, s.vulns_fixable, v.server_name
      FROM wpm_site s LEFT JOIN server v ON v.server_id = s.server_id
-     WHERE s.status = 'installed' ORDER BY s.updates_count DESC, s.domain"
+     WHERE s.status = 'installed' ORDER BY s.vulns_count DESC, s.updates_count DESC, s.domain"
 );
 
 $servers = [];
@@ -37,7 +37,7 @@ foreach (\WpManager\UpdateOverview::byServer($rows) as $server) {
 $onlyUpdates = !empty($_GET['only_updates']);
 $sites = [];
 foreach ($rows as $row) {
-    if ($onlyUpdates && (int)$row['updates_count'] === 0) {
+    if ($onlyUpdates && (int)$row['updates_count'] === 0 && (int)$row['vulns_count'] === 0) {
         continue;
     }
     $updates = array_map(
@@ -53,6 +53,7 @@ foreach ($rows as $row) {
         'updates' => $escape(implode(', ', $updates)),
         'error' => $escape(trim(\WpManager\UpdateOverview::error($row['updates_json']) . ' ' . \WpManager\SiteStatus::actionProblem((string)$row['action_status'], $row['action_message']))),
         'last_check' => $escape($row['last_check'] ?? ''),
+        'vulns' => (int)$row['vulns_count'] === 0 ? '' : (int)$row['vulns_count'] . ' (' . (int)$row['vulns_fixable'] . ' ' . $wb['fixable_txt'] . ')',
     ];
 }
 

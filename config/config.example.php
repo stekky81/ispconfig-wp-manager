@@ -45,6 +45,20 @@ return [
         'site_ready' => 'y',
     ],
 
+    // Known vulnerabilities of plugins, themes and WordPress, from Wordfence Intelligence (free, also for commercial use;
+    // see https://www.wordfence.com/wordfence-intelligence-terms-and-conditions/). Create an API key in your
+    // wordfence.com account (Account → Integrations) and put it here, on one node or more: the key must not be shared,
+    // so every installation uses its own. Empty: no check. feed: production (with the CVSS score) or scanner (smaller).
+    'vulnerabilities' => [
+        'wordfence_key' => '',
+        'feed' => 'production',
+    ],
+
+    // Hardening of new sites and clones, usually set in the panel: file_edit, uploads_php, sensitive_files, xmlrpc.
+    'hardening' => [
+        'new_sites' => ['file_edit', 'uploads_php', 'sensitive_files'],
+    ],
+
     'wordpress' => [
         'locale' => 'it_IT',
         'plugins' => [

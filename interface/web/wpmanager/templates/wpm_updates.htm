@@ -47,6 +47,7 @@
             <th>{tmpl_var name='server_txt'}</th>
             <th>{tmpl_var name='version_txt'}</th>
             <th>{tmpl_var name='available_txt'}</th>
+            <th>{tmpl_var name='vulns_txt'}</th>
             <th>{tmpl_var name='last_check_txt'}</th>
         </tr>
     </thead>
@@ -57,11 +58,12 @@
             <td>{tmpl_var name='server_name'}</td>
             <td>{tmpl_var name='wp_version'}</td>
             <td>{tmpl_var name='updates'} {tmpl_var name='error'}</td>
+            <td><tmpl_if name="vulns"><strong>{tmpl_var name='vulns'}</strong></tmpl_if></td>
             <td>{tmpl_var name='last_check'}</td>
         </tr>
         </tmpl_loop>
         <tmpl_unless name="sites">
-        <tr class="tbl_row_noresults"><td colspan="5">{tmpl_var name='no_sites_txt'}</td></tr>
+        <tr class="tbl_row_noresults"><td colspan="6">{tmpl_var name='no_sites_txt'}</td></tr>
         </tmpl_unless>
     </tbody>
 </table>

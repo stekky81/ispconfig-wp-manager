@@ -70,6 +70,22 @@ If you rely on the jail to contain your clients, read
 Backups go to the `tmp` folder of each site and count towards its quota. If ISPConfig uses backup mode `userzip` with a
 tar format, its own backups will include them: see [architecture.md](architecture.md#backups).
 
+## Known vulnerabilities (optional)
+
+The check of known vulnerabilities uses the free Vulnerability Data Feed of Wordfence Intelligence (Defiant Inc.).
+Its [terms](https://www.wordfence.com/wordfence-intelligence-terms-and-conditions/) allow commercial use, but every
+installation needs the API key of its own wordfence.com account, which must not be shared:
+
+1. Create a free account on wordfence.com, then Account → Integrations → create an API key. It is shown once.
+2. Put it in `/opt/ispconfig-wp-manager/config.php` of one node or more:
+   `'vulnerabilities' => ['wordfence_key' => '...', 'feed' => 'production'],`
+3. Within 6 hours a node downloads the feed (about 90 MB or more) and stores it in the master database; then once a
+   day. Wordfence limits the requests of a key without publishing the limits (on 2026-11-16 a second request a few
+   minutes after the first was refused): the module tries at most once every 6 hours. Settings shows the date of the
+   last download.
+
+Without a key nothing is checked and nothing is sent to Wordfence.
+
 ## 4. Database tables
 
 The installer creates the tables in `dbispconfig` on the master. In a multiserver setup it also

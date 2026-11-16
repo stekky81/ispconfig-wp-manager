@@ -221,6 +221,55 @@ $extensionRows = static function (string $type, string $key) use ($site, $report
     return $rows;
 };
 $app->tpl->setLoop('plugins', $extensionRows('plugin', 'plugins'));
+
+// Security: known vulnerabilities, with the link and the notice their license asks for; permissions; hardening.
+$vulnRows = [];
+foreach (json_decode((string)($site['vulns_json'] ?? ''), true) ?: [] as $v) {
+    if (!is_array($v)) {
+        continue;
+    }
+    $vulnRows[] = [
+        'vuln_software' => $escape(($v['type'] ?? '') . ' ' . ($v['slug'] ?? '') . ' ' . ($v['version'] ?? '')),
+        'vuln_title' => $escape($v['title'] ?? ''),
+        'vuln_score' => $escape(isset($v['cvss_score']) ? trim(($v['cvss_rating'] ?? '') . ' ' . $v['cvss_score']) : ''),
+        'vuln_link' => $escape(str_starts_with((string)($v['link'] ?? ''), 'https://www.wordfence.com/') ? $v['link'] : ''),
+        'vuln_fixed' => $escape($v['fixed_in'] ?? ''),
+    ];
+}
+$app->tpl->setLoop('vulns', $vulnRows);
+$app->tpl->setVar('has_vulns', $vulnRows === [] ? 0 : 1);
+$feed = $app->db->queryOneRecord('SELECT imported, copyrights FROM wpm_vulnerability_feed ORDER BY batch DESC LIMIT 1');
+$app->tpl->setVar('vuln_feed', is_array($feed) ? $escape($feed['imported']) : '');
+$copyrightLines = [];
+foreach (is_array($feed) ? (json_decode((string)$feed['copyrights'], true) ?: []) : [] as $copyright) {
+    $copyrightLines[] = [
+        'notice' => $escape($copyright['notice'] ?? ''),
+        'license' => $escape($copyright['license'] ?? ''),
+        'license_url' => $escape(str_starts_with((string)($copyright['license_url'] ?? ''), 'https://') ? $copyright['license_url'] : ''),
+    ];
+}
+$app->tpl->setLoop('copyrights', $copyrightLines);
+$perm = is_array($report['permissions'] ?? null) ? $report['permissions'] : [];
+$app->tpl->setVar('perm_checked', $perm === [] ? 0 : 1);
+$app->tpl->setVar('perm_writable', (int)($perm['world_writable'] ?? 0));
+$app->tpl->setVar('perm_foreign', (int)($perm['foreign'] ?? 0));
+$app->tpl->setVar('perm_config', $escape($perm['wp_config'] ?? ''));
+$app->tpl->setVar('perm_config_open', \WpManager\SitePermissions::configTooOpen((string)($perm['wp_config'] ?? '')) ? 1 : 0);
+$app->tpl->setVar('perm_can_fix', \WpManager\SitePermissions::needsFix($perm) ? 1 : 0);
+$app->tpl->setVar('has_perm_examples', empty($perm['examples']) ? 0 : 1);
+$app->tpl->setLoop('perm_examples', array_map(static fn($line): array => ['line' => $escape($line)], is_array($perm['examples'] ?? null) ? $perm['examples'] : []));
+$hardeningState = is_array($report['hardening'] ?? null) ? $report['hardening'] : [];
+$hardeningRows = [];
+foreach (\WpManager\SiteHardening::MEASURES as $measure) {
+    $hardeningRows[] = [
+        'measure' => $measure,
+        'measure_label' => $escape($wb['hardening_' . $measure . '_txt'] ?? $measure),
+        'measure_desc' => $escape($wb['hardening_' . $measure . '_desc_txt'] ?? ''),
+        'measure_on' => !empty($hardeningState[$measure]) ? 1 : 0,
+        'measure_known' => array_key_exists($measure, $hardeningState) ? 1 : 0,
+    ];
+}
+$app->tpl->setLoop('hardening', $hardeningRows);
 $app->tpl->setLoop('themes', $extensionRows('theme', 'themes'));
 $app->tpl->setVar('action_message', $escape($site['action_message'] ?? ''));
 

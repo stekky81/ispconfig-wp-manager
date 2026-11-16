@@ -81,6 +81,12 @@ final class HealthCheck
         return array_keys(array_filter($before, static fn(bool $ok, string $check): bool => $ok && !($after[$check] ?? false), ARRAY_FILTER_USE_BOTH));
     }
 
+    /** The HTTP status of one path of the site, as the checks see it: 0 when nothing answers. */
+    public function status(array $site, string $path): int
+    {
+        return (int)($this->fetch)(self::baseUrl($site) . $path)['code'];
+    }
+
     public static function baseUrl(array $site): string
     {
         return rtrim((string)($site['site_url'] ?? '') ?: 'http://' . $site['domain'], '/');

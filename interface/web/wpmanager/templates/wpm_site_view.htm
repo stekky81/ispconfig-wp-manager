@@ -172,6 +172,64 @@
     </p>
     <tmpl_if name="debug_tail"><pre id="debug_tail" style="max-height:400px; overflow:auto;">{tmpl_var name='debug_tail'}</pre></tmpl_if>
 
+    <h2>{tmpl_var name='security_txt'}</h2>
+    <h3>{tmpl_var name='vulns_txt'}</h3>
+    <tmpl_if name="vuln_feed">
+        <tmpl_if name="has_vulns">
+        <table class="table" id="site_vulns">
+            <tbody>
+                <tmpl_loop name="vulns">
+                <tr>
+                    <td>{tmpl_var name='vuln_software'}</td>
+                    <td><tmpl_if name="vuln_link"><a href="{tmpl_var name='vuln_link'}" target="_blank" rel="noopener noreferrer">{tmpl_var name='vuln_title'}</a><tmpl_else>{tmpl_var name='vuln_title'}</tmpl_if></td>
+                    <td>{tmpl_var name='vuln_score'}</td>
+                    <td><tmpl_if name="vuln_fixed">{tmpl_var name='vuln_fixed_txt'} {tmpl_var name='vuln_fixed'}<tmpl_else><strong>{tmpl_var name='vuln_nofix_txt'}</strong></tmpl_if></td>
+                </tr>
+                </tmpl_loop>
+            </tbody>
+        </table>
+        <tmpl_else>
+        <p id="no_vulns">{tmpl_var name='no_vulns_txt'}</p>
+        </tmpl_if>
+        <p class="fieldDescription" id="vuln_attribution">{tmpl_var name='vuln_source_txt'} {tmpl_var name='vuln_feed'}.
+            <tmpl_loop name="copyrights"><br />{tmpl_var name='notice'} {tmpl_var name='license'} <tmpl_if name="license_url"><a href="{tmpl_var name='license_url'}" target="_blank" rel="noopener noreferrer">{tmpl_var name='license_url'}</a></tmpl_if></tmpl_loop>
+        </p>
+    <tmpl_else>
+        <p id="vulns_off">{tmpl_var name='vulns_off_txt'}</p>
+    </tmpl_if>
+
+    <h3>{tmpl_var name='permissions_txt'}</h3>
+    <tmpl_if name="perm_checked">
+    <p id="site_permissions">
+        {tmpl_var name='perm_writable_txt'}: {tmpl_var name='perm_writable'} · {tmpl_var name='perm_foreign_txt'}: {tmpl_var name='perm_foreign'} · wp-config.php: {tmpl_var name='perm_config'}<tmpl_if name="perm_config_open"> <strong>{tmpl_var name='perm_config_open_txt'}</strong></tmpl_if>
+    </p>
+    <tmpl_if name="has_perm_examples"><ul id="perm_examples"><tmpl_loop name="perm_examples"><li><code>{tmpl_var name='line'}</code></li></tmpl_loop></ul></tmpl_if>
+    <tmpl_if name="perm_can_fix"><tmpl_unless name="action_busy">
+        <a class="btn btn-default formbutton-default" id="fix_permissions" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=fix_permissions&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='perm_fix_confirm_txt'}');">{tmpl_var name='perm_fix_txt'}</a>
+    </tmpl_unless></tmpl_if>
+    <tmpl_else>
+    <p>{tmpl_var name='perm_not_checked_txt'}</p>
+    </tmpl_if>
+
+    <h3>{tmpl_var name='hardening_txt'}</h3>
+    <table class="table" id="site_hardening">
+        <tbody>
+            <tmpl_loop name="hardening">
+            <tr>
+                <td>{tmpl_var name='measure_label'}<br /><small>{tmpl_var name='measure_desc'}</small></td>
+                <td><tmpl_if name="measure_on"><strong>{tmpl_var name='on_txt'}</strong><tmpl_else>{tmpl_var name='off_txt'}</tmpl_if></td>
+                <td class="text-right"><tmpl_if name="measure_known"><tmpl_unless name="action_busy">
+                    <tmpl_if name="measure_on">
+                    <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=harden&param={tmpl_var name='measure'}:off&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='turn_off_txt'}</button>
+                    <tmpl_else>
+                    <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=harden&param={tmpl_var name='measure'}:on&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='turn_on_txt'}</button>
+                    </tmpl_if>
+                </tmpl_unless></tmpl_if></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+
     <h2>{tmpl_var name='plugins_txt'}</h2>
     <table class="table" id="site_plugins">
         <tbody>

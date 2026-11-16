@@ -67,6 +67,10 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   -- Debug mode on until then; the last lines of its log, read on request
   `debug_until` datetime DEFAULT NULL,
   `debug_tail` mediumtext,
+  -- Known vulnerabilities of the installed versions, and how many have a fixed version
+  `vulns_json` mediumtext,
+  `vulns_count` int(11) unsigned NOT NULL DEFAULT 0,
+  `vulns_fixable` int(11) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`wpm_site_id`),
   UNIQUE KEY `domain` (`domain`),
   KEY `server_id` (`server_id`)
@@ -105,6 +109,33 @@ CREATE TABLE IF NOT EXISTS `wpm_event` (
   `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`event_id`),
   KEY `created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Known vulnerabilities from Wordfence Intelligence: one row per affected software, replaced by each download.
+CREATE TABLE IF NOT EXISTS `wpm_vulnerability` (
+  `row_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `batch` int(11) unsigned NOT NULL DEFAULT 0,
+  `vuln_id` varchar(40) NOT NULL DEFAULT '',
+  `type` varchar(8) NOT NULL DEFAULT '',
+  `slug` varchar(191) NOT NULL DEFAULT '',
+  `title` varchar(500) NOT NULL DEFAULT '',
+  `cvss_score` decimal(3,1) DEFAULT NULL,
+  `cvss_rating` varchar(16) NOT NULL DEFAULT '',
+  `link` varchar(255) NOT NULL DEFAULT '',
+  `ranges` text,
+  `patched` text,
+  PRIMARY KEY (`row_id`),
+  KEY `software` (`type`, `slug`, `batch`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Each download of the feed: when, how many rows, and the copyright notices that go with the data.
+CREATE TABLE IF NOT EXISTS `wpm_vulnerability_feed` (
+  `batch` int(11) unsigned NOT NULL,
+  `imported` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `feed` varchar(16) NOT NULL DEFAULT '',
+  `records` int(11) unsigned NOT NULL DEFAULT 0,
+  `copyrights` text,
+  PRIMARY KEY (`batch`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Who asked for what in the panel: written by the panel only, kept for a year (AuditLog).
@@ -310,6 +341,20 @@ SET @wpm_sql = (
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'action_param'
     AND CHARACTER_MAXIMUM_LENGTH < 255
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions without the vulnerability check.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site`
+       ADD `vulns_json` mediumtext,
+       ADD `vulns_count` int(11) unsigned NOT NULL DEFAULT 0,
+       ADD `vulns_fixable` int(11) unsigned NOT NULL DEFAULT 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'vulns_json'
 );
 PREPARE wpm_stmt FROM @wpm_sql;
 EXECUTE wpm_stmt;

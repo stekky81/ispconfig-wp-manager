@@ -46,3 +46,5 @@ $wb['action_settings_txt'] = 'Settings';
 $wb['action_auto_update_txt'] = 'Automatic update';
 $wb['action_debug_expired_txt'] = 'End of the debug mode';
 $wb['action_login_expired_txt'] = 'End of a temporary login';
+$wb['action_harden_txt'] = 'Hardening';
+$wb['action_fix_permissions_txt'] = 'Permissions fixed';

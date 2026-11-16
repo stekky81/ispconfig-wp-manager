@@ -101,7 +101,7 @@ create_tables() {
 
     # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our tables.
     local table
-    for table in wpm_site wpm_setting wpm_event wpm_audit wpm_notice wpm_transfer wpm_transfer_piece; do
+    for table in wpm_site wpm_setting wpm_event wpm_audit wpm_notice wpm_transfer wpm_transfer_piece wpm_vulnerability wpm_vulnerability_feed; do
         if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
             "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`$table\` TO '$panel_user'@'localhost'"; then
             echo "WARNING: could not grant access on $table to '$panel_user'@'localhost'; check the grants manually" >&2
@@ -125,7 +125,7 @@ grant_nodes() {
     local node_columns='status, status_message, wp_version, secret_db, secret_wp, secret_access, secret_since,
         action_request, action_param, action_status, action_message, backups_json, updates_json, updates_count,
         last_check, last_auto, auto_skip, wp_cron, secret_result, secret_until, login_user, login_until, login_used,
-        debug_until, debug_tail'
+        debug_until, debug_tail, vulns_json, vulns_count, vulns_fixable'
     local revoke
     for account in "${accounts[@]}"; do
         user=${account%%$'\t'*} from=${account#*$'\t'}
@@ -145,7 +145,9 @@ grant_nodes() {
              GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_event\` TO '$user'@'$from';
              GRANT INSERT ON \`$name\`.\`wpm_notice\` TO '$user'@'$from';
              GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`wpm_transfer\` TO '$user'@'$from';
-             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_transfer_piece\` TO '$user'@'$from'" \
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_transfer_piece\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_vulnerability\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_vulnerability_feed\` TO '$user'@'$from'" \
             || echo "WARNING: could not grant the module tables to '$user'@'$from'" >&2
     done
 }

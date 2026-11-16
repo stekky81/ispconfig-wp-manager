@@ -58,7 +58,7 @@ final class SettingsTest extends TestCase
             'key_file' => '/tmp/key',
         ]));
 
-        self::assertSame(['site_defaults', 'wordpress', 'updates', 'notifications'], array_keys($overrides));
+        self::assertSame(['site_defaults', 'wordpress', 'updates', 'hardening', 'notifications'], array_keys($overrides));
         $config = Config::fromArray(['dry_run' => true])->withOverrides($overrides);
         self::assertTrue($config->isDryRun());
     }

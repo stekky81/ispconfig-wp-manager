@@ -14,3 +14,5 @@ $wb['version_txt'] = 'Versione';
 $wb['available_txt'] = 'Aggiornamenti disponibili';
 $wb['last_check_txt'] = 'Ultimo controllo';
 $wb['no_sites_txt'] = 'Nessun sito.';
+$wb['vulns_txt'] = 'Vulnerabilità note';
+$wb['fixable_txt'] = 'con correzione';

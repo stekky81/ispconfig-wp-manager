@@ -84,6 +84,16 @@ $app->tpl->setVar([
     'dry_run' => $config->isDryRun() ? 1 : 0,
 ]);
 
+// Hardening of new sites: one checkbox per measure.
+$chosen = (array)$config->get('hardening.new_sites');
+$app->tpl->setLoop('hardening_measures', array_map(static fn(string $measure): array => [
+    'measure' => $measure,
+    'measure_label' => $escape($wb['hardening_' . $measure . '_txt'] ?? $measure),
+    'measure_checked' => in_array($measure, $chosen, true) ? ' checked="checked"' : '',
+], \WpManager\SiteHardening::MEASURES));
+$feed = $app->db->queryOneRecord('SELECT imported, feed, records FROM wpm_vulnerability_feed ORDER BY batch DESC LIMIT 1');
+$app->tpl->setVar('vuln_feed', is_array($feed) ? $escape($feed['imported'] . ' (' . $feed['feed'] . ', ' . $feed['records'] . ')') : '');
+
 $csrf_token = $app->auth->csrf_token_get('wpm_settings');
 $app->tpl->setVar('_csrf_id', $csrf_token['csrf_id']);
 $app->tpl->setVar('_csrf_key', $csrf_token['csrf_key']);

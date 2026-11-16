@@ -17,6 +17,7 @@ final class Settings
         'wordpress' => ['locale', 'plugins', 'theme'],
         'updates' => ['auto'],
         'notifications' => ['recipients', 'summary', 'site_ready'],
+        'hardening' => ['new_sites'],
     ];
 
     /** @return array<string, array<string, mixed>> validated overrides for Config::withOverrides() */
@@ -39,6 +40,13 @@ final class Settings
             ],
             'updates' => [
                 'auto' => self::choice($in['auto_updates'] ?? null, ['y', 'n']),
+            ],
+            'hardening' => [
+                // Checkboxes: absent when none is ticked.
+                'new_sites' => array_values(array_intersect(
+                    SiteHardening::MEASURES,
+                    is_array($in['hardening_new_sites'] ?? null) ? $in['hardening_new_sites'] : [],
+                )),
             ],
             'notifications' => [
                 'recipients' => implode(', ', Notifications::parseRecipients((string)($in['notify_recipients'] ?? ''))),

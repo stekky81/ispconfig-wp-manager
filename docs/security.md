@@ -74,6 +74,12 @@ Known and accepted for now:
 - **Audit log**: written by the panel only; nodes have no grant on `wpm_audit`. An admin with access to the database
   of ISPConfig can still change it: it records what happened through the panel, it is not tamper-proof.
 
+- **Vulnerability data** come from Wordfence through a key in `config.php` (0640 root:ispconfig, like the rest of it).
+  Any node can write the rows of the feed in the master database: a node that was broken into could add false
+  vulnerabilities (which can only start automatic updates and emails) or remove real ones from the check.
+- **Hardening and permissions** change files as the site user only, and put them back if the site breaks; they never
+  change the owner of a file.
+
 ## Multiserver
 
 Reviewed on 2026-11-16, with a node joined to the master in the test environment.

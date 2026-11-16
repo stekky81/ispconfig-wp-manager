@@ -229,6 +229,37 @@ nobody. Filters: site, user, action, period; 50 rows a page. The site page shows
 Rows and events are kept for a year. The panel deletes older rows of `wpm_audit` when it writes a new one, so the
 nodes need no access to it; the worker deletes older events with the summary.
 
+## Security checks
+
+Decided with the maintainer on 2026-11-16.
+
+**Known vulnerabilities.** The data come from the Vulnerability Data Feed of Wordfence Intelligence, free also for
+commercial use, with the API key of the wordfence.com account of each installation (`vulnerabilities.wordfence_key`
+in `config.php`: the terms do not allow sharing a key, so none ships with the module). Once a day the first node with
+a key that claims a slot of 6 hours in `wpm_notice` (Wordfence does not publish its limits) downloads the feed (`production`, with the CVSS score, or the smaller
+`scanner`), keeps one row per affected software in `wpm_vulnerability` and the copyright notices in
+`wpm_vulnerability_feed`, and drops the previous download. Records that do not look as expected are left out. Every
+node matches its sites against the rows after each daily check, and all its sites again when a new download appears
+(`VulnerabilityFeed::forSite`, version ranges as the Wordfence CLI reads them). The site page lists each vulnerability
+with its record on wordfence.com, its score and the fixed version, and the overview counts them. A new vulnerability
+of a site is emailed at once, once. If a fixed version exists and automatic updates are on, the site gets its
+automatic update at the next run instead of waiting for its day (backup, health check, rollback as always); without a
+fixed version the page suggests deactivating the plugin and nothing changes by itself. The license of the data asks
+for the link to each record and for the copyright notice and license of Defiant in every copy: the page and the email
+show them.
+
+**File permissions.** The daily check counts, as the site user, what anyone can write in the web root, what belongs to
+another user, and the mode of `wp-config.php`. "Fix the permissions" takes away the write bit of others from what the
+site user owns and sets `wp-config.php` to 640, then checks the site and puts everything back if it broke. Files of
+other users are only reported.
+
+**Hardening.** Four switches per site, each reversible (`SiteHardening`): no file editor (`DISALLOW_FILE_EDIT`), no PHP
+in `wp-content/uploads`, no `readme.html`, `license.txt`, copies of `wp-config.php` and `.git`, and no XML-RPC (which
+stops Jetpack and the mobile app). The last three are blocks marked with the name of the module in `.htaccess`, before
+the rules of WordPress, which stay as they are. After turning one on, its own address must answer 403, or the change is
+undone: a server that ignores `.htaccess` (nginx) says so instead of pretending. New sites and clones get the measures
+chosen in the settings (by default all but XML-RPC).
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

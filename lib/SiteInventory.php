@@ -41,6 +41,8 @@ final class SiteInventory
         $report['admins'] = $admins['exit'] === 0 ? SiteUsers::parseAdmins($admins['stdout']) : [];
         $report['maintenance'] = (new MaintenanceMode($this->config, $this->guard))->isOn($site, $runner);
         $report['debug'] = WpCli::isTrue($runner->run($wp->configGet('WP_DEBUG')));
+        $report['hardening'] = (new SiteHardening($this->config, $this->guard, new HealthCheck()))->state($site, $runner);
+        $report['permissions'] = (new SitePermissions($this->config, $this->guard, new HealthCheck()))->check($site, $runner);
         return $report;
     }
 
@@ -68,6 +70,8 @@ final class SiteInventory
             'admins' => [],
             'maintenance' => false,
             'debug' => false,
+            'hardening' => [],
+            'permissions' => [],
         ];
     }
 

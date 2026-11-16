@@ -48,6 +48,15 @@ final class Config
             'summary' => 'weekly',
             'site_ready' => 'y',
         ],
+        // Known vulnerabilities, from Wordfence Intelligence. Off without the API key of your own wordfence.com account.
+        'vulnerabilities' => [
+            'wordfence_key' => '',
+            'feed' => 'production',
+        ],
+        // Hardening measures for new sites and clones (SiteHardening::MEASURES).
+        'hardening' => [
+            'new_sites' => ['file_edit', 'uploads_php', 'sensitive_files'],
+        ],
         'wordpress' => [
             'locale' => 'it_IT',
             'plugins' => [],

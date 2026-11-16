@@ -49,7 +49,7 @@ final class AuditLog
             'clone', 'staging' => 'clone',
             'backup', 'restore', 'update', 'wpcron', 'refresh', 'push', 'maintenance', 'debug', 'debuglog',
             'login', 'password', 'plugin_activate', 'plugin_deactivate', 'plugin_delete', 'theme_activate',
-            'theme_delete' => $action,
+            'theme_delete', 'harden', 'fix_permissions' => $action,
             default => '',
         };
     }

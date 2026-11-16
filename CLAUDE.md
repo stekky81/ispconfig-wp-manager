@@ -82,6 +82,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   `api.wordpress.org`, so Claude Code drops with ECONNRESET. The Mac is not the cause: the same test passes on
   a phone hotspot. With the Tunnelblick VPN Claude Code works but the VM has no internet access, so work on
   the phone hotspot, without VPN.
+- On the home connection the update check of WordPress (a POST to `api.wordpress.org/plugins/update-check/`) is reset
+  even when plain requests pass: WordPress then sees no update at all. Use the hotspot to test real updates.
 - On the hotspot DNS through the Mac is unreliable and WP-CLI times out at 10 seconds: the VM uses public DNS,
   from `/etc/systemd/resolved.conf.d/90-wpm-test.conf` (`DNS=1.1.1.1 8.8.8.8`, `Domains=~.`).
 - A test that attacks something must first check that the deploy worked: one ran on old code and damaged
@@ -124,6 +126,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 18. WP-CLI commands that start programs fail in the sandbox (`proc_open` is disabled): `wp plugin delete` runs `rm`,
     `wp db export` runs `mysqldump`. Ask WP-CLI for the path or the settings and run the program from the worker.
 19. `mysql -N` prints a NULL as the text `NULL`: a test that waits for a column to be set must compare with it.
+20. Never edit a file in the VM with `php -r` inside `bash -c '...'`: the shell expands the `$` of PHP and the file is
+    overwritten (it happened to the master `config.php` on 2026-11-16, rebuilt with a new Remote API password).
+    Write a PHP script on the Mac and pass it on stdin; keep a copy of the file first.
 
 
 ## Current status (2026-11-16)
@@ -134,7 +139,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   staging (create, update from production, push to production); WP-Cron switch; `--uninstall`; clear failure
   messages with retries that resume; objects of plugin classes and page caches in clones; multiserver, with its
   security review; emails; clone to another node; every WP-CLI command in the sandbox; maintenance tools (maintenance mode, one-click login, password reset, debug,
-  plugins and themes); full removal of a site; audit log. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  plugins and themes); full removal of a site; audit log; known vulnerabilities (Wordfence Intelligence), file permissions,
+  hardening. The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
 - **Next**: the remaining 1.0 items of ROADMAP.md, one decision at a time with Stefano; the production pilot comes last.
   Security review done: see `docs/security.md`, including what remains open.

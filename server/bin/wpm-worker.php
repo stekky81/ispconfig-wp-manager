@@ -51,6 +51,9 @@ use WpManager\SiteBackup;
 use WpManager\SiteCloner;
 use WpManager\SiteCredentials;
 use WpManager\SiteExtensions;
+use WpManager\SiteHardening;
+use WpManager\SitePermissions;
+use WpManager\VulnerabilityFeed;
 use WpManager\SiteInventory;
 use WpManager\SiteRecord;
 use WpManager\SiteTransfer;
@@ -87,6 +90,8 @@ $extensions = new SiteExtensions($config, new PathGuard($config->get('web_root_b
 $maintenance = new MaintenanceMode($config, new PathGuard($config->get('web_root_base')));
 $debug = new WpDebug($config, new PathGuard($config->get('web_root_base')));
 $users = new SiteUsers($config, new PathGuard($config->get('web_root_base')));
+$hardening = new SiteHardening($config, new PathGuard($config->get('web_root_base')), new HealthCheck());
+$permissions = new SitePermissions($config, new PathGuard($config->get('web_root_base')), new HealthCheck());
 // A password for the panel, shown there once: only the panel and the nodes have the key.
 $seal = static fn(array $result): string => Crypto::fromFile($config->get('key_file'))->encrypt(json_encode($result, JSON_THROW_ON_ERROR));
 
@@ -190,6 +195,48 @@ $distrust = static function (array $site, ?int $serverId = null) use ($app, $con
         error_log("wpmanager: site {$site['domain']} refused: {$reason}");
     }
     return $reason;
+};
+
+// Known vulnerabilities of one site, from its report and the rows of the latest feed. New ones are sent at once,
+// one email per site, with the links and the copyright notice the data asks for.
+$matchVulnerabilities = static function (array $site) use ($app, $sendMail, $event, $settings): void {
+    $report = json_decode((string)($site['updates_json'] ?? ''), true);
+    $feed = $app->dbmaster->queryOneRecord('SELECT batch, copyrights FROM wpm_vulnerability_feed ORDER BY batch DESC LIMIT 1');
+    if (!is_array($report) || !isset($report['plugins']) || !is_array($feed)) {
+        return;
+    }
+    $conditions = [];
+    $values = [(int)$feed['batch']];
+    foreach (VulnerabilityFeed::softwareOf($report) as $software) {
+        $conditions[] = '(type = ? AND slug = ?)';
+        array_push($values, $software['type'], $software['slug']);
+    }
+    $rows = $app->dbmaster->queryAllRecords(
+        'SELECT vuln_id, type, slug, title, cvss_score, cvss_rating, link, ranges, patched FROM wpm_vulnerability WHERE batch = ? AND (' . implode(' OR ', $conditions) . ')',
+        ...$values,
+    ) ?: [];
+    $found = VulnerabilityFeed::forSite($report, $rows);
+    $fixable = count(array_filter($found, static fn(array $v): bool => $v['fixed_in'] !== ''));
+    $app->dbmaster->query(
+        'UPDATE wpm_site SET vulns_json = ?, vulns_count = ?, vulns_fixable = ? WHERE wpm_site_id = ?',
+        json_encode($found, JSON_THROW_ON_ERROR),
+        count($found),
+        $fixable,
+        $site['wpm_site_id'],
+    );
+    $new = [];
+    foreach ($found as $vulnerability) {
+        $app->dbmaster->query('INSERT IGNORE INTO wpm_notice (notice) VALUES (?)', 'vuln-' . (int)$site['wpm_site_id'] . '-' . substr(sha1($vulnerability['id'] . '/' . $vulnerability['slug']), 0, 32));
+        if ($app->dbmaster->affectedRows() === 1) {
+            $new[] = $vulnerability;
+        }
+    }
+    if ($new !== []) {
+        $attribution = VulnerabilityFeed::attribution(json_decode((string)$feed['copyrights'], true) ?: []);
+        $automatic = $settings->get('updates.auto') === 'y' && ($site['auto_update'] ?? 'n') === 'y';
+        $sendMail(Notifications::vulnerabilities($site, $new, $attribution, $automatic));
+        $event($site, 'vulnerability', 'found', count($new) . ' new: ' . implode(', ', array_map(static fn(array $v): string => "{$v['slug']} {$v['version']}", $new)), false);
+    }
 };
 
 // Clones between nodes travel through the master database, with a connection of their own.
@@ -334,6 +381,18 @@ foreach ($queue->pending() as $name) {
                     $siteId,
                 );
                 $finish('done', "New password of {$reset['user']}; its sessions are closed.");
+            } elseif ($job['type'] === 'harden') {
+                [$measure, $state] = explode(':', (string)$record['action_param']) + ['', ''];
+                if (!in_array($state, ['on', 'off'], true)) {
+                    throw new \RuntimeException("Invalid hardening request: {$record['action_param']}");
+                }
+                $result = $hardening->set($record, $measure, $state === 'on');
+                $finish($result['outcome'], $result['message']);
+                $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
+            } elseif ($job['type'] === 'fix_permissions') {
+                $result = $permissions->fix($record);
+                $finish($result['outcome'], $result['message']);
+                $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
             } elseif (in_array($job['type'], SiteExtensions::ACTIONS, true)) {
                 $result = $extensions->run($record, (string)$job['type'], (string)$record['action_param']);
                 $finish($result['outcome'], $result['message']);
@@ -422,6 +481,8 @@ foreach ($queue->pending() as $name) {
         }
         $warnings = array_values(array_filter($log, static fn(string $line): bool => str_starts_with($line, 'Warning: ')));
         if (!$config->isDryRun()) {
+            // The measures of the settings; one that does not work here is a warning, the site works without it.
+            $warnings = array_merge($warnings, $hardening->applyDefaults($site + ['wpm_site_id' => $siteId], (array)$settings->get('hardening.new_sites')));
             $health = (new HealthCheck())->warningAfterInstall($site);
             if ($health !== '') {
                 $warnings[] = $health;
@@ -611,6 +672,10 @@ if (!$config->isDryRun()) {
                 $report['wp_cron_disabled'] ? WpCron::REAL : WpCron::WORDPRESS,
                 $site['wpm_site_id'],
             );
+            $fresh = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $site['wpm_site_id']);
+            if (is_array($fresh)) {
+                $matchVulnerabilities($fresh);
+            }
         } catch (\Throwable $e) {
             $app->dbmaster->query(
                 'UPDATE wpm_site SET updates_json = ?, updates_count = 0, last_check = NOW() WHERE wpm_site_id = ?',
@@ -618,6 +683,78 @@ if (!$config->isDryRun()) {
                 $site['wpm_site_id'],
             );
         }
+    }
+}
+
+// The vulnerability feed of Wordfence Intelligence: once a day, by the first node with a key that claims the slot.
+// Wordfence does not publish its limits: at most one try every 6 hours, four a day, until one works.
+$wordfenceKey = (string)$config->get('vulnerabilities.wordfence_key');
+if (!$config->isDryRun() && $wordfenceKey !== '') {
+    $latest = $app->dbmaster->queryOneRecord('SELECT UNIX_TIMESTAMP(imported) AS at FROM wpm_vulnerability_feed ORDER BY batch DESC LIMIT 1');
+    $now = (int)($app->dbmaster->queryOneRecord('SELECT UNIX_TIMESTAMP() AS now')['now'] ?? time());
+    if (!is_array($latest) || $now - (int)$latest['at'] >= 86400) {
+        $app->dbmaster->query('INSERT IGNORE INTO wpm_notice (notice) VALUES (?)', 'vulnfeed-' . date('Y-m-d', $now) . '-' . intdiv((int)date('G', $now), 6));
+        if ($app->dbmaster->affectedRows() === 1) {
+            $file = $config->get('spool_dir') . '/.wordfence-feed.json';
+            $feedName = (string)$config->get('vulnerabilities.feed');
+            try {
+                VulnerabilityFeed::download($wordfenceKey, $feedName, $file);
+                // The whole feed is one JSON document of some hundred MB once decoded.
+                ini_set('memory_limit', '2048M');
+                $decoded = json_decode((string)file_get_contents($file), true, 64);
+                @unlink($file);
+                if (!is_array($decoded)) {
+                    throw new \RuntimeException('the feed is not JSON');
+                }
+                $parsed = VulnerabilityFeed::rows($decoded);
+                unset($decoded);
+                foreach (array_chunk($parsed['rows'], 500) as $chunk) {
+                    $values = [];
+                    foreach ($chunk as $row) {
+                        array_push($values, $now, ...array_values($row));
+                    }
+                    $app->dbmaster->query(
+                        'INSERT INTO wpm_vulnerability (batch, vuln_id, type, slug, title, cvss_score, cvss_rating, link, ranges, patched) VALUES '
+                        . implode(', ', array_fill(0, count($chunk), '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')),
+                        ...$values,
+                    );
+                }
+                $app->dbmaster->query(
+                    'INSERT INTO wpm_vulnerability_feed (batch, feed, records, copyrights) VALUES (?, ?, ?, ?)',
+                    $now,
+                    $feedName,
+                    count($parsed['rows']),
+                    json_encode($parsed['copyrights'], JSON_THROW_ON_ERROR),
+                );
+                $app->dbmaster->query('DELETE FROM wpm_vulnerability WHERE batch != ?', $now);
+                $app->dbmaster->query('DELETE FROM wpm_vulnerability_feed WHERE batch != ?', $now);
+                error_log('wpmanager: vulnerability feed imported, ' . count($parsed['rows']) . ' rows');
+                unset($parsed);
+            } catch (\Throwable $e) {
+                @unlink($file);
+                $app->dbmaster->query('DELETE FROM wpm_vulnerability WHERE batch = ?', $now);
+                error_log('wpmanager: vulnerability feed not imported: ' . $e->getMessage());
+            }
+            ini_set('memory_limit', '512M');
+        }
+    }
+}
+
+// A new feed: every site of this node is matched again, without waiting for its daily check.
+if (!$config->isDryRun()) {
+    $feedStamp = $config->get('spool_dir') . '/.vulnerability-batch';
+    $batch = (int)($app->dbmaster->queryOneRecord('SELECT MAX(batch) AS batch FROM wpm_vulnerability_feed')['batch'] ?? 0);
+    if ($batch > 0 && $batch !== (int)@file_get_contents($feedStamp)) {
+        foreach ($app->dbmaster->queryAllRecords("SELECT * FROM wpm_site WHERE server_id = ? AND status = 'installed'", $conf['server_id']) ?: [] as $site) {
+            try {
+                if ($distrust($site) === '') {
+                    $matchVulnerabilities($site);
+                }
+            } catch (\Throwable $e) {
+                error_log("wpmanager: vulnerabilities of {$site['domain']} not matched: " . $e->getMessage());
+            }
+        }
+        file_put_contents($feedStamp, (string)$batch);
     }
 }
 
@@ -630,8 +767,9 @@ if (!$config->isDryRun()) {
         "SELECT s.* FROM wpm_site s
          INNER JOIN web_domain d ON d.domain_id = s.domain_id AND d.active = 'y'
          WHERE s.server_id = ? AND s.status = 'installed' AND s.auto_update = 'y' AND s.updates_count > 0 AND s.action_request = ''
-           AND (s.last_auto IS NULL OR s.last_auto < NOW() - INTERVAL " . WPM_AUTO_INTERVAL . ' SECOND)
-         ORDER BY s.last_auto IS NOT NULL, s.last_auto',
+           AND (s.last_auto IS NULL OR s.last_auto < NOW() - INTERVAL " . WPM_AUTO_INTERVAL . ' SECOND
+             OR (s.vulns_fixable > 0 AND s.last_auto < NOW() - INTERVAL 1 HOUR))
+         ORDER BY s.vulns_fixable > 0 DESC, s.last_auto IS NOT NULL, s.last_auto',
         $conf['server_id'],
     ) : [];
 
@@ -673,7 +811,7 @@ if (!$config->isDryRun()) {
         $app->dbmaster->query('INSERT IGNORE INTO wpm_notice (notice) VALUES (?)', $key);
         if ($app->dbmaster->affectedRows() === 1) {
             $sites = $app->dbmaster->queryAllRecords(
-                'SELECT domain, status, status_message, action_status, action_message, updates_count FROM wpm_site ORDER BY domain',
+                'SELECT domain, status, status_message, action_status, action_message, updates_count, vulns_count, vulns_fixable FROM wpm_site ORDER BY domain',
             );
             $events = $app->dbmaster->queryAllRecords(
                 'SELECT domain, kind, outcome, message, created FROM wpm_event WHERE created >= FROM_UNIXTIME(?) ORDER BY created',
