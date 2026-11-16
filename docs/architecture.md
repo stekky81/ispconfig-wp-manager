@@ -155,8 +155,9 @@ the master (System → Main config → Mail: sender, SMTP server; the copy in th
   passwords stay on the page of the site, shown once (an email travels in clear and stays in mailboxes and backups);
 - an alert at once for a rollback (also a failed one) and for a failed action: backup, restore, update, update of a
   staging, push;
-- a summary, off, daily or weekly (default), only when there is something to report: sites that need a look, what
-  happened in the period, updates available. The workers record what they do in `wpm_event` on the master; the first
+- a summary, off, daily or weekly (default), only when there is something to report: the problems of the period and
+  the sites that are still broken (failed install, failed rollback), what happened in the period, updates available.
+  An older warning stays on the page of its site, or every summary would repeat it. The workers record what they do in `wpm_event` on the master; the first
   node that adds the name of the summary to `wpm_notice` sends it, so a multiserver setup gets one email. It is due
   from 6:00, in the time of the master database. Events older than 60 days are deleted.
 

@@ -132,9 +132,11 @@ final class Notifications
     }
 
     /**
-     * Null when there is nothing to report: an empty summary teaches to ignore the full ones.
+     * Null when there is nothing to report: an empty summary teaches to ignore the full ones. Problems are the ones
+     * of the period, from the events, plus the sites that are still broken; an old warning stays on the page of
+     * its site, or every summary would repeat it.
      *
-     * @param list<array<string, mixed>> $sites  domain, status, action_status, action_message, updates_count
+     * @param list<array<string, mixed>> $sites  domain, status, status_message, action_status, action_message, updates_count
      * @param list<array<string, mixed>> $events domain, kind, outcome, message, created
      * @return array{subject:string, body:string}|null
      */
@@ -145,14 +147,25 @@ final class Notifications
         foreach ($sites as $site) {
             $domain = (string)$site['domain'];
             if (($site['status'] ?? '') === 'error') {
-                $problems[] = "{$domain}: not installed. " . self::line((string)($site['status_message'] ?? ''));
-            } elseif (in_array($site['action_status'] ?? '', ['failed', 'rolled_back', 'rollback_failed', 'warning'], true)) {
-                $problems[] = "{$domain}: " . str_replace('_', ' ', (string)$site['action_status']) . '. ' . self::line((string)($site['action_message'] ?? ''));
+                $problems[$domain] = "{$domain}: not installed. " . self::line((string)($site['status_message'] ?? ''));
+            } elseif (($site['action_status'] ?? '') === 'rollback_failed') {
+                $problems[$domain] = "{$domain}: broken, the rollback did not repair it. " . self::line((string)($site['action_message'] ?? ''));
             }
             if ((int)($site['updates_count'] ?? 0) > 0) {
                 $updates[] = "{$domain}: " . (int)$site['updates_count'];
             }
         }
+        // The latest problem of each site in the period, unless the site is listed as broken already.
+        foreach (array_reverse($events) as $event) {
+            $domain = (string)$event['domain'];
+            if (isset($problems[$domain]) || !in_array($event['outcome'], ['error', 'failed', 'rolled_back', 'rollback_failed', 'warning'], true)) {
+                continue;
+            }
+            $problems[$domain] = "{$domain}: " . (self::KINDS[$event['kind']] ?? $event['kind']) . ', '
+                . str_replace('_', ' ', (string)$event['outcome']) . '. ' . self::line((string)$event['message']);
+        }
+        ksort($problems);
+        $problems = array_values($problems);
         $done = [];
         foreach ($events as $event) {
             $done[] = substr((string)$event['created'], 0, 16) . ' ' . $event['domain'] . ': '

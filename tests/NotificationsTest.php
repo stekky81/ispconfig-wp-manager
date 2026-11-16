@@ -103,19 +103,37 @@ final class NotificationsTest extends TestCase
     public function testTheSummaryListsProblemsEventsAndUpdates(): void
     {
         $sites = [
-            ['domain' => 'a.example.com', 'status' => 'installed', 'action_status' => 'rolled_back', 'action_message' => "Broken after\nthe update", 'updates_count' => 2],
+            ['domain' => 'a.example.com', 'status' => 'installed', 'action_status' => 'rolled_back', 'action_message' => 'x', 'updates_count' => 2],
             ['domain' => 'b.example.com', 'status' => 'error', 'status_message' => 'Download of WordPress failed', 'updates_count' => 0],
             ['domain' => 'c.example.com', 'status' => 'installed', 'action_status' => 'updated', 'updates_count' => 0],
+            ['domain' => 'd.example.com', 'status' => 'installed', 'action_status' => 'rollback_failed', 'action_message' => "Still\nbroken", 'updates_count' => 0],
         ];
-        $events = [['domain' => 'c.example.com', 'kind' => 'auto_update', 'outcome' => 'updated', 'message' => '', 'created' => '2026-11-15 03:10:22']];
+        $events = [
+            ['domain' => 'a.example.com', 'kind' => 'auto_update', 'outcome' => 'failed', 'message' => 'first', 'created' => '2026-11-14 03:10:00'],
+            ['domain' => 'c.example.com', 'kind' => 'auto_update', 'outcome' => 'updated', 'message' => '', 'created' => '2026-11-15 03:10:22'],
+            ['domain' => 'a.example.com', 'kind' => 'auto_update', 'outcome' => 'rolled_back', 'message' => "Broken after\nthe update", 'created' => '2026-11-15 04:00:00'],
+        ];
         $mail = Notifications::summary('daily', $sites, $events);
 
         self::assertNotNull($mail);
-        self::assertSame('[WordPress Manager] Daily summary: 2 to look at, 1 with updates', $mail['subject']);
-        self::assertStringContainsString('a.example.com: rolled back. Broken after the update', $mail['body']);
+        self::assertSame('[WordPress Manager] Daily summary: 3 to look at, 1 with updates', $mail['subject']);
+        // The latest problem of the period, on one line.
+        self::assertStringContainsString('a.example.com: automatic update, rolled back. Broken after the update', $mail['body']);
+        self::assertStringNotContainsString('first', $mail['body']);
         self::assertStringContainsString('b.example.com: not installed. Download of WordPress failed', $mail['body']);
+        self::assertStringContainsString('d.example.com: broken, the rollback did not repair it. Still broken', $mail['body']);
         self::assertStringContainsString('2026-11-15 03:10 c.example.com: automatic update, updated', $mail['body']);
         self::assertStringContainsString('a.example.com: 2', $mail['body']);
         self::assertStringNotContainsString('c.example.com: 0', $mail['body']);
+    }
+
+    // Decided with the maintainer: an old warning stays on the page of its site, not in every summary.
+    public function testAnOldWarningIsNotRepeated(): void
+    {
+        $sites = [
+            ['domain' => 'a.example.com', 'status' => 'installed', 'action_status' => 'warning', 'action_message' => 'old', 'updates_count' => 0],
+            ['domain' => 'b.example.com', 'status' => 'installed', 'action_status' => 'rolled_back', 'action_message' => 'old', 'updates_count' => 0],
+        ];
+        self::assertNull(Notifications::summary('weekly', $sites, []));
     }
 }
