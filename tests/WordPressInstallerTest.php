@@ -69,6 +69,18 @@ final class WordPressInstallerTest extends TestCase
         self::assertFileExists($this->root . '/client3/web7/web/index.html', 'dry-run must not delete files');
     }
 
+    // Plugins and themes run their code during the install: in the sandbox of the site.
+    public function testEveryWpCliCommandRunsInTheSandbox(): void
+    {
+        $log = $this->installer(['wordpress' => ['plugins' => ['akismet']]])->install($this->site(), new Runner(true));
+        $wp = array_filter($log, static fn(string $line): bool => str_contains($line, "'/usr/local/bin/wp'"));
+        self::assertNotEmpty($wp);
+        foreach ($wp as $line) {
+            self::assertStringContainsString("'ffi.enable=0'", $line);
+            self::assertMatchesRegularExpression("#'-u' 'web7' .*'open_basedir=[^']*/client3/web7:/usr/local/bin/wp'#", $line);
+        }
+    }
+
     public function testPlaceholderPagesAreRemovedBeforeTheInstall(): void
     {
         touch($this->root . '/client3/web7/web/standard_index.html');

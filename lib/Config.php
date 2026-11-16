@@ -42,6 +42,12 @@ final class Config
             // Plugins, themes and minor core releases. Nothing runs while dry_run is on.
             'auto' => 'y',
         ],
+        // Emails, with the mail settings of ISPConfig. Empty recipients: its admin email.
+        'notifications' => [
+            'recipients' => '',
+            'summary' => 'weekly',
+            'site_ready' => 'y',
+        ],
         'wordpress' => [
             'locale' => 'it_IT',
             'plugins' => [],

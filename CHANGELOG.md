@@ -16,6 +16,12 @@
 - The health check after a change waits for the opcache of PHP, looks again at what seems broken, and says why
 - A new site or clone that does not answer after the install gets a warning on its page
 - The worker writes its PHP errors with date and time
+- Install and clone run WP-CLI in the PHP sandbox too; a clone copies the database with `mysqldump` and `mysql`
+  between the two site users
+- Multiserver review: nodes can update only the status columns of `wpm_site`, and the worker refuses a row that does
+  not match its website in ISPConfig
+- Emails with the mail settings of ISPConfig: site ready (without passwords), immediate alerts for rollbacks and
+  failures, daily or weekly summary; recipients in the settings page
 - Multiserver: the master installer grants the module tables to the database account of every node, the node
   installer creates the node's own `config.php`; tested with a second VM joined as a node
 - Failures say which step failed, the likely cause and what to check; a plugin or theme that cannot be installed is a

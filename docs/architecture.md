@@ -144,7 +144,25 @@ or two no cron may run, and scheduled tasks simply run at the next pass.
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the
 master, on top of `config.php`. The record of each site carries what the worker needs to install it, and the worker
-reads only the automatic updates switch from that table. `dry_run`, the Remote API account and the key file can only be set in `config.php`.
+reads only the automatic updates switch and the email settings from that table. `dry_run`, the Remote API account and the key file can only be set in `config.php`.
+
+## Emails
+
+Decided with the maintainer on 2026-11-16. The worker of each node sends, with the mail settings of ISPConfig read from
+the master (System → Main config → Mail: sender, SMTP server; the copy in the database of a node can be old):
+
+- a notice when a new site or clone is ready, or failed for good, with a link to the site and **no password**: the
+  passwords stay on the page of the site, shown once (an email travels in clear and stays in mailboxes and backups);
+- an alert at once for a rollback (also a failed one) and for a failed action: backup, restore, update, update of a
+  staging, push;
+- a summary, off, daily or weekly (default), only when there is something to report: sites that need a look, what
+  happened in the period, updates available. The workers record what they do in `wpm_event` on the master; the first
+  node that adds the name of the summary to `wpm_notice` sends it, so a multiserver setup gets one email. It is due
+  from 6:00, in the time of the master database. Events older than 60 days are deleted.
+
+Recipients are set in the settings page (up to 10, separated by commas); empty means the admin email of ISPConfig.
+Without a valid admin email the sender is `wpmanager@<node>`. `Notifications` builds the messages; a failed email is
+written to the log of the worker and stops nothing.
 
 ## Existing sites
 

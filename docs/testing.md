@@ -75,6 +75,17 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
       server 2, installed by the worker of the node, record updated on the master
 - [x] On the slave node: daily check, backup, plugin update, clone and staging with an update from production; a
       WordPress site of the node not in the list is detected and added on the master
+- [x] A node can update only the status columns of `wpm_site` on the master: folder, user, server and automatic update
+      switch are refused by MariaDB; the master installer runs twice without warnings
+- [x] A row changed behind the back of the panel (another user) or added for a website already in the list is refused by
+      the worker, logged, and does not stop the other sites
+- [x] Install and clone in the sandbox, on the master and on the node
+
+### Emails
+
+- [x] Settings saved from the panel, an invalid address refused, the other settings kept
+- [x] Site ready (no password) from the master and, with warnings, from the node; the failed backup sent at once
+- [x] One weekly summary for both nodes: problems, events, updates available
 - [x] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
 - [x] Secrets cleared from `wpm_site` after install (DB password) and after the reveal (the other two)
 - [x] Passwords shown once on the site detail page, and they work

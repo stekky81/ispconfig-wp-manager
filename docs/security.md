@@ -32,7 +32,10 @@ penetration test, and multiserver setups were not covered. Please report problem
 - **SQL of the module** (objects of plugins and caches after a clone or a sync) runs as the site user, on stdin, with
   `--binary-mode`. Values of the site travel as hex in both directions and names are quoted, so no text of a site
   becomes SQL. Serialized values of a site are read by a parser of the module, never by `unserialize()` in root.
-- **Passwords** travel on stdin, are masked in logs and are encrypted at rest with the shared key.
+- **Passwords** travel on stdin, are masked in logs and are encrypted at rest with the shared key. They are never
+  sent by email.
+- **Emails**: recipients are checked one by one (no line breaks, no headers can be added through them); text from a
+  site or a command is stripped of control characters and cut before it goes into a message.
 
 ## Remaining risks
 
@@ -56,6 +59,26 @@ Known and accepted for now:
   They exist for the rollback of an update and for going back after a change, not for disaster recovery: a hacked site
   can infect its own backups, so do not use them to clean it. Keep the backups of ISPConfig, or external ones, for that.
 
+## Multiserver
+
+Reviewed on 2026-11-16, with a node joined to the master in the test environment.
+
+- **A node writes to the master database** as its `ispcsrvN` account, like ISPConfig itself. The master installer gives
+  it SELECT and INSERT on `wpm_site` (INSERT for the sites it detects) and UPDATE only on the columns a worker writes
+  (status, messages, versions, secrets it clears, action fields, check times), like ISPConfig does with its own
+  tables. The folder, the user, the server, the domain and the automatic update switch of a site cannot be changed
+  from a node.
+- **The worker checks every row before acting on it**: the row must point to a website of ISPConfig on its own node,
+  with the same folder, user and domain (`SiteRecord`). A node that was broken into could still add rows; they are
+  refused, and a refused row is logged and does not block the other sites.
+- **The shared key is on every node**, so root on one node can decrypt the secrets stored for sites on the others: the
+  database password until the install ends, the generated passwords until they are shown or expire after 7 days.
+  A key per node would remove this; open for now.
+- **Events and summaries**: a node can add and delete rows of `wpm_event`, and add rows to `wpm_notice`. At worst a node
+  that was broken into hides events from the summary or stops summaries; it cannot change a site.
+- **Not ours**: ISPConfig needs the master database to accept connections from the nodes. Limit it to their addresses
+  with a firewall.
+
 ## WP-CLI runs outside the jail
 
 Read this before using the module on a server where site owners are jailed and you do not trust them.
@@ -71,11 +94,11 @@ moments:
 | Backup and restore | Yes: only the database settings are read in it, then `mysqldump` and `mysql` start from the worker |
 | WP-Cron switch | Yes |
 | Staging: update from production and push to production | Yes, with the database copied by `mysqldump` and `mysql` between the two site users |
-| Install | **No** |
-| Clone | **No** |
+| Install | Yes |
+| Clone | Yes, with the database copied by `mysqldump` and `mysql` between the two site users |
 
-Install and clone stay outside because they need WP-CLI to start other programs, and they only follow a request of an
-admin. A clone loads the code of the source.
+Since 2026-11-16 nothing of the module runs WP-CLI outside the sandbox: a clone no longer uses `wp db export` and
+`wp db import`, which start programs.
 
 Code that runs there can start programs, keep a process running and read what the site user can read, outside the jail.
 It still runs as the site user. It does not become root, and it cannot read the sites of other clients. In the test VM
@@ -85,8 +108,8 @@ from the permissions ISPConfig gives them.
 What to do:
 
 - If your clients have a normal shell, or you are the only owner of the sites, this adds nothing to what they can do.
-- If you rely on the jail to contain your clients, clone only sites whose owner you trust. A new install starts in an
-  empty folder, so there is no code of the owner to run yet.
+- If you rely on the jail to contain your clients, keep in mind that the sandbox below is the only limit at these
+  moments: clone only sites whose owner you trust.
 
 The sandbox itself is a limit on PHP and not a wall. It was tested against FFI, `LD_PRELOAD` and Imagick, but other
 extensions loaded on your node may offer another way.
@@ -111,3 +134,5 @@ Fixed:
 | Low | The database password stayed encrypted in `wpm_site` after a final install error |
 | Low | Generated passwords nobody looked at stayed encrypted in `wpm_site` for ever |
 | Low | The worker log was readable by every user, and an unreadable backup folder could stop the worker |
+| Medium | A node could change every column of `wpm_site`, and the worker trusted the folder and the user of a row: a node that was broken into could send the worker of another node to another folder or user |
+| Medium | Install and clone ran WP-CLI outside the sandbox; a clone ran the code of the source there |

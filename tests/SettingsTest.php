@@ -25,6 +25,9 @@ final class SettingsTest extends TestCase
             'plugins' => 'akismet, jetpack',
             'theme' => '',
             'auto_updates' => 'y',
+            'notify_recipients' => '',
+            'notify_summary' => 'weekly',
+            'notify_site_ready' => 'y',
         ];
     }
 
@@ -55,7 +58,7 @@ final class SettingsTest extends TestCase
             'key_file' => '/tmp/key',
         ]));
 
-        self::assertSame(['site_defaults', 'wordpress', 'updates'], array_keys($overrides));
+        self::assertSame(['site_defaults', 'wordpress', 'updates', 'notifications'], array_keys($overrides));
         $config = Config::fromArray(['dry_run' => true])->withOverrides($overrides);
         self::assertTrue($config->isDryRun());
     }
@@ -76,6 +79,25 @@ final class SettingsTest extends TestCase
 
         $off = Settings::fromInput($this->input(['auto_updates' => 'n']));
         self::assertSame('n', Config::fromArray([])->withOverrides(Settings::fromJson((string)json_encode($off)))->get('updates.auto'));
+    }
+
+    public function testNotificationsAreSavedNormalised(): void
+    {
+        $stored = json_encode(Settings::fromInput($this->input([
+            'notify_recipients' => " ops@example.com;  Me@Example.com,ops@example.com\n",
+            'notify_summary' => 'daily',
+            'notify_site_ready' => 'n',
+        ])));
+        $config = Config::fromArray([])->withOverrides(Settings::fromJson((string)$stored));
+
+        self::assertSame('ops@example.com, Me@Example.com', $config->get('notifications.recipients'));
+        self::assertSame('daily', $config->get('notifications.summary'));
+        self::assertSame('n', $config->get('notifications.site_ready'));
+    }
+
+    public function testNotificationsDefaultToAWeeklySummaryForTheIspconfigAdmin(): void
+    {
+        self::assertSame(['recipients' => '', 'summary' => 'weekly', 'site_ready' => 'y'], Config::fromArray([])->get('notifications'));
     }
 
     public function testBrokenStoredSettingsAreIgnored(): void
@@ -104,6 +126,12 @@ final class SettingsTest extends TestCase
             'theme' => [['theme' => '../x']],
             'php' => [['server_php_id' => 'abc']],
             'auto updates' => [['auto_updates' => 'maybe']],
+            'recipient' => [['notify_recipients' => 'not an address']],
+            // A header injected through the address would add recipients or headers to every email.
+            'recipient with a header' => [['notify_recipients' => "a@example.com\r\nBcc: x@evil.example"]],
+            'too many recipients' => [['notify_recipients' => implode(',', array_map(static fn(int $i): string => "a{$i}@example.com", range(1, 11)))]],
+            'summary' => [['notify_summary' => 'hourly']],
+            'site ready' => [['notify_site_ready' => 'maybe']],
         ];
     }
 }

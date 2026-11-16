@@ -65,6 +65,19 @@ final class SiteClonerTest extends TestCase
     }
 
     // The worst possible bug: the clone would use the database of the source.
+    // The code of the source runs in WP-CLI of both sites: always in the sandbox, which starts no program.
+    public function testEveryWpCliCommandRunsInTheSandboxOfItsSite(): void
+    {
+        $wp = array_filter(explode("\n", $this->log()), static fn(string $line): bool => str_contains($line, "'/usr/local/bin/wp'"));
+        self::assertNotEmpty($wp);
+        foreach ($wp as $line) {
+            self::assertStringContainsString("'ffi.enable=0'", $line);
+            self::assertMatchesRegularExpression("#'-u' '(web\\d+)' .*open_basedir={$this->root}/client\\d/\\1:#", $line);
+            self::assertStringNotContainsString("'db' 'export'", $line);
+            self::assertStringNotContainsString("'db' 'import'", $line);
+        }
+    }
+
     public function testTheConfigFileOfTheSourceIsNeverCopied(): void
     {
         self::assertStringContainsString("'--exclude=./wp-config.php'", $this->log());
@@ -97,7 +110,7 @@ final class SiteClonerTest extends TestCase
     {
         $log = $this->log();
         $last = -1;
-        foreach (['standard_index.html', "'tar' '-cz", "'config' 'create'", "'config' 'get' 'DB_NAME'", "'db' 'export'", "'search-replace'"] as $step) {
+        foreach (['standard_index.html', "'tar' '-cz", "'config' 'create'", "'config' 'get' 'DB_NAME'", "'--single-transaction'", "'search-replace'"] as $step) {
             $at = strpos($log, $step);
             self::assertNotFalse($at, $step);
             self::assertGreaterThan($last, $at, $step);
@@ -110,7 +123,7 @@ final class SiteClonerTest extends TestCase
         foreach (explode("\n", $this->log()) as $line) {
             foreach (explode(' | ', $line) as $command) {
                 if (str_contains($command, "'web7'")) {
-                    self::assertMatchesRegularExpression("/'tar' '-cz|'option' 'get'|'config' 'get'|'db' 'export'/", $command);
+                    self::assertMatchesRegularExpression("/'tar' '-cz|'option' 'get'|'config' 'get'|'config' 'list'|'(mysqldump|mariadb-dump)'/", $command);
                 }
             }
         }

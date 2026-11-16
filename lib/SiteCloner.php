@@ -46,8 +46,10 @@ final class SiteCloner
 
         $sourceUser = (string)$source['system_user'];
         $targetUser = (string)$target['system_user'];
-        $from = new WpCli($this->config->get('wp_cli'), $sourceWeb, $sourceUser);
-        $to = new WpCli($this->config->get('wp_cli'), $targetWeb, $targetUser);
+        // The code of the source runs in both: it stays in the sandbox of each site.
+        $from = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $this->guard->assertInside($sourceRoot), $sourceUser);
+        $to = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $this->guard->assertInside($targetRoot), $targetUser);
+        $database = new SiteDatabase($this->config, $this->guard);
 
         $step = static function (string $what, callable $do) {
             try {
@@ -77,12 +79,13 @@ final class SiteCloner
         });
 
         // Every write below goes to the database named here: stop if it is not the one of the clone.
-        $database = $runner->mustRun($to->configGet('DB_NAME'));
+        $dbName = $runner->mustRun($to->configGet('DB_NAME'));
         if (!$runner->isDryRun()) {
-            self::assertOwnDatabase($database, (string)$target['db_name'], (string)$source['db_name']);
+            self::assertOwnDatabase($dbName, (string)$target['db_name'], (string)$source['db_name']);
         }
 
-        $step('Copy of the database', static fn() => $runner->pipe($from->dbExport('-'), $to->dbImport('-')));
+        // mysqldump of the source user into mysql of the clone user: WP-CLI would start them outside the sandbox.
+        $step('Copy of the database', static fn() => $database->copy($source, $target, $runner));
 
         $newUrl = (string)($target['site_url'] ?? '') ?: 'http://' . $target['domain'];
         $plan = new SearchReplacePlan($oldUrl, $newUrl, $sourceRoot, $targetRoot);
@@ -92,7 +95,6 @@ final class SiteCloner
             $changed = trim($step('Replacement of the old address', static fn(): string => $runner->mustRun($to->searchReplace($pattern, $replacement))));
             $report[] = "Replaced {$changed} values: {$pattern}";
         }
-        $database = new SiteDatabase($this->config, $this->guard);
         $report = array_merge($report, self::replaceInObjects($database, $target, $plan, $runner));
 
         // Not left to the rules above: a value they cannot match, even a hostile one, must not stay.

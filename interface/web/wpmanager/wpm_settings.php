@@ -64,6 +64,12 @@ $app->tpl->setVar([
     'ssl_letsencrypt_options' => $options($yesNo, $d['ssl_letsencrypt']),
     'subdomain_options' => $options(['none' => 'none', 'www' => 'www', '*' => '*'], $d['subdomain']),
     'auto_updates_options' => $options($yesNo, $config->get('updates.auto')),
+    'notify_recipients' => $escape($config->get('notifications.recipients')),
+    'notify_summary_options' => $options(
+        ['off' => $wb['summary_off_txt'], 'daily' => $wb['summary_daily_txt'], 'weekly' => $wb['summary_weekly_txt']],
+        $config->get('notifications.summary'),
+    ),
+    'notify_site_ready_options' => $options($yesNo, $config->get('notifications.site_ready')),
     'hd_quota' => $escape($d['hd_quota']),
     'traffic_quota' => $escape($d['traffic_quota']),
     'locale' => $escape($wp['locale']),

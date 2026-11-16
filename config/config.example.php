@@ -35,6 +35,16 @@ return [
         'auto' => 'y',
     ],
 
+    // Emails, sent with the mail settings of ISPConfig (System → Main config → Mail). Usually set in the
+    // panel. recipients: addresses separated by commas, empty = the admin email of ISPConfig.
+    // summary: off, daily or weekly, only when there is something to report. Rollbacks and failures are
+    // sent at once in any case. site_ready: a notice when a new site or clone is ready, without passwords.
+    'notifications' => [
+        'recipients' => '',
+        'summary' => 'weekly',
+        'site_ready' => 'y',
+    ],
+
     'wordpress' => [
         'locale' => 'it_IT',
         'plugins' => [

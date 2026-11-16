@@ -83,6 +83,27 @@ CREATE TABLE IF NOT EXISTS `wpm_setting` (
   PRIMARY KEY (`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- What the workers did, for the summary email. On the master; old rows are deleted by the summary.
+CREATE TABLE IF NOT EXISTS `wpm_event` (
+  `event_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `wpm_site_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `server_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `domain` varchar(255) NOT NULL DEFAULT '',
+  `kind` varchar(32) NOT NULL DEFAULT '',
+  `outcome` varchar(32) NOT NULL DEFAULT '',
+  `message` varchar(1000) NOT NULL DEFAULT '',
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`event_id`),
+  KEY `created` (`created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Summaries already sent, one row each: the first node that adds the row sends it.
+CREATE TABLE IF NOT EXISTS `wpm_notice` (
+  `notice` varchar(64) NOT NULL,
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`notice`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Upgrade from the versions without the switch of WP-Cron.
 SET @wpm_sql = (
   SELECT IF(COUNT(*) > 0, 'DO 0',

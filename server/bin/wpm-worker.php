@@ -40,6 +40,7 @@ use WpManager\Crypto;
 use WpManager\FailureMessage;
 use WpManager\HealthCheck;
 use WpManager\JobQueue;
+use WpManager\Notifications;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
 use WpManager\Settings;
@@ -47,6 +48,7 @@ use WpManager\SiteBackup;
 use WpManager\SiteCloner;
 use WpManager\SiteCredentials;
 use WpManager\SiteInventory;
+use WpManager\SiteRecord;
 use WpManager\SiteScanner;
 use WpManager\SiteSync;
 use WpManager\SiteUpdater;
@@ -94,6 +96,87 @@ $report = static function (int $siteId, string $status, string $message, bool $c
     $app->dbmaster->query($sql, $status, mb_substr($message, 0, 4000), $wpVersion, $siteId);
 };
 
+// The settings saved in the panel, on the master.
+$stored = $app->dbmaster->queryOneRecord("SELECT setting_value FROM wpm_setting WHERE setting_name = 'defaults'");
+$settings = is_array($stored) ? $config->withOverrides(Settings::fromJson((string)$stored['setting_value'])) : $config;
+
+// Emails go out with the mail settings of ISPConfig, read from the master: the copy of a node can be old.
+// A failed email is logged and never stops the worker.
+$mailConfig = null;
+$sendMail = static function (array $mail) use ($app, $config, $settings, &$mailConfig): void {
+    if ($config->isDryRun()) {
+        return;
+    }
+    try {
+        if ($mailConfig === null) {
+            $app->uses('ini_parser,ispcmail');
+            $row = $app->dbmaster->queryOneRecord('SELECT config FROM sys_ini WHERE sysini_id = 1');
+            $ini = $app->ini_parser->parse_ini_string(stripslashes((string)($row['config'] ?? '')));
+            $mailConfig = is_array($ini['mail'] ?? null) ? $ini['mail'] : [];
+        }
+        $admin = (string)($mailConfig['admin_mail'] ?? '');
+        $to = Notifications::recipients((string)$settings->get('notifications.recipients'), $admin);
+        if ($to === []) {
+            return;
+        }
+        $from = filter_var($admin, FILTER_VALIDATE_EMAIL) !== false ? $admin : 'wpmanager@' . php_uname('n');
+        $options = $mailConfig;
+        if (($mailConfig['smtp_enabled'] ?? '') === 'y') {
+            $options['use_smtp'] = true;
+        }
+        foreach ($to as $address) {
+            $app->ispcmail->setOptions($options);
+            $app->ispcmail->setSender($from, (string)($mailConfig['admin_name'] ?? '') ?: 'WordPress Manager');
+            $app->ispcmail->setSubject($mail['subject']);
+            $app->ispcmail->setMailText($mail['body']);
+            $sent = $app->ispcmail->send($address);
+            $app->ispcmail->finish();
+            if (!$sent) {
+                error_log("wpmanager: email to {$address} not sent: {$mail['subject']}");
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log('wpmanager: email not sent: ' . $e->getMessage());
+    }
+};
+
+// What happened, for the summary; rollbacks and failures are sent at once.
+$event = static function (array $site, string $kind, string $outcome, string $message, bool $alert = true) use ($app, $conf, $config, $sendMail): void {
+    if ($config->isDryRun()) {
+        return;
+    }
+    try {
+        $app->dbmaster->query(
+            'INSERT INTO wpm_event (wpm_site_id, server_id, domain, kind, outcome, message) VALUES (?, ?, ?, ?, ?, ?)',
+            (int)$site['wpm_site_id'],
+            (int)$conf['server_id'],
+            (string)$site['domain'],
+            $kind,
+            $outcome,
+            mb_substr($message, 0, 1000),
+        );
+    } catch (\Throwable $e) {
+        error_log('wpmanager: event not recorded: ' . $e->getMessage());
+    }
+    if ($alert && Notifications::isUrgent($outcome)) {
+        $sendMail(Notifications::alert($site, $kind, $outcome, $message));
+    }
+};
+
+// Every node can write wpm_site: before acting on a row, check it against its website in ISPConfig.
+$distrust = static function (array $site) use ($app, $conf): string {
+    $web = $app->dbmaster->queryOneRecord(
+        'SELECT domain_id, server_id, domain, document_root, system_user FROM web_domain WHERE domain_id = ?',
+        (int)($site['domain_id'] ?? 0),
+    );
+    $count = $app->dbmaster->queryOneRecord('SELECT COUNT(*) AS n FROM wpm_site WHERE domain_id = ?', (int)($site['domain_id'] ?? 0));
+    $reason = SiteRecord::mismatch($site, is_array($web) ? $web : null, (int)$conf['server_id'], (int)($count['n'] ?? 1));
+    if ($reason !== '') {
+        error_log("wpmanager: site {$site['domain']} refused: {$reason}");
+    }
+    return $reason;
+};
+
 foreach ($queue->pending() as $name) {
     $job = $queue->read($name);
     $site = $job['data'];
@@ -106,7 +189,7 @@ foreach ($queue->pending() as $name) {
         if (!is_array($record) || $record['action_request'] !== $job['type'] || $config->isDryRun()) {
             continue;
         }
-        $finish = static function (string $status, string $message) use ($app, $listBackups, $record, $siteId): void {
+        $finish = static function (string $status, string $message) use ($app, $listBackups, $record, $siteId, $event, $job): void {
             $app->dbmaster->query(
                 "UPDATE wpm_site SET action_request = '', action_param = '', action_status = ?, action_message = ?, backups_json = ? WHERE wpm_site_id = ?",
                 $status,
@@ -114,9 +197,14 @@ foreach ($queue->pending() as $name) {
                 json_encode($listBackups($record), JSON_THROW_ON_ERROR),
                 $siteId,
             );
+            $event($record, (string)$job['type'], $status, $message);
         };
         $app->dbmaster->query("UPDATE wpm_site SET action_status = 'running', action_message = '' WHERE wpm_site_id = ?", $siteId);
         try {
+            $reason = $distrust($record);
+            if ($reason !== '') {
+                throw new \RuntimeException("Refused: the record of {$record['domain']} cannot be trusted, {$reason}");
+            }
             if ($job['type'] === 'backup') {
                 $finish('done', 'Backup ' . $backups->create($record) . ' created.');
             } elseif ($job['type'] === 'wpcron') {
@@ -127,6 +215,10 @@ foreach ($queue->pending() as $name) {
                 $production = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', (int)$record['staging_of']);
                 if (!is_array($production) || (int)$record['staging_of'] === 0) {
                     throw new \RuntimeException('The production site of this staging no longer exists');
+                }
+                $reason = $distrust($production);
+                if ($reason !== '') {
+                    throw new \RuntimeException("Refused: the record of {$production['domain']} cannot be trusted, {$reason}");
                 }
                 if ($job['type'] === 'push') {
                     $app->dbmaster->query("UPDATE wpm_site SET action_status = 'running', action_message = ? WHERE wpm_site_id = ?", 'Push from ' . $record['domain'], $production['wpm_site_id']);
@@ -193,10 +285,19 @@ foreach ($queue->pending() as $name) {
     };
     $wasEmpty = $isEmpty();
     try {
+        // Not retried: the record will not change by itself.
+        $reason = $distrust($site);
+        if ($reason !== '') {
+            throw new \RuntimeException("Refusing to install: the record of {$site['domain']} cannot be trusted, {$reason}");
+        }
         if ((int)($site['clone_of'] ?? 0) > 0) {
             $origin = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $site['clone_of']);
             if (!is_array($origin)) {
                 throw new \RuntimeException('Refusing to install: the site to clone no longer exists');
+            }
+            $reason = $distrust($origin);
+            if ($reason !== '') {
+                throw new \RuntimeException("Refusing to install: the record of {$origin['domain']} cannot be trusted, {$reason}");
             }
             $log = $cloner->clone($site, $origin, null, $resume);
         } else {
@@ -218,6 +319,12 @@ foreach ($queue->pending() as $name) {
         }
         $report($siteId, 'installed', implode("\n", $log), true, $installer->installedVersion($site));
         $queue->remove($name);
+        $outcome = $warnings === [] ? 'installed' : 'warning';
+        $kind = (int)($site['clone_of'] ?? 0) > 0 ? 'clone' : 'install';
+        $event($site + ['wpm_site_id' => $siteId], $kind, $outcome, implode(' ', $warnings));
+        if ($settings->get('notifications.site_ready') === 'y') {
+            $sendMail(Notifications::installed($site, $outcome, implode("\n", $warnings)));
+        }
     } catch (\Throwable $e) {
         $job['attempts'] = (int)$job['attempts'] + 1;
         $message = FailureMessage::explain($e->getMessage());
@@ -230,6 +337,8 @@ foreach ($queue->pending() as $name) {
             // Final: nothing will use the database password again.
             $report($siteId, 'error', $message, true);
             $queue->remove($name);
+            $event($site + ['wpm_site_id' => $siteId], (int)($site['clone_of'] ?? 0) > 0 ? 'clone' : 'install', 'error', $message, false);
+            $sendMail(Notifications::installed($site, 'error', $message));
         } else {
             $delay = RetryPolicy::delayAfter($job['attempts']);
             $job['not_before'] = time() + $delay;
@@ -297,7 +406,7 @@ if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INT
 if (!$config->isDryRun()) {
     $inventory = new SiteInventory($config, new PathGuard($config->get('web_root_base')));
     $due = $app->dbmaster->queryAllRecords(
-        "SELECT s.wpm_site_id, s.domain, s.document_root, s.system_user FROM wpm_site s
+        "SELECT s.wpm_site_id, s.domain_id, s.server_id, s.domain, s.document_root, s.system_user FROM wpm_site s
          INNER JOIN web_domain d ON d.domain_id = s.domain_id AND d.active = 'y'
          WHERE s.server_id = ? AND s.status = 'installed'
            AND (s.last_check IS NULL OR s.last_check < NOW() - INTERVAL " . WPM_CHECK_INTERVAL . ' SECOND)
@@ -305,6 +414,16 @@ if (!$config->isDryRun()) {
         $conf['server_id'],
     );
     foreach ($due as $site) {
+        $reason = $distrust($site);
+        if ($reason !== '') {
+            // Checked, so that it does not take the turn of the other sites at every run.
+            $app->dbmaster->query(
+                'UPDATE wpm_site SET updates_json = ?, updates_count = 0, last_check = NOW() WHERE wpm_site_id = ?',
+                json_encode(['error' => 'Not checked: the record cannot be trusted, ' . $reason]),
+                $site['wpm_site_id'],
+            );
+            continue;
+        }
         try {
             $report = $inventory->collect($site);
             $app->dbmaster->query(
@@ -329,8 +448,6 @@ if (!$config->isDryRun()) {
 // Automatic updates: plugins, themes and minor core releases, one site per run. dry_run stops
 // them, then the switch in the settings on the master, then the one of the site.
 if (!$config->isDryRun()) {
-    $stored = $app->dbmaster->queryOneRecord("SELECT setting_value FROM wpm_setting WHERE setting_name = 'defaults'");
-    $settings = is_array($stored) ? $config->withOverrides(Settings::fromJson((string)$stored['setting_value'])) : $config;
     $enabled = $settings->get('updates.auto') === 'y';
 
     $candidates = $enabled ? $app->dbmaster->queryAllRecords(
@@ -345,6 +462,9 @@ if (!$config->isDryRun()) {
     foreach ($candidates ?: [] as $site) {
         $report = json_decode((string)$site['updates_json'], true);
         if (!is_array($report) || !isset($report['plugins']) || !AutoUpdatePolicy::shouldRun($site, $report, $enabled)) {
+            continue;
+        }
+        if ($distrust($site) !== '') {
             continue;
         }
         try {
@@ -363,6 +483,31 @@ if (!$config->isDryRun()) {
             AutoUpdatePolicy::fingerprint($report),
             $site['wpm_site_id'],
         );
+        $event($site, 'auto_update', $result['outcome'], $result['message']);
         break;
+    }
+}
+
+// The summary: the first node that records its name sends it, in the time of the master database.
+if (!$config->isDryRun()) {
+    $frequency = (string)$settings->get('notifications.summary');
+    $now = (int)($app->dbmaster->queryOneRecord('SELECT UNIX_TIMESTAMP() AS now')['now'] ?? time());
+    $key = Notifications::summaryKey($frequency, $now);
+    if ($key !== '') {
+        $app->dbmaster->query('INSERT IGNORE INTO wpm_notice (notice) VALUES (?)', $key);
+        if ($app->dbmaster->affectedRows() === 1) {
+            $sites = $app->dbmaster->queryAllRecords(
+                'SELECT domain, status, status_message, action_status, action_message, updates_count FROM wpm_site ORDER BY domain',
+            );
+            $events = $app->dbmaster->queryAllRecords(
+                'SELECT domain, kind, outcome, message, created FROM wpm_event WHERE created >= FROM_UNIXTIME(?) ORDER BY created',
+                $now - Notifications::summaryPeriod($frequency),
+            );
+            $mail = Notifications::summary($frequency, $sites ?: [], $events ?: []);
+            if ($mail !== null) {
+                $sendMail($mail);
+            }
+            $app->dbmaster->query('DELETE FROM wpm_event WHERE created < NOW() - INTERVAL 60 DAY');
+        }
     }
 }

@@ -31,8 +31,10 @@ It has not run on production servers yet.
   production or pushed to production as a whole, with a list of what will be lost, typed confirmation, backup,
   maintenance mode, health check and automatic rollback.
 - **WP-Cron switch**: move a site between WP-Cron and a real cron job.
+- **Emails**, with the mail settings of ISPConfig: a notice when a site is ready (never with passwords), an alert at
+  once for rollbacks and failures, and a daily or weekly summary.
 - **Safety first**: dry-run mode, no changes to folders that are not empty, everything runs as the site user,
-  checks, updates and backups in a PHP sandbox.
+  every WP-CLI command in a PHP sandbox.
 
 > [!IMPORTANT]
 > Automatic updates start as soon as `dry_run` is turned off, also on sites this module did not create.
@@ -101,9 +103,9 @@ composer test
 The design, what a review found and the risks that remain are in [docs/security.md](docs/security.md).
 
 > [!IMPORTANT]
-> WP-CLI runs outside the jail of a site. Everything that starts by itself runs in a PHP sandbox, but a clone does not:
-> the code of the source runs as its own user, outside jailkit. If you rely on the jail to contain your clients, read
-> [WP-CLI runs outside the jail](docs/security.md#wp-cli-runs-outside-the-jail) first.
+> WP-CLI runs outside the jail of a site, as its own user, limited by a PHP sandbox that is not a jail. If you rely on
+> the jail to contain your clients, read [WP-CLI runs outside the jail](docs/security.md#wp-cli-runs-outside-the-jail)
+> first.
 
 ## Contributing
 

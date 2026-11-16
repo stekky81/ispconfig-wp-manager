@@ -51,6 +51,24 @@
         <div class="col-sm-9"><select name="auto_updates" id="auto_updates" class="form-control">{tmpl_var name='auto_updates_options'}</select><p class="help-block">{tmpl_var name='auto_updates_help_txt'}</p></div>
     </div>
 
+    <h3>{tmpl_var name='notifications_head_txt'}</h3>
+    <p class="help-block">{tmpl_var name='notifications_desc_txt'}</p>
+
+    <div class="form-group">
+        <label for="notify_recipients" class="col-sm-3 control-label">{tmpl_var name='notify_recipients_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="notify_recipients" id="notify_recipients" value="{tmpl_var name='notify_recipients'}" class="form-control" /><p class="help-block">{tmpl_var name='notify_recipients_help_txt'}</p></div>
+    </div>
+
+    <div class="form-group">
+        <label for="notify_summary" class="col-sm-3 control-label">{tmpl_var name='notify_summary_txt'}</label>
+        <div class="col-sm-9"><select name="notify_summary" id="notify_summary" class="form-control">{tmpl_var name='notify_summary_options'}</select><p class="help-block">{tmpl_var name='notify_summary_help_txt'}</p></div>
+    </div>
+
+    <div class="form-group">
+        <label for="notify_site_ready" class="col-sm-3 control-label">{tmpl_var name='notify_site_ready_txt'}</label>
+        <div class="col-sm-9"><select name="notify_site_ready" id="notify_site_ready" class="form-control">{tmpl_var name='notify_site_ready_options'}</select><p class="help-block">{tmpl_var name='notify_site_ready_help_txt'}</p></div>
+    </div>
+
     <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
     <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />
 

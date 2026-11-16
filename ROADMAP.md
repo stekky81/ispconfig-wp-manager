@@ -6,7 +6,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 **Next:** to be decided (staging is done, see [docs/architecture.md](docs/architecture.md#staging)). See
 [docs/security.md](docs/security.md) for the security review and what it left open.
 
-## 0.1 — Skeleton (in progress)
+## 0.1 — Skeleton
 
 - [x] Shared library, installer, interface module, server plugin, node worker
 - [x] Unit tests and CI (PHP 8.1–8.4, shellcheck)
@@ -22,7 +22,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] End-to-end create flow in the VM: dry-run, then real
 - [x] **One-time reveal of the generated credentials** (WP admin, SFTP/FTP) in a site detail page,
       then clear them from the database
-- [ ] Optional email of the generated credentials to the admin
+- [x] Optional email to the admin when a site is ready (decided: without the credentials, which stay one-time in the panel)
 - [x] Site detail page: status, install log, links to the site, wp-admin and the ISPConfig website
 - [x] Choice of SFTP or FTP access in the form, with password login
 - [x] Per-site options in the form, pre-filled from the defaults: PHP version, locale, plugins, theme
@@ -36,7 +36,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 
 - [x] Scheduled check (worker): core, plugin and theme versions and available updates
 - [x] Dashboard: per node and per site, filter "updates available"
-- [ ] Optional daily/weekly summary email
+- [x] Optional daily/weekly summary email, and an immediate one for rollbacks and failures
 - [ ] First pilot on the production nodes. Read-only only with automatic updates turned off first:
       they start as soon as `dry_run` is off
 
@@ -72,7 +72,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 ## 1.0 — Complete product
 
 - [x] Full security review: access levels, permissions of files and folders, panel pages, worker and installer
-- [ ] Security review of multiserver, and a sandbox for installs and clones
+- [x] Security review of multiserver, and a sandbox for installs and clones
 - [ ] Maintenance: maintenance mode, admin password reset, one-click wp-admin login,
       debug toggle, plugin/theme activate/deactivate/remove
 - [ ] SFTP login with SSH keys instead of a password

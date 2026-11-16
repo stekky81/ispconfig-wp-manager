@@ -101,7 +101,7 @@ create_tables() {
 
     # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our tables.
     local table
-    for table in wpm_site wpm_setting; do
+    for table in wpm_site wpm_setting wpm_event wpm_notice; do
         if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
             "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`$table\` TO '$panel_user'@'localhost'"; then
             echo "WARNING: could not grant access on $table to '$panel_user'@'localhost'; check the grants manually" >&2
@@ -110,7 +110,8 @@ create_tables() {
 }
 
 # Nodes of a multiserver setup reach the master database as ispcsrvN users, with grants per table.
-# The worker of a node reads and writes wpm_site and reads the settings. Run again after adding a node.
+# The worker of a node reads and writes wpm_site, reads the settings, records events and claims summaries.
+# Run again after adding a node.
 grant_nodes() {
     local db=()
     mapfile -t db < <(db_conf)
@@ -119,13 +120,28 @@ grant_nodes() {
     # Two columns, separated by a tab in batch mode.
     mapfile -t accounts < <(MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -N -B -e \
         "SELECT User, Host FROM mysql.user WHERE User REGEXP '^ispcsrv[0-9]+\$'")
+    # Only the columns a worker writes: the folder, the user and the server of a site stay as the panel set them.
+    local node_columns='status, status_message, wp_version, secret_db, secret_wp, secret_access, secret_since,
+        action_request, action_param, action_status, action_message, backups_json, updates_json, updates_count,
+        last_check, last_auto, auto_skip, wp_cron'
+    local revoke
     for account in "${accounts[@]}"; do
         user=${account%%$'\t'*} from=${account#*$'\t'}
         # Names come from mysql.user and must look like ispcsrvN and a host name or address.
         [[ $user =~ ^ispcsrv[0-9]+$ && $from =~ ^[A-Za-z0-9.:%_-]+$ ]] || continue
+        # Earlier versions granted UPDATE on the whole table; a grant per column has parentheses.
+        revoke=''
+        if MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -N -B -e "SHOW GRANTS FOR '$user'@'$from'" 2>/dev/null \
+            | grep -qE "GRANT [A-Z, ]*UPDATE[A-Z, ]* ON \`$name\`\.\`wpm_site\`"; then
+            revoke="REVOKE UPDATE ON \`$name\`.\`wpm_site\` FROM '$user'@'$from';"
+        fi
         info "Granting the module tables to node account $user@$from"
         MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
-            "GRANT SELECT, INSERT, UPDATE ON \`$name\`.\`wpm_site\` TO '$user'@'$from'; GRANT SELECT ON \`$name\`.\`wpm_setting\` TO '$user'@'$from'" \
+            "$revoke
+             GRANT SELECT, INSERT, UPDATE ($node_columns) ON \`$name\`.\`wpm_site\` TO '$user'@'$from';
+             GRANT SELECT ON \`$name\`.\`wpm_setting\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_event\` TO '$user'@'$from';
+             GRANT INSERT ON \`$name\`.\`wpm_notice\` TO '$user'@'$from'" \
             || echo "WARNING: could not grant the module tables to '$user'@'$from'" >&2
     done
 }

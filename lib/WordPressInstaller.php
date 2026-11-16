@@ -40,7 +40,7 @@ final class WordPressInstaller
         $wpPassword = $this->crypto->decrypt((string)$site['secret_wp']);
         $runner ??= new Runner($this->config->isDryRun(), [$dbPassword, $wpPassword]);
 
-        $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
+        $wp = $this->wp($site);
         $wpCfg = $this->config->get('wordpress');
         $domain = Validator::domain((string)$site['domain']);
         $url = (string)($site['site_url'] ?? '') ?: $this->siteScheme() . '://' . $domain;
@@ -98,12 +98,19 @@ final class WordPressInstaller
         return array_merge($warnings, $runner->log());
     }
 
+    /** WP-CLI in the sandbox of the site: plugins and themes installed here run their code too. */
+    private function wp(array $site): WpCli
+    {
+        $siteRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/'));
+        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
+    }
+
     /** The installed version, or '' when it cannot be read: a finished install must not fail for this. */
     public function installedVersion(array $site, ?Runner $runner = null): string
     {
         $runner ??= new Runner($this->config->isDryRun());
         $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        $wp = new WpCli($this->config->get('wp_cli'), $webRoot, (string)$site['system_user']);
+        $wp = $this->wp($site);
         try {
             $result = $runner->run($wp->coreVersion());
         } catch (\RuntimeException) {

@@ -16,6 +16,7 @@ final class Settings
         'site_defaults' => ['server_php_id', 'hd_quota', 'traffic_quota', 'ssl', 'ssl_letsencrypt', 'subdomain'],
         'wordpress' => ['locale', 'plugins', 'theme'],
         'updates' => ['auto'],
+        'notifications' => ['recipients', 'summary', 'site_ready'],
     ];
 
     /** @return array<string, array<string, mixed>> validated overrides for Config::withOverrides() */
@@ -38,6 +39,11 @@ final class Settings
             ],
             'updates' => [
                 'auto' => self::choice($in['auto_updates'] ?? null, ['y', 'n']),
+            ],
+            'notifications' => [
+                'recipients' => implode(', ', Notifications::parseRecipients((string)($in['notify_recipients'] ?? ''))),
+                'summary' => self::choice($in['notify_summary'] ?? null, Notifications::FREQUENCIES),
+                'site_ready' => self::choice($in['notify_site_ready'] ?? null, ['y', 'n']),
             ],
         ];
     }
