@@ -30,6 +30,10 @@
     <div class="col-sm-9"><select name="access_type" id="access_type" class="form-control">{tmpl_var name='access_type'}</select></div>
 </div>
 <div class="form-group">
+    <label for="ssh_keys" class="col-sm-3 control-label">{tmpl_var name='ssh_keys_txt'}</label>
+    <div class="col-sm-9"><textarea name="ssh_keys" id="ssh_keys" rows="3" class="form-control" placeholder="ssh-ed25519 AAAA... name@laptop"></textarea><p class="help-block">{tmpl_var name='ssh_keys_help_txt'}</p></div>
+</div>
+<div class="form-group">
     <label for="server_php_id" class="col-sm-3 control-label">{tmpl_var name='server_php_id_txt'}</label>
     <div class="col-sm-9"><select name="server_php_id" id="server_php_id" class="form-control">{tmpl_var name='server_php_id'}</select></div>
 </div>

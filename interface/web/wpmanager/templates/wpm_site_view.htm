@@ -289,6 +289,25 @@
     </tmpl_unless>
     </tmpl_if>
 
+    <tmpl_if name="has_shell_user">
+    <h2>{tmpl_var name='ssh_txt'}</h2>
+    <tmpl_if name="ssh_saved"><div class="alert alert-success" id="ssh_saved">{tmpl_var name='ssh_saved_txt'}</div></tmpl_if>
+    <tmpl_if name="ssh_error"><div class="alert alert-danger" id="ssh_error">{tmpl_var name='ssh_error'}</div></tmpl_if>
+    <tmpl_if name="has_ssh_keys">
+    <table class="table" id="site_ssh_keys">
+        <tbody>
+            <tmpl_loop name="ssh_keys"><tr><td>{tmpl_var name='ssh_type'}</td><td><code>{tmpl_var name='ssh_fingerprint'}</code></td><td>{tmpl_var name='ssh_comment'}</td></tr></tmpl_loop>
+        </tbody>
+    </table>
+    <tmpl_else>
+    <p id="no_ssh_keys">{tmpl_var name='ssh_none_txt'}</p>
+    </tmpl_if>
+    <tmpl_if name="ssh_other"><p>{tmpl_var name='ssh_other_txt'}</p></tmpl_if>
+    <p class="fieldDescription">{tmpl_var name='ssh_desc_txt'}</p>
+    <textarea name="ssh_keys" id="ssh_keys" rows="3" class="form-control">{tmpl_var name='ssh_keys_text'}</textarea>
+    <p style="margin-top:8px;"><button class="btn btn-default formbutton-default" type="button" id="save_ssh_keys" onclick="document.getElementById('form_action').value = 'ssh_keys';" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_view.php">{tmpl_var name='ssh_save_txt'}</button></p>
+    </tmpl_if>
+
     <h2>{tmpl_var name='credentials_txt'}</h2>
     <tmpl_if name="revealed">
         <div class="alert alert-warning">{tmpl_var name='credentials_once_txt'}</div>
@@ -337,6 +356,7 @@
     </tmpl_if>
 
     <input type="hidden" name="id" value="{tmpl_var name='id'}" />
+    <input type="hidden" name="form_action" id="form_action" value="" />
     <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
     <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />
 

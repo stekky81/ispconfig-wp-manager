@@ -119,7 +119,51 @@ if ((string)($site['secret_result'] ?? '') !== '') {
     $site['secret_result'] = null;
 }
 
-if (isset($_POST['reveal'])) {
+// The page is one form: each button says what it posts, so that saving keys never reveals the passwords.
+$formAction = is_string($_POST['form_action'] ?? null) ? $_POST['form_action'] : '';
+
+// Public SSH keys of the SFTP user, through the Remote API: ISPConfig writes authorized_keys on the node.
+$shellUser = $site['access_type'] === 'sftp' && $site['access_user'] !== ''
+    ? $app->db->queryOneRecord('SELECT shell_user_id, ssh_rsa FROM shell_user WHERE username = ? AND parent_domain_id = ?', $site['access_user'], $site['domain_id'])
+    : null;
+if ($formAction === 'ssh_keys' && is_array($shellUser)) {
+    $app->auth->csrf_token_check();
+    try {
+        $keys = \WpManager\SshKeys::parse(is_string($_POST['ssh_keys'] ?? null) ? $_POST['ssh_keys'] : '');
+        if ($config->isDryRun()) {
+            throw new \RuntimeException('Dry-run: the keys were not changed.');
+        }
+        $api = \WpManager\IspconfigApi::fromConfig($config);
+        $api->call('sites_shell_user_update', [
+            'client_id' => (int)$site['client_id'],
+            'primary_id' => (int)$shellUser['shell_user_id'],
+            'params' => ['ssh_rsa' => \WpManager\SshKeys::format($keys)],
+        ]);
+        $api->logout();
+        $shellUser['ssh_rsa'] = \WpManager\SshKeys::format($keys);
+        wpm_audit($app, $site, 'ssh_keys', (string)count($keys), implode(', ', array_map(static fn(array $k): string => \WpManager\SshKeys::fingerprint($k['blob']), $keys)));
+        $app->tpl->setVar('ssh_saved', 1);
+    } catch (\Throwable $e) {
+        $app->tpl->setVar('ssh_error', $escape($e->getMessage()));
+    }
+}
+$sshRows = [];
+if (is_array($shellUser)) {
+    try {
+        foreach (\WpManager\SshKeys::parse((string)$shellUser['ssh_rsa']) as $key) {
+            $sshRows[] = ['ssh_type' => $escape($key['type']), 'ssh_fingerprint' => $escape(\WpManager\SshKeys::fingerprint($key['blob'])), 'ssh_comment' => $escape($key['comment'])];
+        }
+    } catch (\WpManager\ValidationException) {
+        // Keys set elsewhere, in a form this page does not show: ISPConfig still uses them.
+        $app->tpl->setVar('ssh_other', 1);
+    }
+}
+$app->tpl->setVar('has_shell_user', is_array($shellUser) ? 1 : 0);
+$app->tpl->setLoop('ssh_keys', $sshRows);
+$app->tpl->setVar('has_ssh_keys', $sshRows === [] ? 0 : 1);
+$app->tpl->setVar('ssh_keys_text', $escape(is_array($shellUser) ? (string)$shellUser['ssh_rsa'] : ''));
+
+if (isset($_POST['reveal']) && $formAction !== 'ssh_keys') {
     $app->auth->csrf_token_check();
     if ($credentials->canReveal($site)) {
         $shown = $credentials->reveal($site);

@@ -79,6 +79,7 @@ class page_action extends tform_actions
                 (string)($this->dataRecord['wp_plugins'] ?? ''),
                 (string)($this->dataRecord['wp_theme'] ?? ''),
                 $this->dataRecord['server_php_id'] ?? '0',
+                is_string($_POST['ssh_keys'] ?? null) ? $_POST['ssh_keys'] : '',
             );
             // The Remote API accepts any server id, so a typo would create a site with no database.
             $dbServerId = $config->get('site_defaults.database_server_id') ?? $request->serverId;

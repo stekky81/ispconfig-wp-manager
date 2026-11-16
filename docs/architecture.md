@@ -260,6 +260,17 @@ the rules of WordPress, which stay as they are. After turning one on, its own ad
 undone: a server that ignores `.htaccess` (nginx) says so instead of pretending. New sites and clones get the measures
 chosen in the settings (by default all but XML-RPC).
 
+## SSH keys for SFTP
+
+Decided with the maintainer on 2026-11-16. The new site form and the site page take public keys for the SFTP user, one
+per line. The module only checks them and sets `shell_user.ssh_rsa` through the Remote API; ISPConfig writes
+`authorized_keys` of the jailed user, removes the old keys and adds the key of the client, if it has one. Only plain
+keys of known types are accepted, with the key inside of the type it says and RSA of 2048 bits at least: no options
+such as `command=` or `from=`. The generated password stays, shown once as before, as the way in if a key is lost. FTP
+has no keys. The site page shows the SHA256 fingerprints, as `ssh-keygen -l` prints them; a change goes in the audit
+log with the fingerprints. The page is one form: each button says what it posts (`form_action`), so that saving keys
+never reveals the passwords.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

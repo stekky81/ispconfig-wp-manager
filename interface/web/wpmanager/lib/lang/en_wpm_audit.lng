@@ -48,3 +48,4 @@ $wb['action_debug_expired_txt'] = 'End of the debug mode';
 $wb['action_login_expired_txt'] = 'End of a temporary login';
 $wb['action_harden_txt'] = 'Hardening';
 $wb['action_fix_permissions_txt'] = 'Permissions fixed';
+$wb['action_ssh_keys_txt'] = 'SSH keys';

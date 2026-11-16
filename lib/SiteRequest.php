@@ -24,6 +24,8 @@ final class SiteRequest
     public readonly ?array $plugins;
     public readonly ?string $theme;
     public readonly ?int $phpVersionId;
+    /** @var list<array{type:string, blob:string, comment:string}> public keys of the SFTP user */
+    public readonly array $sshKeys;
 
     public function __construct(
         string $domain,
@@ -37,6 +39,7 @@ final class SiteRequest
         ?string $plugins = null,
         ?string $theme = null,
         mixed $phpVersionId = null,
+        string $sshKeys = '',
     ) {
         $this->domain = Validator::domain($domain);
         $this->clientId = Validator::positiveId($clientId);
@@ -53,5 +56,9 @@ final class SiteRequest
         $this->plugins = $plugins === null ? null : Validator::wpSlugList($plugins);
         $this->theme = $theme === null || $theme === '' ? $theme : Validator::wpSlug($theme);
         $this->phpVersionId = $phpVersionId === null ? null : Validator::phpVersionId($phpVersionId);
+        $this->sshKeys = SshKeys::parse($sshKeys);
+        if ($this->sshKeys !== [] && $this->accessType !== 'sftp') {
+            throw new ValidationException('SSH keys work with SFTP only, not with FTP');
+        }
     }
 }

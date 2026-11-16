@@ -140,7 +140,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   messages with retries that resume; objects of plugin classes and page caches in clones; multiserver, with its
   security review; emails; clone to another node; every WP-CLI command in the sandbox; maintenance tools (maintenance mode, one-click login, password reset, debug,
   plugins and themes); full removal of a site; audit log; known vulnerabilities (Wordfence Intelligence), file permissions,
-  hardening. The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  hardening; SSH keys for SFTP. The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
 - **Next**: the remaining 1.0 items of ROADMAP.md, one decision at a time with Stefano; the production pilot comes last.
   Security review done: see `docs/security.md`, including what remains open.

@@ -75,7 +75,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] Security review of multiserver, and a sandbox for installs and clones
 - [x] Maintenance: maintenance mode, admin password reset, one-click wp-admin login,
       debug toggle, plugin/theme activate/deactivate/remove
-- [ ] SFTP login with SSH keys instead of a password
+- [x] SFTP login with SSH keys (the password stays, as the way in if a key is lost)
 - [x] Security: known-vulnerability check for plugins/themes (Wordfence Intelligence, terms checked on 2026-11-16),
       file permission check, hardening for existing sites
 - [ ] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them);

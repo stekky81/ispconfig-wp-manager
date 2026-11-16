@@ -80,6 +80,9 @@ Known and accepted for now:
 - **Hardening and permissions** change files as the site user only, and put them back if the site breaks; they never
   change the owner of a file.
 
+- **SSH keys**: plain public keys only, without options; they reach the node through ISPConfig, like any change of
+  a shell user.
+
 ## Multiserver
 
 Reviewed on 2026-11-16, with a node joined to the master in the test environment.

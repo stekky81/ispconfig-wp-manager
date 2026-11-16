@@ -55,3 +55,4 @@
 - Security: known vulnerabilities from the Wordfence Intelligence feed, one download a day for all nodes, listed on the
   site page with the notice of Defiant, emailed once, fixed by an early automatic update when a fixed version exists;
   file permission check and fix; hardening switches per site, applied to new sites from the settings
+- SSH keys for the SFTP user, in the new site form and on the site page, checked before they reach ISPConfig

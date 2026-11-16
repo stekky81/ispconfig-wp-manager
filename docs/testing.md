@@ -209,6 +209,12 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] A new site gets the measures of the settings
 - [x] A slave matches its sites against the feed downloaded by the master
 
+### SSH keys
+
+- [x] A new site with a key: SFTP with the key alone works, the fingerprint on the page is the one of `ssh-keygen -l`
+- [x] Keys replaced from the site page: the old key is refused, the new one works; the passwords are not revealed
+- [x] A key with options is refused and the stored keys stay
+
 ### Security
 
 - [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write

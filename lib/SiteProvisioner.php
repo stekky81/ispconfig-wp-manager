@@ -188,6 +188,8 @@ final class SiteProvisioner
                 'pgroup' => $systemGroup,
                 'shell' => '/bin/bash',
                 'chroot' => 'jailkit',
+                // ISPConfig writes them in authorized_keys; the password stays, as the way in if a key is lost.
+                'ssh_rsa' => SshKeys::format($req->sshKeys),
             ],
         ]);
     }
