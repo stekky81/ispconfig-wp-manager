@@ -61,12 +61,19 @@ if (isset($_POST['domain'])) {
         if ((int)$_POST['client_id'] !== (int)$source['client_id'] && empty($_POST['confirm_client'])) {
             throw new \WpManager\ValidationException($wb['confirm_client_error_txt']);
         }
+        // A staging stays on the node of its site; a clone can go to any web node.
+        $serverId = $staging ? (int)$source['server_id'] : (int)($_POST['server_id'] ?? $source['server_id']);
+        if (!is_array($app->db->queryOneRecord('SELECT server_id FROM server WHERE server_id = ? AND web_server = 1 AND mirror_server_id = 0', $serverId))) {
+            throw new \WpManager\ValidationException($wb['server_invalid_txt']);
+        }
         $website = $app->db->queryOneRecord('SELECT server_php_id FROM web_domain WHERE domain_id = ?', $source['domain_id']);
+        // PHP versions belong to their server: on another node the clone gets the default one.
+        $phpId = $serverId === (int)$source['server_id'] ? (int)($website['server_php_id'] ?? 0) : 0;
         // Title and admin belong to the source: its database replaces them.
         $request = new \WpManager\SiteRequest(
             $domain,
             (string)$_POST['client_id'],
-            (string)$source['server_id'],
+            (string)$serverId,
             'Clone of ' . $source['domain'],
             'clone-admin',
             'noreply@' . $domain,
@@ -74,7 +81,7 @@ if (isset($_POST['domain'])) {
             null,
             '',
             '',
-            (string)(int)($website['server_php_id'] ?? 0),
+            (string)$phpId,
         );
         $transport = $config->isDryRun() ? new \WpManager\DryRunTransport() : null;
         $api = \WpManager\IspconfigApi::fromConfig($config, $transport);
@@ -111,6 +118,13 @@ foreach ($app->db->queryAllRecords("SELECT client_id, CONCAT(IF(company_name != 
     $clients .= '<option value="' . (int)$client['client_id'] . '"' . $selected . '>' . $escape($client['name']) . '</option>';
 }
 
+$servers = '';
+$chosen = (int)($_POST['server_id'] ?? $source['server_id']);
+foreach ($app->db->queryAllRecords('SELECT server_id, server_name FROM server WHERE web_server = 1 AND mirror_server_id = 0 ORDER BY server_name') as $server) {
+    $selected = (int)$server['server_id'] === $chosen ? ' selected="selected"' : '';
+    $servers .= '<option value="' . (int)$server['server_id'] . '"' . $selected . '>' . $escape($server['server_name']) . '</option>';
+}
+$app->tpl->setVar('server_options', $servers);
 $app->tpl->setVar('id', $id);
 $app->tpl->setVar('source_domain', $escape($source['domain']));
 $app->tpl->setVar('domain', $escape($_POST['domain'] ?? ($staging ? \WpManager\SiteStaging::defaultDomain((string)$source['domain']) : '')));

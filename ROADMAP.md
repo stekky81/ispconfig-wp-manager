@@ -62,7 +62,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
       Duplicator does on restore (`wp search-replace`, every table of the site, `guid` left alone). Also cover
       what is not PHP serialization: JSON with escaped slashes (page builders), URL-encoded values, `http` and
       `https`, `www`; report what could not be replaced, such as base64 values
-- [ ] Clone across nodes
+- [x] Clone across nodes (through the master database, encrypted; only a clone, not a staging or a move)
 - [x] Staging: decisions (see [architecture.md](docs/architecture.md#staging))
 - [x] Staging: create one per site, without outgoing PHP mail and with `X-Robots-Tag: noindex`
 - [x] Staging: update it from production

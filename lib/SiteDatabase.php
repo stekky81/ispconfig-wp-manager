@@ -73,29 +73,50 @@ final class SiteDatabase
         if (!$runner->isDryRun() && $source['name'] === $target['name']) {
             throw new \RuntimeException("Both sites use the database {$target['name']}");
         }
-        $runner->pipe(
-            new Command(
-                array_merge(
-                    [self::tool('mysqldump', 'mariadb-dump'), '--no-defaults'],
-                    self::connection($source),
-                    ['--single-transaction', '--quick', '--no-tablespaces', '--', $source['name']],
-                ),
-                (string)$from['system_user'],
-                null,
-                null,
-                ['MYSQL_PWD' => $source['password']],
+        $runner->pipe(self::exportOf($from, $source), self::importOf($to, $target));
+    }
+
+    /** The dump of a site on stdout, as its user: the source of a clone to another node. */
+    public function exportCommand(array $site, Runner $runner): Command
+    {
+        return self::exportOf($site, $this->settings($site, $runner));
+    }
+
+    /** SQL on stdin into the database of a site, as its user, without client commands. */
+    public function importCommand(array $site, Runner $runner): Command
+    {
+        return self::importOf($site, $this->settings($site, $runner));
+    }
+
+    /** @param array{name:string, user:string, password:string, host:string, charset:string} $db */
+    private static function exportOf(array $site, array $db): Command
+    {
+        return new Command(
+            array_merge(
+                [self::tool('mysqldump', 'mariadb-dump'), '--no-defaults'],
+                self::connection($db),
+                ['--single-transaction', '--quick', '--no-tablespaces', '--', $db['name']],
             ),
-            new Command(
-                array_merge(
-                    [self::tool('mysql', 'mariadb'), '--no-defaults'],
-                    self::connection($target),
-                    ['--binary-mode', '--database=' . $target['name']],
-                ),
-                (string)$to['system_user'],
-                null,
-                null,
-                ['MYSQL_PWD' => $target['password']],
+            (string)$site['system_user'],
+            null,
+            null,
+            ['MYSQL_PWD' => $db['password']],
+        );
+    }
+
+    /** @param array{name:string, user:string, password:string, host:string, charset:string} $db */
+    private static function importOf(array $site, array $db): Command
+    {
+        return new Command(
+            array_merge(
+                [self::tool('mysql', 'mariadb'), '--no-defaults'],
+                self::connection($db),
+                ['--binary-mode', '--database=' . $db['name']],
             ),
+            (string)$site['system_user'],
+            null,
+            null,
+            ['MYSQL_PWD' => $db['password']],
         );
     }
 

@@ -49,6 +49,9 @@ use WpManager\SiteCloner;
 use WpManager\SiteCredentials;
 use WpManager\SiteInventory;
 use WpManager\SiteRecord;
+use WpManager\SiteTransfer;
+use WpManager\MysqlTransferStore;
+use WpManager\TransferAuthorization;
 use WpManager\SiteScanner;
 use WpManager\SiteSync;
 use WpManager\SiteUpdater;
@@ -164,18 +167,67 @@ $event = static function (array $site, string $kind, string $outcome, string $me
 };
 
 // Every node can write wpm_site: before acting on a row, check it against its website in ISPConfig.
-$distrust = static function (array $site) use ($app, $conf): string {
+$distrust = static function (array $site, ?int $serverId = null) use ($app, $conf): string {
     $web = $app->dbmaster->queryOneRecord(
         'SELECT domain_id, server_id, domain, document_root, system_user FROM web_domain WHERE domain_id = ?',
         (int)($site['domain_id'] ?? 0),
     );
     $count = $app->dbmaster->queryOneRecord('SELECT COUNT(*) AS n FROM wpm_site WHERE domain_id = ?', (int)($site['domain_id'] ?? 0));
-    $reason = SiteRecord::mismatch($site, is_array($web) ? $web : null, (int)$conf['server_id'], (int)($count['n'] ?? 1));
+    $reason = SiteRecord::mismatch($site, is_array($web) ? $web : null, $serverId ?? (int)$conf['server_id'], (int)($count['n'] ?? 1));
     if ($reason !== '') {
         error_log("wpmanager: site {$site['domain']} refused: {$reason}");
     }
     return $reason;
 };
+
+// Clones between nodes travel through the master database, with a connection of their own.
+$transfers = null;
+$transferStore = static function () use (&$transfers, $conf): MysqlTransferStore {
+    // On the master itself ISPConfig leaves dbmaster_* empty and uses its local connection.
+    $prefix = (string)($conf['dbmaster_host'] ?? '') !== '' ? 'dbmaster_' : 'db_';
+    return $transfers ??= new MysqlTransferStore(
+        (string)$conf[$prefix . 'host'],
+        (string)$conf[$prefix . 'user'],
+        (string)$conf[$prefix . 'password'],
+        (string)$conf[$prefix . 'database'],
+        (int)($conf[$prefix . 'port'] ?? 3306),
+    );
+};
+
+// A node of a clone asks for a site of this node: sent only if the panel asked for that clone.
+if (!$config->isDryRun()) {
+    try {
+        $store = $transferStore();
+        $store->prune(86400);
+        $claim = $store->claim((int)$conf['server_id']);
+    } catch (\Throwable $e) {
+        error_log('wpmanager: transfers not checked: ' . $e->getMessage());
+        $claim = null;
+    }
+    if ($claim !== null) {
+        $out = new SiteTransfer($store, Crypto::fromFile($config->get('key_file')), $claim['transfer_id']);
+        $source = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $claim['source_site_id']);
+        try {
+            $target = $app->dbmaster->queryOneRecord('SELECT wpm_site_id, server_id FROM wpm_site WHERE wpm_site_id = ?', $claim['target_site_id']);
+            $request = $app->dbmaster->queryOneRecord(
+                "SELECT data FROM sys_datalog WHERE dbtable = 'wpm_site' AND dbidx = ? AND action = 'i' ORDER BY datalog_id DESC",
+                'wpm_site_id:' . $claim['target_site_id'],
+            );
+            $refusal = !is_array($source) || !is_array($target) ? 'a site of this transfer no longer exists'
+                : TransferAuthorization::refusal(is_array($request) ? (string)$request['data'] : null, (int)$source['wpm_site_id'], (int)$target['wpm_site_id'], (int)$target['server_id']);
+            if ($refusal === '' && ($reason = $distrust($source)) !== '') {
+                $refusal = "the record of {$source['domain']} cannot be trusted, {$reason}";
+            }
+            if ($refusal !== '') {
+                error_log("wpmanager: transfer {$claim['transfer_id']} refused: {$refusal}");
+                throw new \RuntimeException("Refused: {$refusal}");
+            }
+            $cloner->export($source, $out);
+        } catch (\Throwable $e) {
+            $out->fail(FailureMessage::step('Sending ' . (is_array($source) ? $source['domain'] : 'the site'), $e->getMessage()));
+        }
+    }
+}
 
 foreach ($queue->pending() as $name) {
     $job = $queue->read($name);
@@ -295,11 +347,25 @@ foreach ($queue->pending() as $name) {
             if (!is_array($origin)) {
                 throw new \RuntimeException('Refusing to install: the site to clone no longer exists');
             }
-            $reason = $distrust($origin);
+            $reason = $distrust($origin, (int)$origin['server_id']);
             if ($reason !== '') {
                 throw new \RuntimeException("Refusing to install: the record of {$origin['domain']} cannot be trusted, {$reason}");
             }
-            $log = $cloner->clone($site, $origin, null, $resume);
+            if ((int)$origin['server_id'] === (int)$conf['server_id']) {
+                $log = $cloner->clone($site, $origin, null, $resume);
+            } else {
+                // The node of the source sends it; this worker waits for its pieces.
+                $store = $transferStore();
+                $transferId = $store->open((int)$origin['wpm_site_id'], $siteId, (int)$origin['server_id'], (int)$conf['server_id']);
+                try {
+                    $log = $cloner->clone($site, $origin, null, $resume, new SiteTransfer($store, Crypto::fromFile($config->get('key_file')), $transferId));
+                } catch (\Throwable $e) {
+                    $store->setState($transferId, 'failed', $e->getMessage());
+                    throw $e;
+                } finally {
+                    $store->close($transferId);
+                }
+            }
         } else {
             $log = $installer->install($site, null, $resume);
         }

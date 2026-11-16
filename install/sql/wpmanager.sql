@@ -104,6 +104,28 @@ CREATE TABLE IF NOT EXISTS `wpm_notice` (
   PRIMARY KEY (`notice`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- A clone to another node: the request of the target node, and the encrypted pieces the source node sends.
+-- Pieces are deleted as they are read; a transfer is deleted when it ends.
+CREATE TABLE IF NOT EXISTS `wpm_transfer` (
+  `transfer_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `source_site_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `target_site_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `source_server_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `target_server_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `state` enum('requested','sending','sent','failed') NOT NULL DEFAULT 'requested',
+  `error` varchar(1000) NOT NULL DEFAULT '',
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`transfer_id`),
+  KEY `source` (`source_server_id`, `state`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `wpm_transfer_piece` (
+  `transfer_id` int(11) unsigned NOT NULL,
+  `seq` int(11) unsigned NOT NULL,
+  `data` mediumblob NOT NULL,
+  PRIMARY KEY (`transfer_id`, `seq`)
+) ENGINE=InnoDB;
+
 -- Upgrade from the versions without the switch of WP-Cron.
 SET @wpm_sql = (
   SELECT IF(COUNT(*) > 0, 'DO 0',

@@ -174,8 +174,8 @@ final class Runner
         }
         $this->log[] = $line;
 
-        $fromError = tmpfile();
-        $toError = tmpfile();
+        $fromError = self::tempFile();
+        $toError = self::tempFile();
         $source = proc_open($from->argv(), [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => $fromError], $sourcePipes, $from->cwd, self::PATH + $from->env);
         if (!is_resource($source)) {
             throw new \RuntimeException('Cannot start: ' . $line);
@@ -230,6 +230,155 @@ final class Runner
             }
             throw new \RuntimeException("Command failed ({$code}): {$msg}");
         }
+    }
+
+    /**
+     * The output of a command, piece by piece, to $receive: for data that leaves this machine, which root
+     * holds only one piece at a time. $receive may wait; the command waits for it meanwhile.
+     *
+     * @param callable(string): void $receive
+     */
+    public function stream(Command $command, callable $receive, int $pieceSize = 2097152): void
+    {
+        $line = $command->toSafeString($this->secrets);
+        if ($this->dryRun) {
+            $this->log[] = '[dry-run] ' . $line . ' | (transfer)';
+            return;
+        }
+        $this->log[] = $line . ' | (transfer)';
+        $errors = self::tempFile();
+        $proc = proc_open($command->argv(), [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => $errors], $pipes, $command->cwd, self::PATH + $command->env);
+        if (!is_resource($proc)) {
+            throw new \RuntimeException('Cannot start: ' . $line);
+        }
+        $start = time();
+        $buffer = '';
+        try {
+            while (!feof($pipes[1])) {
+                $read = [$pipes[1]];
+                $none = null;
+                if (stream_select($read, $none, $none, 1) > 0) {
+                    $buffer .= (string)fread($pipes[1], $pieceSize);
+                }
+                while (strlen($buffer) >= $pieceSize) {
+                    $receive(substr($buffer, 0, $pieceSize));
+                    $buffer = substr($buffer, $pieceSize);
+                }
+                $this->assertWithin($start, $errors, $line, $proc);
+            }
+            if ($buffer !== '') {
+                $receive($buffer);
+            }
+            $exit = $this->waitFor($proc, $start, $errors, $line);
+        } catch (\Throwable $e) {
+            $this->stop($proc);
+            throw $e;
+        } finally {
+            fclose($pipes[1]);
+        }
+        proc_close($proc);
+        $this->assertExit($exit, $errors);
+    }
+
+    /**
+     * Pieces from $next into the input of a command, until $next returns null: the other end of stream().
+     *
+     * @param callable(): ?string $next
+     */
+    public function feed(Command $command, callable $next): void
+    {
+        $line = '(transfer) | ' . $command->toSafeString($this->secrets);
+        if ($this->dryRun) {
+            $this->log[] = '[dry-run] ' . $line;
+            return;
+        }
+        $this->log[] = $line;
+        $errors = self::tempFile();
+        $proc = proc_open($command->argv(), [0 => ['pipe', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => $errors], $pipes, $command->cwd, self::PATH + $command->env);
+        if (!is_resource($proc)) {
+            throw new \RuntimeException('Cannot start: ' . $line);
+        }
+        $start = time();
+        try {
+            while (($piece = $next()) !== null) {
+                for ($done = 0; $done < strlen($piece);) {
+                    $written = @fwrite($pipes[0], substr($piece, $done));
+                    if ($written === false || $written === 0) {
+                        // The command stopped reading: its own error says why.
+                        break 2;
+                    }
+                    $done += $written;
+                }
+                $this->assertWithin($start, $errors, $line, $proc);
+            }
+            fclose($pipes[0]);
+            $exit = $this->waitFor($proc, $start, $errors, $line);
+        } catch (\Throwable $e) {
+            if (is_resource($pipes[0])) {
+                fclose($pipes[0]);
+            }
+            $this->stop($proc);
+            throw $e;
+        }
+        proc_close($proc);
+        $this->assertExit($exit, $errors);
+        if (isset($piece) && $piece !== null) {
+            throw new \RuntimeException('The command stopped before the end of the data: ' . $line);
+        }
+    }
+
+    /**
+     * For the errors of a command. A full disk must say so, not fail later on a missing file.
+     *
+     * @return resource
+     */
+    private static function tempFile()
+    {
+        $file = tmpfile();
+        if ($file === false) {
+            throw new \RuntimeException('Cannot create a temporary file: is the disk full?');
+        }
+        return $file;
+    }
+
+    /** @param resource $errors @param resource $proc */
+    private function assertWithin(int $start, $errors, string $line, $proc): void
+    {
+        if (time() - $start > $this->timeout) {
+            throw new \RuntimeException('Timeout: ' . $line);
+        }
+        if (fstat($errors)['size'] > $this->maxOutput) {
+            throw new \RuntimeException('Too much output: ' . $line);
+        }
+    }
+
+    /** @param resource $proc @param resource $errors */
+    private function waitFor($proc, int $start, $errors, string $line): int
+    {
+        while (true) {
+            $status = proc_get_status($proc);
+            if (!$status['running']) {
+                return (int)$status['exitcode'];
+            }
+            $this->assertWithin($start, $errors, $line, $proc);
+            usleep(100_000);
+        }
+    }
+
+    /** @param resource $errors */
+    private function assertExit(int $exit, $errors): void
+    {
+        if ($exit === 0) {
+            return;
+        }
+        rewind($errors);
+        $msg = self::failureText((string)stream_get_contents($errors));
+        foreach ($this->secrets as $s) {
+            if ($s !== '') {
+                $msg = str_replace($s, '********', $msg);
+            }
+        }
+        throw new \RuntimeException("Command failed ({$exit}): {$msg}");
     }
 
     /** Like run(), but throws on a non-zero exit code. */

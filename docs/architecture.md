@@ -107,6 +107,25 @@ values, which no replace can reach.
 
 A clone is public, with "Discourage search engines" turned on so that it does not compete with its source.
 
+### To another node
+
+Decided with the maintainer on 2026-11-16: a clone (not a staging, not a move) can go to any web node, and the data
+travels through the master database, the only place both nodes reach, so no new access between nodes is needed.
+
+1. The worker of the target node creates the website as usual, then adds a request to `wpm_transfer` and waits.
+2. The worker of the source node claims it. It sends the site only if the panel asked for that clone: the insert of the
+   target record in `sys_datalog`, which nodes cannot write, must name this source, this target and the target node
+   (`TransferAuthorization`). The source record must also match its website.
+3. It sends a description (home address, table prefix, read in the sandbox), the files (`tar` as the site user) and the
+   dump (`mysqldump` as the site user), in pieces of 2 MB in `wpm_transfer_piece`. Each piece is encrypted with the
+   shared key and carries the transfer, its number and its kind; the end of each stream is a piece of its own
+   (`SiteTransfer`). At most 16 pieces wait in the master database: the source waits for the target to read them.
+4. The target decrypts and checks every piece, unpacks the files as the clone user, loads the dump with
+   `mysql --binary-mode`, deletes what it read, and goes on like any clone. A failure on one side is written in the
+   transfer and stops the other side; the transfer is deleted at the end. Transfers older than a day are deleted.
+
+The PHP version of a clone on another node is the default one of that node: PHP versions belong to their server.
+
 ## Staging
 
 Decided with the maintainer on 2026-11-09, implemented in `SiteStaging` and `SiteSync`. A staging is a clone with a link to its production site, and the

@@ -25,19 +25,21 @@ final class SiteCloner
     /**
      * @param bool $resume an earlier attempt of the same job wrote into the web root of the clone: every
      *                     step runs again over those files (see wpm-worker.php)
+     * @param SiteTransfer|null $remote the source is on another node, which sends it through this transfer
      * @return list<string> executed commands and what the search-replace found
      */
-    public function clone(array $target, array $source, ?Runner $runner = null, bool $resume = false): array
+    public function clone(array $target, array $source, ?Runner $runner = null, bool $resume = false, ?SiteTransfer $remote = null): array
     {
-        $this->assertCloneable($target, $source);
+        $this->assertCloneable($target, $source, $remote !== null);
         $dbPassword = $this->crypto->decrypt((string)$target['secret_db']);
         $runner ??= new Runner($this->config->isDryRun(), [$dbPassword], 3600);
 
+        // The folder of a remote source is only a text to replace: it is on the other node.
         $sourceRoot = rtrim((string)$source['document_root'], '/');
         $targetRoot = rtrim((string)$target['document_root'], '/');
-        $sourceWeb = $this->guard->assertInside($sourceRoot . '/web');
         $targetWeb = $this->guard->assertInside($targetRoot . '/web');
-        if (!is_file($sourceWeb . '/wp-config.php')) {
+        $sourceWeb = $remote === null ? $this->guard->assertInside($sourceRoot . '/web') : '';
+        if ($remote === null && !is_file($sourceWeb . '/wp-config.php')) {
             throw new \RuntimeException("{$source['domain']} has no WordPress to clone");
         }
         if (!$resume && !$this->guard->isPristineWebRoot($targetWeb)) {
@@ -47,7 +49,7 @@ final class SiteCloner
         $sourceUser = (string)$source['system_user'];
         $targetUser = (string)$target['system_user'];
         // The code of the source runs in both: it stays in the sandbox of each site.
-        $from = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $this->guard->assertInside($sourceRoot), $sourceUser);
+        $from = $remote === null ? $this->wp($sourceRoot, $sourceUser) : null;
         $to = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $this->guard->assertInside($targetRoot), $targetUser);
         $database = new SiteDatabase($this->config, $this->guard);
 
@@ -58,20 +60,22 @@ final class SiteCloner
                 throw new \RuntimeException(FailureMessage::step($what, $e->getMessage()), 0, $e);
             }
         };
-        [$oldUrl, $prefix] = $step("Reading the settings of {$source['domain']}", static fn(): array => [
-            self::safeUrl(trim($runner->mustRun($from->optionGet('home'))), (string)$source['domain']),
-            self::tablePrefix($runner->mustRun($from->configGet('table_prefix'))),
-        ]);
+        [$oldUrl, $prefix] = $step("Reading the settings of {$source['domain']}", static function () use ($runner, $from, $remote, $source): array {
+            $settings = $remote !== null ? $remote->receiveMeta() : self::settingsOf($from, $runner);
+            return [
+                self::safeUrl(trim((string)($settings['home'] ?? '')), (string)$source['domain']),
+                self::tablePrefix((string)($settings['prefix'] ?? '')),
+            ];
+        });
 
         foreach (['index.html', 'standard_index.html'] as $placeholder) {
             $runner->mustRun(new Command(['rm', '-f', '--', "{$targetWeb}/{$placeholder}"], $targetUser));
         }
 
-        $exclude = array_map(static fn(string $path): string => "--exclude={$path}", self::NOT_COPIED);
-        $step('Copy of the files', static fn() => $runner->pipe(
-            new Command(array_merge(['tar', '-cz'], $exclude, ['-C', $sourceWeb, '.']), $sourceUser),
-            new Command(['tar', '-xz', '-C', $targetWeb], $targetUser),
-        ));
+        $untar = new Command(['tar', '-xz', '-C', $targetWeb], $targetUser);
+        $step('Copy of the files', static fn() => $remote !== null
+            ? $remote->receiveStream($runner, $untar, SiteTransfer::FILES)
+            : $runner->pipe(self::tarOf($sourceWeb, $sourceUser), $untar));
 
         $step('Creation of wp-config.php', static function () use ($runner, $to, $target, $dbPassword, $prefix, $resume, $targetWeb, $targetUser): void {
             $runner->mustRun($to->configCreate((string)$target['db_name'], (string)$target['db_user'], $dbPassword, (string)$target['db_host'], $prefix, $resume));
@@ -85,7 +89,9 @@ final class SiteCloner
         }
 
         // mysqldump of the source user into mysql of the clone user: WP-CLI would start them outside the sandbox.
-        $step('Copy of the database', static fn() => $database->copy($source, $target, $runner));
+        $step('Copy of the database', static fn() => $remote !== null
+            ? $remote->receiveStream($runner, $database->importCommand($target, $runner), SiteTransfer::DATABASE)
+            : $database->copy($source, $target, $runner));
 
         $newUrl = (string)($target['site_url'] ?? '') ?: 'http://' . $target['domain'];
         $plan = new SearchReplacePlan($oldUrl, $newUrl, $sourceRoot, $targetRoot);
@@ -111,6 +117,29 @@ final class SiteCloner
         $left = $this->remaining($to, $plan, $runner);
         // The summary first: the status message keeps only the beginning of a long log.
         return array_merge($report, $left, $runner->log());
+    }
+
+    /**
+     * The source end of a clone to another node: the settings, the files and the database of the site, read
+     * as its user and sent through the transfer. The other node does the rest.
+     */
+    public function export(array $source, SiteTransfer $out, ?Runner $runner = null): void
+    {
+        if (($source['status'] ?? '') !== 'installed') {
+            throw new \RuntimeException("{$source['domain']} is not installed");
+        }
+        $runner ??= new Runner($this->config->isDryRun(), [], 3600);
+        $sourceRoot = rtrim((string)$source['document_root'], '/');
+        $sourceWeb = $this->guard->assertInside($sourceRoot . '/web');
+        if (!is_file($sourceWeb . '/wp-config.php')) {
+            throw new \RuntimeException("{$source['domain']} has no WordPress to clone");
+        }
+        $user = (string)$source['system_user'];
+        $settings = self::settingsOf($this->wp($sourceRoot, $user), $runner);
+        $out->sendMeta(['home' => trim($settings['home']), 'prefix' => trim($settings['prefix'])]);
+        $out->sendStream($runner, self::tarOf($sourceWeb, $user), SiteTransfer::FILES);
+        $out->sendStream($runner, (new SiteDatabase($this->config, $this->guard))->exportCommand($source, $runner), SiteTransfer::DATABASE);
+        $out->finish();
     }
 
     /**
@@ -204,7 +233,25 @@ final class SiteCloner
         return $prefix;
     }
 
-    private function assertCloneable(array $target, array $source): void
+    /** @return array{home:string, prefix:string} */
+    private static function settingsOf(WpCli $wp, Runner $runner): array
+    {
+        return ['home' => $runner->mustRun($wp->optionGet('home')), 'prefix' => $runner->mustRun($wp->configGet('table_prefix'))];
+    }
+
+    private static function tarOf(string $web, string $user): Command
+    {
+        $exclude = array_map(static fn(string $path): string => "--exclude={$path}", self::NOT_COPIED);
+        return new Command(array_merge(['tar', '-cz'], $exclude, ['-C', $web, '.']), $user);
+    }
+
+    /** The code of a site runs in the sandbox of that site. */
+    private function wp(string $siteRoot, string $user): WpCli
+    {
+        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $this->guard->assertInside($siteRoot), $user);
+    }
+
+    private function assertCloneable(array $target, array $source, bool $remote = false): void
     {
         if ((int)$source['wpm_site_id'] === (int)$target['wpm_site_id']) {
             throw new \RuntimeException('A site cannot be cloned onto itself');
@@ -212,8 +259,9 @@ final class SiteCloner
         if (($source['status'] ?? '') !== 'installed') {
             throw new \RuntimeException("{$source['domain']} is not installed");
         }
-        if ((int)$source['server_id'] !== (int)$target['server_id']) {
-            throw new \RuntimeException("{$source['domain']} is on another node");
+        // Another node sends its sites through a transfer, never by its folder.
+        if (((int)$source['server_id'] !== (int)$target['server_id']) !== $remote) {
+            throw new \RuntimeException($remote ? "{$source['domain']} is on this node" : "{$source['domain']} is on another node");
         }
         if ((string)$source['db_name'] !== '' && (string)$source['db_name'] === (string)$target['db_name']) {
             throw new \RuntimeException('Source and clone have the same database');

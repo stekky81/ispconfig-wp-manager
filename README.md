@@ -25,7 +25,7 @@ It has not run on production servers yet.
 - **Automatic updates**, on by default: plugins, themes and minor WordPress releases.
 - **Backups and restore** from the site page, optionally without `wp-content/uploads` on large sites. They are meant
   for rollbacks and do not replace the backups of ISPConfig.
-- **Clone** to a new domain on the same node, replacing the old address everywhere in the database,
+- **Clone** to a new domain on the same node or on another one, replacing the old address everywhere in the database,
   serialized data included.
 - **Staging**, one per site: a copy that sends no mail from PHP and asks search engines to stay away, updated from
   production or pushed to production as a whole, with a list of what will be lost, typed confirmation, backup,

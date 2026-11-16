@@ -1,6 +1,6 @@
 <?php
 $wb['clone_head_txt'] = 'Clona';
-$wb['clone_desc_txt'] = 'Un nuovo sito con una copia di file e database, sullo stesso nodo. Il sito di origine viene solo letto. Il vecchio indirizzo viene sostituito in tutto il database, compresi i dati serializzati. Il clone conserva i login del sito di origine. È pubblico appena pronto, con "Scoraggia i motori di ricerca" attivo.';
+$wb['clone_desc_txt'] = 'Un nuovo sito con una copia di file e database, su questo nodo o su un altro. Il sito di origine viene solo letto. Il vecchio indirizzo viene sostituito in tutto il database, compresi i dati serializzati. Il clone conserva i login del sito di origine. È pubblico appena pronto, con "Scoraggia i motori di ricerca" attivo.';
 $wb['domain_txt'] = 'Nuovo dominio';
 $wb['client_txt'] = 'Cliente';
 $wb['access_type_txt'] = 'Accesso ai file';
@@ -14,3 +14,6 @@ $wb['domain_taken_txt'] = 'Questo dominio è già gestito dal modulo WordPress.'
 $wb['staging_head_txt'] = 'Crea lo staging di';
 $wb['staging_desc_txt'] = 'Una copia di questo sito per provare le modifiche, sullo stesso nodo e per lo stesso cliente. PHP non invia email da qui, perché la copia di un negozio ha clienti veri: un plugin che usa da solo un server SMTP però le invia lo stesso. È pubblica, senza password, ma i motori di ricerca vengono invitati a non indicizzarla. Poi potrai aggiornarla dalla produzione o pubblicarla in produzione.';
 $wb['staging_btn_txt'] = 'Crea lo staging';
+$wb['server_txt'] = 'Nodo';
+$wb['server_help_txt'] = 'Su un altro nodo file e database viaggiano cifrati attraverso il database del master: è più lento, e la versione PHP è quella predefinita di quel nodo.';
+$wb['server_invalid_txt'] = 'Scegli un server web.';

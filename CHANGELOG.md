@@ -20,6 +20,8 @@
   between the two site users
 - Multiserver review: nodes can update only the status columns of `wpm_site`, and the worker refuses a row that does
   not match its website in ISPConfig
+- Clone to another node: files and database travel encrypted through the master database, only for a clone the panel
+  asked for
 - Emails with the mail settings of ISPConfig: site ready (without passwords), immediate alerts for rollbacks and
   failures, daily or weekly summary; recipients in the settings page
 - Multiserver: the master installer grants the module tables to the database account of every node, the node

@@ -17,6 +17,10 @@
     </div>
     <tmpl_unless name="staging">
     <div class="form-group">
+        <label for="server_id" class="col-sm-3 control-label">{tmpl_var name='server_txt'}</label>
+        <div class="col-sm-9"><select name="server_id" id="server_id" class="form-control">{tmpl_var name='server_options'}</select><p class="help-block">{tmpl_var name='server_help_txt'}</p></div>
+    </div>
+    <div class="form-group">
         <label for="client_id" class="col-sm-3 control-label">{tmpl_var name='client_txt'}</label>
         <div class="col-sm-9"><select name="client_id" id="client_id" class="form-control">{tmpl_var name='client_options'}</select></div>
     </div>

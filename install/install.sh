@@ -101,7 +101,7 @@ create_tables() {
 
     # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our tables.
     local table
-    for table in wpm_site wpm_setting wpm_event wpm_notice; do
+    for table in wpm_site wpm_setting wpm_event wpm_notice wpm_transfer wpm_transfer_piece; do
         if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
             "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`$table\` TO '$panel_user'@'localhost'"; then
             echo "WARNING: could not grant access on $table to '$panel_user'@'localhost'; check the grants manually" >&2
@@ -110,7 +110,8 @@ create_tables() {
 }
 
 # Nodes of a multiserver setup reach the master database as ispcsrvN users, with grants per table.
-# The worker of a node reads and writes wpm_site, reads the settings, records events and claims summaries.
+# The worker of a node reads and writes wpm_site, reads the settings, records events, claims summaries and
+# moves clones between nodes.
 # Run again after adding a node.
 grant_nodes() {
     local db=()
@@ -141,7 +142,9 @@ grant_nodes() {
              GRANT SELECT, INSERT, UPDATE ($node_columns) ON \`$name\`.\`wpm_site\` TO '$user'@'$from';
              GRANT SELECT ON \`$name\`.\`wpm_setting\` TO '$user'@'$from';
              GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_event\` TO '$user'@'$from';
-             GRANT INSERT ON \`$name\`.\`wpm_notice\` TO '$user'@'$from'" \
+             GRANT INSERT ON \`$name\`.\`wpm_notice\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`wpm_transfer\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_transfer_piece\` TO '$user'@'$from'" \
             || echo "WARNING: could not grant the module tables to '$user'@'$from'" >&2
     done
 }

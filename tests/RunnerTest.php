@@ -137,6 +137,80 @@ final class RunnerTest extends TestCase
         $runner->mustRun(new Command(['/bin/sh', '-c', 'echo "Warning: noise" >&2; echo "Error: bad S3cret" >&2; exit 3']));
     }
 
+    public function testStreamGivesTheOutputInPiecesOfTheRightSize(): void
+    {
+        $pieces = [];
+        (new Runner(false))->stream(new Command(['/bin/sh', '-c', 'head -c 10000 /dev/zero']), static function (string $piece) use (&$pieces): void {
+            $pieces[] = strlen($piece);
+        }, 4096);
+
+        self::assertSame([4096, 4096, 1808], $pieces);
+    }
+
+    public function testStreamReportsAFailedCommandWithoutSecrets(): void
+    {
+        $this->expectExceptionMessage('Command failed (2): no ********');
+        (new Runner(false, ['S3cret']))->stream(new Command(['/bin/sh', '-c', 'echo data; echo "no S3cret" >&2; exit 2']), static function (): void {
+        });
+    }
+
+    // The receiver gave up: the command must not stay behind.
+    public function testStreamStopsTheCommandWhenTheReceiverFails(): void
+    {
+        $start = microtime(true);
+        try {
+            (new Runner(false, [], 600, 33554432, 1))->stream(new Command(['/bin/sh', '-c', 'yes']), static function (): void {
+                throw new \RuntimeException('receiver failed');
+            }, 1024);
+            self::fail('no exception');
+        } catch (\RuntimeException $e) {
+            self::assertSame('receiver failed', $e->getMessage());
+        }
+        self::assertLessThan(10, microtime(true) - $start);
+    }
+
+    public function testFeedGivesTheCommandEveryPiece(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'wpm-feed');
+        $pieces = ['abc', str_repeat('x', 200000), 'end'];
+        (new Runner(false))->feed(new Command(['/bin/sh', '-c', 'cat > "$0"', $file]), static function () use (&$pieces): ?string {
+            return array_shift($pieces);
+        });
+
+        self::assertSame('abc' . str_repeat('x', 200000) . 'end', file_get_contents($file));
+        unlink($file);
+    }
+
+    public function testFeedReportsACommandThatFails(): void
+    {
+        $this->expectExceptionMessage('Command failed (3): bad input');
+        (new Runner(false))->feed(new Command(['/bin/sh', '-c', 'head -c 1 >/dev/null; echo "bad input" >&2; exit 3']), static function (): ?string {
+            static $n = 0;
+            return $n++ < 50 ? str_repeat('y', 100000) : null;
+        });
+    }
+
+    public function testFeedRefusesACommandThatStopsReadingEarly(): void
+    {
+        $this->expectExceptionMessage('stopped before the end of the data');
+        (new Runner(false))->feed(new Command(['/bin/sh', '-c', 'head -c 1 >/dev/null']), static function (): ?string {
+            static $n = 0;
+            return $n++ < 50 ? str_repeat('y', 100000) : null;
+        });
+    }
+
+    public function testATransferIsOnlyLoggedInADryRun(): void
+    {
+        $runner = new Runner(true);
+        $runner->stream(new Command(['tar', '-cz', '.']), static function (): void {
+            self::fail('no data in a dry run');
+        });
+        $runner->feed(new Command(['tar', '-xz']), static function (): ?string {
+            self::fail('no data in a dry run');
+        });
+        self::assertSame(["[dry-run] 'tar' '-cz' '.' | (transfer)", "[dry-run] (transfer) | 'tar' '-xz'"], $runner->log());
+    }
+
     private static function gone(int $pid): bool
     {
         $state = trim((string)shell_exec('ps -o stat= -p ' . $pid));

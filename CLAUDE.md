@@ -46,6 +46,8 @@ shellcheck install/install.sh dev/test-env.sh dev/regression.sh
 ```
 
 `shellcheck` is not on the Mac: run it in the VM after `sync`, with `sudo` (`dev/` is 0700 there).
+The `php` of Homebrew on the Mac can point to another version (7.4 on 2026-11-16, chosen outside this project: do not
+relink it). Run the checks with `PATH=/opt/homebrew/opt/php@8.3/bin:$PATH`.
 
 ## Test environment (Mac, Apple Silicon, macOS 14)
 
@@ -121,23 +123,25 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
     every file it inherited, the worker lock included. Open long-lived handles with `fopen(..., 'e')`.
 
 
-## Current status (2026-11-15)
+## Current status (2026-11-16)
 
 - Done: the create flow works end to end in the VM, with SFTP or FTP and per-site options; site detail page
   with one-time passwords; spaced retries; detection of existing sites; settings page; update overview;
   backups, updates with health check and automatic rollback, automatic updates; clone on the same node;
   staging (create, update from production, push to production); WP-Cron switch; `--uninstall`; clear failure
-  messages with retries that resume; objects of plugin classes and page caches in clones; multiserver. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  messages with retries that resume; objects of plugin classes and page caches in clones; multiserver, with its
+  security review; emails; clone to another node; every WP-CLI command in the sandbox. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: optional emails (ISPConfig's `$app->functions->mail()` and its mail settings can be reused), then
-  clone across nodes if wanted; the production pilot comes last.
+- **Next**: the remaining 1.0 items of ROADMAP.md, one decision at a time with Stefano; the production pilot comes last.
   Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.
-- The VM has a remote user `wpmanager`, a client `testclient` and test sites (`sito*`, `clone*`, `big1`/`bigclone` without
-  their large files, `staging.sito17`, `staging.sito22`, `staging.clone9`; `nodo2a`, `nodo2b`, `staging.nodo2a` on the
-  slave); its `config.php` has
-  `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
+- The VM has a remote user `wpmanager`, a client `testclient` and the test sites `sito28`, `big1` (30,000 posts, no
+  large files) and `remote2` on the master, `nodo2a`, `nodo2e`, `remote1`, `remote3` on the slave; the older ones were
+  deleted on 2026-11-16 (the master disk of 19 GB was full: every site takes about 400 MB, the jail included). Its
+  `config.php` has `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
+- The Postfix of the master VM hands mail to Amavis, which does not run there: emails stay in the queue (`postqueue -p`,
+  `postcat -q ID`); the slave delivers them to `/var/mail/root`. Use `root@localhost.ispc.test` as recipient.
 
 ## Known open issues / roadmap
 

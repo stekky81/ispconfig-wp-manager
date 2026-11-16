@@ -66,6 +66,26 @@ final class Crypto
         return $plain;
     }
 
+    /** Binary data, for the pieces of a transfer between nodes: nonce and box, no text encoding. */
+    public function seal(string $plain): string
+    {
+        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        return $nonce . sodium_crypto_secretbox($plain, $nonce, $this->key);
+    }
+
+    public function open(string $sealed): string
+    {
+        $plain = strlen($sealed) > SODIUM_CRYPTO_SECRETBOX_NONCEBYTES ? sodium_crypto_secretbox_open(
+            substr($sealed, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES),
+            substr($sealed, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES),
+            $this->key,
+        ) : false;
+        if ($plain === false) {
+            throw new \RuntimeException('A piece of the transfer cannot be decrypted: changed, or another key');
+        }
+        return $plain;
+    }
+
     public static function randomPassword(int $length = 24): string
     {
         $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789-_.';

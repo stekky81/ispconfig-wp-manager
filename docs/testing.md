@@ -80,6 +80,11 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] A row changed behind the back of the panel (another user) or added for a website already in the list is refused by
       the worker, logged, and does not stop the other sites
 - [x] Install and clone in the sandbox, on the master and on the node
+- [x] Clone to another node, both ways, through the master database; a site with a dump of 82 MB and 30,000 posts in
+      327 s, at most 16 pieces waiting in the master database, none left at the end
+- [x] A transfer request the panel did not make is refused by the source node, which sends nothing
+- [x] A source node that claimed a transfer and stopped (full disk): the target gives up after 10 minutes and the
+      next attempt works
 
 ### Emails
 

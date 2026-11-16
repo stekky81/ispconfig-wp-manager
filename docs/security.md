@@ -74,6 +74,10 @@ Reviewed on 2026-11-16, with a node joined to the master in the test environment
 - **The shared key is on every node**, so root on one node can decrypt the secrets stored for sites on the others: the
   database password until the install ends, the generated passwords until they are shown or expire after 7 days.
   A key per node would remove this; open for now.
+- **Clones between nodes** go through the master database, encrypted with the shared key. A node that was broken into
+  could open a request for any site of another node: the source node sends a site only for a clone that the panel
+  created, which it checks in `sys_datalog`, where nodes cannot add records. With the shared key such a node can still
+  read the pieces of a real clone that pass through the master database while it runs.
 - **Events and summaries**: a node can add and delete rows of `wpm_event`, and add rows to `wpm_notice`. At worst a node
   that was broken into hides events from the summary or stops summaries; it cannot change a site.
 - **Not ours**: ISPConfig needs the master database to accept connections from the nodes. Limit it to their addresses

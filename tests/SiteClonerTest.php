@@ -11,6 +11,7 @@ use WpManager\Crypto;
 use WpManager\PathGuard;
 use WpManager\Runner;
 use WpManager\SearchReplacePlan;
+use WpManager\SiteTransfer;
 use WpManager\SiteCloner;
 
 final class SiteClonerTest extends TestCase
@@ -75,6 +76,64 @@ final class SiteClonerTest extends TestCase
             self::assertMatchesRegularExpression("#'-u' '(web\\d+)' .*open_basedir={$this->root}/client\\d/\\1:#", $line);
             self::assertStringNotContainsString("'db' 'export'", $line);
             self::assertStringNotContainsString("'db' 'import'", $line);
+        }
+    }
+
+    private function remote(): SiteTransfer
+    {
+        $store = new MemoryTransferStore();
+        $id = $store->open(7, 9, 1, 2);
+        $crypto = new \WpManager\Crypto(base64_decode(\WpManager\Crypto::generateKey()));
+        (new SiteTransfer($store, $crypto, $id, 0, static function (): void {
+        }))->sendMeta(['home' => 'http://old.com', 'prefix' => 'xy_']);
+        // The cloner decrypts the database password with its own Crypto: only the transfer uses this one.
+        return new SiteTransfer($store, $crypto, $id, 0, static function (): void {
+        });
+    }
+
+    // The folder of a source on another node is not on this machine: nothing of it is read here.
+    public function testASourceOnAnotherNodeArrivesThroughTheTransfer(): void
+    {
+        $runner = new Runner(true);
+        // A folder that does not exist on this node.
+        $source = $this->source(['server_id' => 2, 'document_root' => '/var/www/clients/client9/web99']);
+        $this->cloner()->clone($this->target(['server_id' => 1]), $source, $runner, false, $this->remote());
+        $log = implode("\n", $runner->log());
+
+        self::assertStringContainsString("[dry-run] (transfer) | 'sudo' '-u' 'web9' '-H' '--' 'tar' '-xz'", $log);
+        self::assertStringNotContainsString("'web7'", $log);
+        // Its folder is only the text that the replace changes.
+        foreach (explode("\n", $log) as $line) {
+            if (!str_contains($line, "'search-replace'")) {
+                self::assertStringNotContainsString('web99', $line);
+            }
+        }
+        // The table prefix of the description.
+        self::assertStringContainsString("'--dbprefix=xy_'", $log);
+    }
+
+    public function testATransferIsOnlyForASourceOnAnotherNode(): void
+    {
+        $this->expectExceptionMessage('is on this node');
+        $this->cloner()->clone($this->target(), $this->source(), new Runner(true), false, $this->remote());
+    }
+
+    public function testTheSourceNodeSendsSettingsFilesAndDatabase(): void
+    {
+        $store = new MemoryTransferStore();
+        $id = $store->open(7, 9, 1, 2);
+        $runner = new Runner(true);
+        $out = new SiteTransfer($store, new \WpManager\Crypto(base64_decode(\WpManager\Crypto::generateKey())), $id, 0, static function (): void {
+        });
+        try {
+            $this->cloner()->export($this->source(), $out, $runner);
+        } catch (\RuntimeException) {
+            // A dry run reads no settings: the description cannot be built.
+        }
+        $log = implode("\n", $runner->log());
+        self::assertStringContainsString("'option' 'get' 'home'", $log);
+        foreach (explode("\n", $log) as $line) {
+            self::assertStringContainsString("'-u' 'web7'", $line, 'everything as the source user');
         }
     }
 

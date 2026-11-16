@@ -1,6 +1,6 @@
 <?php
 $wb['clone_head_txt'] = 'Clone';
-$wb['clone_desc_txt'] = 'A new website with a copy of files and database, on the same node. The source is only read. The old address is replaced everywhere in the database, serialized data included. The clone keeps the logins of the source. It is public as soon as it is ready, with "Discourage search engines" turned on.';
+$wb['clone_desc_txt'] = 'A new website with a copy of files and database, on this node or on another one. The source is only read. The old address is replaced everywhere in the database, serialized data included. The clone keeps the logins of the source. It is public as soon as it is ready, with "Discourage search engines" turned on.';
 $wb['domain_txt'] = 'New domain';
 $wb['client_txt'] = 'Client';
 $wb['access_type_txt'] = 'File access';
@@ -14,3 +14,6 @@ $wb['domain_taken_txt'] = 'This domain is already managed by the WordPress modul
 $wb['staging_head_txt'] = 'Create staging of';
 $wb['staging_desc_txt'] = 'A copy of this site for trying changes, on the same node and for the same client. PHP sends no mail from it, because a copy of a shop has real customers: a plugin that talks to an SMTP server by itself still sends mail. It is public, without password, but search engines are told not to index it. Later you can update it from production, or push it to production.';
 $wb['staging_btn_txt'] = 'Create staging';
+$wb['server_txt'] = 'Node';
+$wb['server_help_txt'] = 'On another node, files and database travel encrypted through the master database: slower, and the PHP version is the default one of that node.';
+$wb['server_invalid_txt'] = 'Choose a web server.';
