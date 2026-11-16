@@ -73,7 +73,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 
 - [x] Full security review: access levels, permissions of files and folders, panel pages, worker and installer
 - [x] Security review of multiserver, and a sandbox for installs and clones
-- [ ] Maintenance: maintenance mode, admin password reset, one-click wp-admin login,
+- [x] Maintenance: maintenance mode, admin password reset, one-click wp-admin login,
       debug toggle, plugin/theme activate/deactivate/remove
 - [ ] SFTP login with SSH keys instead of a password
 - [ ] Security: known-vulnerability check for plugins/themes (check the data feed's terms of use),

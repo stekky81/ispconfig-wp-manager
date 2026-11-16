@@ -121,6 +121,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 16. A site's table prefix is not always `wp_`: read it from `wp-config.php` in a test script.
 17. `proc_terminate()` sends SIGTERM to `sudo`, which the code of a site can ignore; `sudo` then waits and keeps
     every file it inherited, the worker lock included. Open long-lived handles with `fopen(..., 'e')`.
+18. WP-CLI commands that start programs fail in the sandbox (`proc_open` is disabled): `wp plugin delete` runs `rm`,
+    `wp db export` runs `mysqldump`. Ask WP-CLI for the path or the settings and run the program from the worker.
+19. `mysql -N` prints a NULL as the text `NULL`: a test that waits for a column to be set must compare with it.
 
 
 ## Current status (2026-11-16)
@@ -130,7 +133,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   backups, updates with health check and automatic rollback, automatic updates; clone on the same node;
   staging (create, update from production, push to production); WP-Cron switch; `--uninstall`; clear failure
   messages with retries that resume; objects of plugin classes and page caches in clones; multiserver, with its
-  security review; emails; clone to another node; every WP-CLI command in the sandbox. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  security review; emails; clone to another node; every WP-CLI command in the sandbox; maintenance tools (maintenance mode, one-click login, password reset, debug,
+  plugins and themes). See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
 - **Next**: the remaining 1.0 items of ROADMAP.md, one decision at a time with Stefano; the production pilot comes last.
   Security review done: see `docs/security.md`, including what remains open.

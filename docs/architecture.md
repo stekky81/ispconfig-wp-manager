@@ -159,6 +159,43 @@ calls `wp-cron.php`, so it runs on the PHP version of the site. The worker adds 
 `wp-config.php`, and removing it leaves the file as it was. Both changes reach the node through the datalog: for a minute
 or two no cron may run, and scheduled tasks simply run at the next pass.
 
+## Maintenance tools
+
+Decided with the maintainer on 2026-11-16. Every tool is an action of the site page, run once by the worker of the node
+(`SiteActions` lists them and checks what the panel may ask for, against what the last check of the node saw). The
+page looks again every 15 seconds while an action runs.
+
+- **Maintenance mode** (`MaintenanceMode`): the `.maintenance` file of WordPress, written by the site user. WordPress
+  ignores that file after 10 minutes, so this one sets the time at every request and lasts until it is turned off.
+  Visitors get the maintenance page of WordPress, or `wp-content/maintenance.php` if the site has one, with HTTP 503
+  and `Retry-After`; the login page and browsers with a WordPress login cookie see the site, so the admin can work.
+  WordPress writes and removes its own `.maintenance` during an update: updates, restores and pushes from a staging
+  put back the mode they found. The health check sends a login cookie that WordPress does not accept, so it sees
+  the site behind the maintenance page, and past page caches.
+- **One-click login** (`SiteUsers`): the worker creates a temporary administrator, `wpm-login-` and 8 hex digits, with
+  a random password and an `.invalid` address; the page shows it once and its button posts it to `wp-login.php` in a
+  new tab. The user is deleted 15 minutes later if nobody logged in, otherwise 2 hours after the login (the worker
+  looks for its session every minute). What it wrote goes to the first administrator; without one it stays as a
+  subscriber with an unknown password. The password cannot change after the login: the login cookie of WordPress
+  holds a piece of the password hash, so a new password ends the session. Only names of that form are ever deleted.
+  On a site without HTTPS the page says that password and session travel unencrypted.
+- **Password reset** of an administrator: random password, shown once on the page for a day at most, every session of
+  that user closed, no email.
+- **Debug** (`WpDebug`): `WP_DEBUG_DISPLAY` off, `WP_DEBUG_LOG` in `<site>/private/wp-debug.log`, then `WP_DEBUG` on,
+  in that order, so that errors never reach the pages. `wp-content/debug.log`, the default, can be downloaded by anyone.
+  It turns itself off after 24 hours. The page shows the last 200 lines on request, read by the site user.
+- **Plugins and themes** (`SiteExtensions`): activate, deactivate, remove. The state is read again before the action;
+  the active theme and its parent cannot be removed. The site is checked before and after, like an update: an
+  activation that breaks it is deactivated again (without loading the plugin), a deactivation is undone by activating
+  again, a theme comes back to the previous one. Removal deletes the files only: what the plugin keeps in the
+  database, and its translations, stay. `wp plugin delete` starts `rm`, which the sandbox forbids, so WP-CLI only
+  gives the path of the plugin and the worker deletes its folder (or its one file) as the site user, after checking
+  that it is inside the web root. A backup is taken first and restored if the site breaks. A plugin that breaks
+  WordPress itself is deactivated without loading the other plugins, and its deactivation code does not run.
+
+Everything runs as the site user, in the PHP sandbox; user commands load no plugin or theme. Passwords for the page
+travel encrypted in `wpm_site.secret_result`, are cleared when shown and expire at `secret_until`.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the
@@ -211,6 +248,8 @@ therefore temporary. On a slave node this needs INSERT on `wpm_site`, see the mu
 - **Passwords shown once**: the site detail page decrypts the WP admin and SFTP/FTP passwords on request,
   after clearing them from `wpm_site`. Encrypted copies stay in `sys_datalog` until ISPConfig prunes it.
 - **Secrets out of `ps`**: passwords reach WP-CLI through stdin (`--prompt`), never as arguments.
+- **Only temporary users deleted**: the worker deletes a WordPress user only if its name has the form of the one-click
+  login, whatever `wpm_site.login_user` says.
 - **No shell interpolation**: commands are built as argument arrays and escaped one by one.
 
 Permissions, access levels and remaining risks are in [security.md](security.md).

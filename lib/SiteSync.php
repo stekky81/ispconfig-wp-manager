@@ -62,16 +62,21 @@ final class SiteSync
         // If this throws nothing was changed.
         $backup = $this->backups->create($production, $runner);
 
-        $maintenance = $this->webRoot($production) . '/.maintenance';
-        $user = (string)$production['system_user'];
+        // Visitors see the maintenance page during the copy; production keeps the mode it had.
+        $maintenance = new MaintenanceMode($this->config, $this->guard);
+        $inMaintenance = $maintenance->isOn($production, $runner);
         try {
-            $runner->mustRun(new Command(['tee', '--', $maintenance], $user, null, '<?php $upgrading = ' . time() . ";\n"));
+            $maintenance->set($production, true, $runner);
             [$count, $note] = $this->copy($staging, $production, $runner);
             $runner->mustRun($wp->optionUpdate('blog_public', $blogPublic));
         } catch (\RuntimeException $e) {
             return $this->rollback($production, $backup, $before, $runner, 'Push failed: ' . $e->getMessage());
         } finally {
-            $runner->run(new Command(['rm', '-f', '--', $maintenance], $user));
+            try {
+                $maintenance->set($production, $inMaintenance, $runner);
+            } catch (\RuntimeException $e) {
+                error_log("wpmanager: maintenance mode of {$production['domain']} not set again after the push: " . $e->getMessage());
+            }
         }
 
         $broken = $this->health->regressionsAfterChange($production, $before);

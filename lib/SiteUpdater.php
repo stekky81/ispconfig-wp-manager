@@ -40,10 +40,17 @@ final class SiteUpdater
         // If this throws nothing was changed.
         $backup = $this->backups->create($site, $runner);
 
+        // WordPress writes its own .maintenance during an update, and removes it at the end.
+        $maintenance = new MaintenanceMode($this->config, $this->guard);
+        $inMaintenance = $maintenance->isOn($site, $runner);
         try {
             $this->runUpdates($site, $scope, $runner);
         } catch (\RuntimeException $e) {
             return $this->rollback($site, $backup, $before, $runner, 'Update failed: ' . $e->getMessage());
+        } finally {
+            if ($inMaintenance) {
+                $maintenance->set($site, true, $runner);
+            }
         }
 
         $broken = $this->health->regressionsAfterChange($site, $before);

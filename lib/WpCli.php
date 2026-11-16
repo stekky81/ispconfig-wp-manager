@@ -51,6 +51,13 @@ final class WpCli
         return new self($wpBinary, $siteRoot . '/web', $systemUser, $phpBinary, $arguments);
     }
 
+    /** @param array{exit:int, stdout:string, stderr:string} $result of `wp config get NAME`: false when it is missing */
+    public static function isTrue(array $result): bool
+    {
+        $value = strtolower(trim($result['stdout']));
+        return $result['exit'] === 0 && !in_array($value, ['', '0', 'false'], true);
+    }
+
     private function cmd(array $args, ?string $stdin = null): Command
     {
         $base = $this->phpBinary !== null
@@ -178,6 +185,109 @@ final class WpCli
             $args[] = '--activate';
         }
         return $this->cmd($args);
+    }
+
+    /** An administrator, for the one-click login. The password goes through stdin. Prints the new ID. */
+    public function userCreateAdmin(string $login, string $email, string $password): Command
+    {
+        return $this->cmd([
+            'user', 'create', self::userRef($login), Validator::email($email),
+            '--role=administrator', '--display_name=WordPress Manager', '--porcelain', '--prompt=user_pass',
+            '--skip-plugins', '--skip-themes',
+        ], $password . "\n");
+    }
+
+    /** No email to the user: the panel shows the password. */
+    public function userSetPassword(string $user, string $password): Command
+    {
+        return $this->cmd(['user', 'update', self::userRef($user), '--skip-email', '--prompt=user_pass', '--skip-plugins', '--skip-themes'], $password . "\n");
+    }
+
+    public function userSetRole(string $user, string $role): Command
+    {
+        if (!preg_match('/^[a-z_]+$/', $role)) {
+            throw new ValidationException("Invalid role: {$role}");
+        }
+        return $this->cmd(['user', 'set-role', self::userRef($user), $role, '--skip-plugins', '--skip-themes']);
+    }
+
+    /** What the user wrote goes to another user: never deleted with it. */
+    public function userDelete(string $user, int $reassignTo): Command
+    {
+        return $this->cmd(['user', 'delete', self::userRef($user), '--reassign=' . $reassignTo, '--yes', '--skip-plugins', '--skip-themes']);
+    }
+
+    public function userList(?string $role = null): Command
+    {
+        $filter = $role === null ? [] : ['--role=' . $role];
+        return $this->cmd(array_merge(['user', 'list'], $filter, ['--fields=ID,user_login,roles', '--format=json', '--skip-plugins', '--skip-themes']));
+    }
+
+    public function userGet(string $user): Command
+    {
+        return $this->cmd(['user', 'get', self::userRef($user), '--field=ID', '--skip-plugins', '--skip-themes']);
+    }
+
+    public function userSessionCount(string $user): Command
+    {
+        return $this->cmd(['user', 'session', 'list', self::userRef($user), '--format=count', '--skip-plugins', '--skip-themes']);
+    }
+
+    public function userSessionsDestroy(string $user): Command
+    {
+        return $this->cmd(['user', 'session', 'destroy', self::userRef($user), '--all', '--skip-plugins', '--skip-themes']);
+    }
+
+    /** @param 'plugin'|'theme' $type */
+    public function isInstalled(string $type, string $slug): Command
+    {
+        return $this->cmd([self::extensionType($type), 'is-installed', Validator::wpExtension($slug), '--skip-plugins', '--skip-themes']);
+    }
+
+    /** Loads WordPress and the plugin: its activation code runs, as in wp-admin. */
+    public function pluginActivate(string $slug): Command
+    {
+        return $this->cmd(['plugin', 'activate', Validator::wpExtension($slug)]);
+    }
+
+    /** @param bool $withoutPlugins when a plugin breaks WordPress itself: its deactivation code does not run */
+    public function pluginDeactivate(string $slug, bool $withoutPlugins = false): Command
+    {
+        return $this->cmd(array_merge(['plugin', 'deactivate', Validator::wpExtension($slug)], $withoutPlugins ? ['--skip-plugins', '--skip-themes'] : []));
+    }
+
+    /** The main file of an installed plugin. (`wp plugin delete` cannot run in the sandbox: it starts `rm`.) */
+    public function pluginPath(string $slug): Command
+    {
+        return $this->cmd(['plugin', 'path', Validator::wpExtension($slug), '--skip-plugins', '--skip-themes']);
+    }
+
+    public function themeActivate(string $slug): Command
+    {
+        return $this->cmd(['theme', 'activate', Validator::wpExtension($slug)]);
+    }
+
+    /** Without --force: WP-CLI refuses the active theme. */
+    public function themeDelete(string $slug): Command
+    {
+        return $this->cmd(['theme', 'delete', Validator::wpExtension($slug), '--skip-plugins', '--skip-themes']);
+    }
+
+    /** A user ID, or a login that cannot be read as an option. */
+    private static function userRef(string $user): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_][A-Za-z0-9._@-]{0,59}$/', $user)) {
+            throw new ValidationException("Invalid WordPress user: {$user}");
+        }
+        return $user;
+    }
+
+    private static function extensionType(string $type): string
+    {
+        if (!in_array($type, ['plugin', 'theme'], true)) {
+            throw new ValidationException("Invalid type: {$type}");
+        }
+        return $type;
     }
 
     public function coreVersion(): Command

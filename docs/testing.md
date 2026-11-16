@@ -167,6 +167,20 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 
 - [x] To real cron and back: job and crontab line appear and go, `wp-config.php` ends up identical
 
+### Maintenance tools
+
+- [x] Maintenance mode: 503 with `Retry-After` to visitors, still after a minute (the file sets the time at every
+      request), the site with a login cookie and on the login page; kept by a restore of a backup taken without it and by a plugin update
+- [x] One-click login: shown once, the button logs in, the worker sees the session and keeps the user 2 hours; at
+      expiry the user is deleted, its post goes to an administrator and the session ends; an unused one goes too
+- [x] A real administrator written in `login_user` is not deleted
+- [x] Password reset: the shown password works; an ID that is not an administrator is refused by the panel
+- [x] Debug: constants in `wp-config.php`, log in `private/` with the warning, `wp-content/debug.log` not there,
+      off by itself after its time
+- [x] Plugins: activate, deactivate, remove with backup; a plugin that breaks the pages is deactivated again
+- [x] Themes: activate and back, remove an inactive one; the active theme cannot be removed
+- [x] The same on a site of a slave node, with the column grants of the node
+
 ### Security
 
 - [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write

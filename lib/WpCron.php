@@ -61,7 +61,6 @@ final class WpCron
     /** @param array{exit:int, stdout:string, stderr:string} $result of `wp config get DISABLE_WP_CRON` */
     public static function isDisabled(array $result): bool
     {
-        $value = strtolower(trim($result['stdout']));
-        return $result['exit'] === 0 && !in_array($value, ['', '0', 'false'], true);
+        return WpCli::isTrue($result);
     }
 }

@@ -34,6 +34,37 @@
         </tbody>
     </table>
 
+    <tmpl_if name="action_message"><div class="alert alert-info" id="action_message">{tmpl_var name='action_message'}</div></tmpl_if>
+    <tmpl_if name="action_busy">
+    <div class="alert alert-info" id="action_busy" data-site="{tmpl_var name='id'}">{tmpl_var name='action_busy_txt'} ({tmpl_var name='action_status'})</div>
+    <script>
+        // The worker runs every minute: look again, unless another page is open by then.
+        setTimeout(function () {
+            var busy = document.getElementById('action_busy');
+            if (busy && busy.getAttribute('data-site') === '{tmpl_var name='id'}') {
+                ISPConfig.loadContent('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}');
+            }
+        }, 15000);
+    </script>
+    </tmpl_if>
+
+    <tmpl_if name="login_ready">
+    <div class="alert alert-success" id="login_ready">
+        <p>{tmpl_var name='login_ready_txt'}</p>
+        <p><button class="btn btn-default formbutton-success" type="button" id="login_go"
+            data-url="{tmpl_var name='site_url'}/wp-login.php" data-admin="{tmpl_var name='site_url'}/wp-admin/"
+            data-user="{tmpl_var name='result_user'}" data-password="{tmpl_var name='result_password'}"
+            onclick="var b = this, f = document.createElement('form'); f.method = 'post'; f.action = b.getAttribute('data-url'); f.target = '_blank'; f.rel = 'noopener noreferrer'; [['log', b.getAttribute('data-user')], ['pwd', b.getAttribute('data-password')], ['redirect_to', b.getAttribute('data-admin')]].forEach(function (p) { var i = document.createElement('input'); i.type = 'hidden'; i.name = p[0]; i.value = p[1]; f.appendChild(i); }); document.body.appendChild(f); f.submit(); document.body.removeChild(f);">{tmpl_var name='login_go_txt'}</button></p>
+        <p>{tmpl_var name='login_manual_txt'} <code id="login_user">{tmpl_var name='result_user'}</code> <code id="login_password">{tmpl_var name='result_password'}</code></p>
+        <tmpl_if name="site_is_http"><p id="login_http">{tmpl_var name='login_http_txt'}</p></tmpl_if>
+    </div>
+    </tmpl_if>
+    <tmpl_if name="password_ready">
+    <div class="alert alert-warning" id="password_ready">
+        {tmpl_var name='password_ready_txt'} <code id="reset_user">{tmpl_var name='result_user'}</code> <code id="reset_password">{tmpl_var name='result_password'}</code>
+    </div>
+    </tmpl_if>
+
     <tmpl_if name="is_installed">
     <h2>{tmpl_var name='updates_txt'}</h2>
     <tmpl_if name="check_requested"><div class="alert alert-success" id="check_requested">{tmpl_var name='check_requested_txt'}</div></tmpl_if>
@@ -99,10 +130,79 @@
         </tmpl_if>
     </p>
 
+    <h2>{tmpl_var name='maintenance_txt'}</h2>
+    <p id="maintenance_mode">
+        <tmpl_if name="maintenance_on">
+            <strong>{tmpl_var name='maintenance_on_txt'}</strong>
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=maintenance&param=off&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='maintenance_turn_off_txt'}</button></tmpl_unless>
+        <tmpl_else>
+            {tmpl_var name='maintenance_off_txt'}
+            <tmpl_unless name="action_busy"><a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=maintenance&param=on&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='maintenance_confirm_txt'}');">{tmpl_var name='maintenance_turn_on_txt'}</a></tmpl_unless>
+        </tmpl_if>
+    </p>
+    <p id="one_click_login">
+        {tmpl_var name='login_desc_txt'}
+        <tmpl_if name="login_active"><br />{tmpl_var name='login_active_txt'} {tmpl_var name='login_active'}.</tmpl_if>
+        <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-success" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=login&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='login_txt'}</button></tmpl_unless>
+    </p>
+    <h3>{tmpl_var name='admins_txt'}</h3>
+    <table class="table" id="site_admins">
+        <tbody>
+            <tmpl_loop name="admins">
+            <tr>
+                <td>{tmpl_var name='admin_login'}</td>
+                <td class="text-right"><tmpl_unless name="action_busy"><a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=password&param={tmpl_var name='admin_id'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='password_confirm_txt'}');">{tmpl_var name='password_reset_txt'}</a></tmpl_unless></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+    <h3>{tmpl_var name='debug_txt'}</h3>
+    <p id="debug_mode">
+        <tmpl_if name="debug_until">
+            <strong>{tmpl_var name='debug_on_txt'} {tmpl_var name='debug_until'}.</strong> {tmpl_var name='debug_log_txt'} <code>{tmpl_var name='debug_log_path'}</code>
+            <tmpl_unless name="action_busy">
+                <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=debuglog&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='debug_read_txt'}</button>
+                <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=debug&param=off&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='debug_turn_off_txt'}</button>
+            </tmpl_unless>
+        <tmpl_else>
+            <tmpl_if name="debug_elsewhere">{tmpl_var name='debug_elsewhere_txt'}<tmpl_else>{tmpl_var name='debug_off_txt'}</tmpl_if>
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=debug&param=on&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='debug_turn_on_txt'}</button></tmpl_unless>
+        </tmpl_if>
+    </p>
+    <tmpl_if name="debug_tail"><pre id="debug_tail" style="max-height:400px; overflow:auto;">{tmpl_var name='debug_tail'}</pre></tmpl_if>
+
+    <h2>{tmpl_var name='plugins_txt'}</h2>
+    <table class="table" id="site_plugins">
+        <tbody>
+            <tmpl_loop name="plugins">
+            <tr>
+                <td>{tmpl_var name='ext_name'}</td><td>{tmpl_var name='ext_version'}</td><td>{tmpl_var name='ext_status'}</td>
+                <td class="text-right"><tmpl_unless name="action_busy">
+                    <tmpl_if name="can_activate"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=plugin_activate&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='activate_txt'}</button></tmpl_if>
+                    <tmpl_if name="can_deactivate"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=plugin_deactivate&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='deactivate_txt'}</button></tmpl_if>
+                    <tmpl_if name="can_delete"><a class="btn btn-default formbutton-danger" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=plugin_delete&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='delete_plugin_confirm_txt'}');">{tmpl_var name='delete_txt'}</a></tmpl_if>
+                </tmpl_unless></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+    <h2>{tmpl_var name='themes_txt'}</h2>
+    <table class="table" id="site_themes">
+        <tbody>
+            <tmpl_loop name="themes">
+            <tr>
+                <td>{tmpl_var name='ext_name'}</td><td>{tmpl_var name='ext_version'}</td><td>{tmpl_var name='ext_status'}</td>
+                <td class="text-right"><tmpl_unless name="action_busy">
+                    <tmpl_if name="can_activate"><a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=theme_activate&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='activate_theme_confirm_txt'}');">{tmpl_var name='activate_txt'}</a></tmpl_if>
+                    <tmpl_if name="can_delete"><a class="btn btn-default formbutton-danger" href="javascript: ISPConfig.confirm_action('wpmanager/wpm_site_view.php?id={tmpl_var name='id'}&action=theme_delete&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='delete_theme_confirm_txt'}');">{tmpl_var name='delete_txt'}</a></tmpl_if>
+                </tmpl_unless></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+
     <h2>{tmpl_var name='backups_txt'}</h2>
     <p class="fieldDescription">{tmpl_var name='backups_desc_txt'}</p>
-    <tmpl_if name="action_message"><div class="alert alert-info" id="action_message">{tmpl_var name='action_message'}</div></tmpl_if>
-    <tmpl_if name="action_busy"><div class="alert alert-info" id="action_busy">{tmpl_var name='action_busy_txt'} ({tmpl_var name='action_status'})</div></tmpl_if>
     <tmpl_if name="has_backups">
         <table class="table" id="site_backups">
             <tbody>

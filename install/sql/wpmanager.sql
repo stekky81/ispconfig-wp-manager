@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `last_check` datetime DEFAULT NULL,
   -- Actions asked in the panel and run by the worker of the node
   `action_request` varchar(20) NOT NULL DEFAULT '',
-  `action_param` varchar(40) NOT NULL DEFAULT '',
+  `action_param` varchar(255) NOT NULL DEFAULT '',
   `action_status` varchar(20) NOT NULL DEFAULT '',
   `action_message` text,
   `backups_json` text,
@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   -- WordPress cron: wp = run by page visits, real = a cron job of ISPConfig
   `wp_cron` enum('wp','real') NOT NULL DEFAULT 'wp',
   `cron_job_id` int(11) unsigned NOT NULL DEFAULT 0,
+  -- Maintenance tools. A password made by the worker for the panel, encrypted, shown once until secret_until
+  `secret_result` text,
+  `secret_until` datetime DEFAULT NULL,
+  -- The temporary administrator of the one-click login, deleted at login_until
+  `login_user` varchar(60) NOT NULL DEFAULT '',
+  `login_until` datetime DEFAULT NULL,
+  `login_used` enum('y','n') NOT NULL DEFAULT 'n',
+  -- Debug mode on until then; the last lines of its log, read on request
+  `debug_until` datetime DEFAULT NULL,
+  `debug_tail` mediumtext,
   PRIMARY KEY (`wpm_site_id`),
   UNIQUE KEY `domain` (`domain`),
   KEY `server_id` (`server_id`)
@@ -255,6 +265,35 @@ SET @wpm_sql = (
     'ALTER TABLE `wpm_site` ADD `staging_of` int(11) unsigned NOT NULL DEFAULT 0 AFTER `clone_of`')
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'staging_of'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions without the maintenance tools.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site`
+       ADD `secret_result` text,
+       ADD `secret_until` datetime DEFAULT NULL,
+       ADD `login_user` varchar(60) NOT NULL DEFAULT \'\',
+       ADD `login_until` datetime DEFAULT NULL,
+       ADD `login_used` enum(\'y\',\'n\') NOT NULL DEFAULT \'n\',
+       ADD `debug_until` datetime DEFAULT NULL,
+       ADD `debug_tail` mediumtext')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'secret_result'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Names of plugins and themes as action parameters: longer than the 40 characters of the first versions.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'ALTER TABLE `wpm_site` MODIFY `action_param` varchar(255) NOT NULL DEFAULT \'\'', 'DO 0')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'action_param'
+    AND CHARACTER_MAXIMUM_LENGTH < 255
 );
 PREPARE wpm_stmt FROM @wpm_sql;
 EXECUTE wpm_stmt;

@@ -40,13 +40,16 @@ use WpManager\Crypto;
 use WpManager\FailureMessage;
 use WpManager\HealthCheck;
 use WpManager\JobQueue;
+use WpManager\MaintenanceMode;
 use WpManager\Notifications;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
 use WpManager\Settings;
+use WpManager\SiteActions;
 use WpManager\SiteBackup;
 use WpManager\SiteCloner;
 use WpManager\SiteCredentials;
+use WpManager\SiteExtensions;
 use WpManager\SiteInventory;
 use WpManager\SiteRecord;
 use WpManager\SiteTransfer;
@@ -55,6 +58,8 @@ use WpManager\TransferAuthorization;
 use WpManager\SiteScanner;
 use WpManager\SiteSync;
 use WpManager\SiteUpdater;
+use WpManager\SiteUsers;
+use WpManager\WpDebug;
 use WpManager\WpCron;
 use WpManager\WordPressInstaller;
 
@@ -77,6 +82,12 @@ $cloner = new SiteCloner($config, Crypto::fromFile($config->get('key_file')), ne
 $backups = new SiteBackup($config, new PathGuard($config->get('web_root_base')));
 $updater = new SiteUpdater($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
 $sync = new SiteSync($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
+$extensions = new SiteExtensions($config, new PathGuard($config->get('web_root_base')), $backups, new HealthCheck());
+$maintenance = new MaintenanceMode($config, new PathGuard($config->get('web_root_base')));
+$debug = new WpDebug($config, new PathGuard($config->get('web_root_base')));
+$users = new SiteUsers($config, new PathGuard($config->get('web_root_base')));
+// A password for the panel, shown there once: only the panel and the nodes have the key.
+$seal = static fn(array $result): string => Crypto::fromFile($config->get('key_file'))->encrypt(json_encode($result, JSON_THROW_ON_ERROR));
 
 // A site owner can make this folder unreadable: that must not stop the worker for every site.
 $listBackups = static function (array $site) use ($backups): array {
@@ -235,7 +246,7 @@ foreach ($queue->pending() as $name) {
     $siteId = (int)$job['site_id'];
 
     // Actions on existing sites run once: a failed restore must not start again by itself.
-    if (in_array($job['type'], ['backup', 'restore', 'update', 'wpcron', 'refresh', 'push'], true)) {
+    if (in_array($job['type'], SiteActions::ALL, true)) {
         $queue->remove($name);
         $record = $app->dbmaster->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $siteId);
         if (!is_array($record) || $record['action_request'] !== $job['type'] || $config->isDryRun()) {
@@ -285,6 +296,45 @@ foreach ($queue->pending() as $name) {
                 } else {
                     $result = $sync->refresh($record, $production);
                 }
+                $finish($result['outcome'], $result['message']);
+                $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
+            } elseif ($job['type'] === 'maintenance') {
+                $maintenance->set($record, $record['action_param'] === 'on');
+                $finish('done', $record['action_param'] === 'on' ? 'Maintenance mode on.' : 'Maintenance mode off.');
+                $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
+            } elseif ($job['type'] === 'debug') {
+                $on = $record['action_param'] === 'on';
+                $debug->set($record, $on);
+                $app->dbmaster->query(
+                    'UPDATE wpm_site SET debug_until = IF(?, NOW() + INTERVAL ' . WpDebug::HOURS . ' HOUR, NULL), last_check = NULL WHERE wpm_site_id = ?',
+                    $on ? 1 : 0,
+                    $siteId,
+                );
+                $finish('done', $on ? 'Debug mode on for ' . WpDebug::HOURS . ' hours, log in ' . WpDebug::LOG . '.' : 'Debug mode off.');
+            } elseif ($job['type'] === 'debuglog') {
+                $tail = $debug->tail($record);
+                $app->dbmaster->query('UPDATE wpm_site SET debug_tail = ? WHERE wpm_site_id = ?', $tail, $siteId);
+                $finish('done', $tail === '' ? 'The debug log is empty or does not exist yet.' : 'Last lines of the debug log read.');
+            } elseif ($job['type'] === 'login') {
+                $login = $users->createLogin($record, SiteUsers::isTemporary((string)$record['login_user']) ? (string)$record['login_user'] : '');
+                $app->dbmaster->query(
+                    "UPDATE wpm_site SET login_user = ?, login_until = NOW() + INTERVAL " . SiteUsers::UNUSED_MINUTES . " MINUTE, login_used = 'n',
+                        secret_result = ?, secret_until = NOW() + INTERVAL " . SiteUsers::UNUSED_MINUTES . ' MINUTE WHERE wpm_site_id = ?',
+                    $login['user'],
+                    $seal(['kind' => 'login'] + $login),
+                    $siteId,
+                );
+                $finish('done', "Temporary administrator {$login['user']} created.");
+            } elseif ($job['type'] === 'password') {
+                $reset = $users->resetPassword($record, (int)$record['action_param']);
+                $app->dbmaster->query(
+                    'UPDATE wpm_site SET secret_result = ?, secret_until = NOW() + INTERVAL 1 DAY WHERE wpm_site_id = ?',
+                    $seal(['kind' => 'password'] + $reset),
+                    $siteId,
+                );
+                $finish('done', "New password of {$reset['user']}; its sessions are closed.");
+            } elseif (in_array($job['type'], SiteExtensions::ACTIONS, true)) {
+                $result = $extensions->run($record, (string)$job['type'], (string)$record['action_param']);
                 $finish($result['outcome'], $result['message']);
                 $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
             } elseif ($job['type'] === 'update') {
@@ -430,6 +480,65 @@ if (!$config->isDryRun()) {
         } elseif ($step === SiteCredentials::EXPIRE) {
             $app->dbmaster->query('UPDATE wpm_site SET secret_wp = NULL, secret_access = NULL WHERE wpm_site_id = ?', $site['wpm_site_id']);
             $app->log('wpmanager: one-time passwords of site ' . (int)$site['wpm_site_id'] . ' expired', LOGLEVEL_DEBUG);
+        }
+    }
+}
+
+// Maintenance tools: temporary logins, debug modes and passwords for the panel that ran out of time.
+if (!$config->isDryRun()) {
+    $app->dbmaster->query(
+        'UPDATE wpm_site SET secret_result = NULL, secret_until = NULL WHERE server_id = ? AND secret_until < NOW()',
+        $conf['server_id'],
+    );
+    $logins = $app->dbmaster->queryAllRecords(
+        "SELECT *, login_until <= NOW() AS expired FROM wpm_site WHERE server_id = ? AND login_user != ''",
+        $conf['server_id'],
+    );
+    foreach ($logins ?: [] as $site) {
+        try {
+            if ($distrust($site) !== '') {
+                continue;
+            }
+            if (!SiteUsers::isTemporary((string)$site['login_user'])) {
+                // Never deleted: only the users of the one-click login are.
+                error_log("wpmanager: {$site['domain']}: {$site['login_user']} is not a temporary login, left alone");
+                $app->dbmaster->query("UPDATE wpm_site SET login_user = '', login_until = NULL, login_used = 'n' WHERE wpm_site_id = ?", $site['wpm_site_id']);
+                continue;
+            }
+            if ((int)$site['expired'] === 1) {
+                $done = $users->removeLogin($site, (string)$site['login_user']);
+                $app->dbmaster->query(
+                    "UPDATE wpm_site SET login_user = '', login_until = NULL, login_used = 'n' WHERE wpm_site_id = ? AND login_user = ?",
+                    $site['wpm_site_id'],
+                    $site['login_user'],
+                );
+                $event($site, 'login', 'done', "Temporary administrator: {$done}.");
+            } elseif ($site['login_used'] !== 'y' && $users->hasSession($site, (string)$site['login_user'])) {
+                // Logged in: it lives for the work in wp-admin, from now.
+                $app->dbmaster->query(
+                    "UPDATE wpm_site SET login_used = 'y', login_until = NOW() + INTERVAL " . SiteUsers::USED_MINUTES . ' MINUTE WHERE wpm_site_id = ? AND login_user = ?',
+                    $site['wpm_site_id'],
+                    $site['login_user'],
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log("wpmanager: temporary login of {$site['domain']}: " . $e->getMessage());
+        }
+    }
+    $debugging = $app->dbmaster->queryAllRecords(
+        'SELECT * FROM wpm_site WHERE server_id = ? AND debug_until IS NOT NULL AND debug_until <= NOW()',
+        $conf['server_id'],
+    );
+    foreach ($debugging ?: [] as $site) {
+        try {
+            if ($distrust($site) !== '') {
+                continue;
+            }
+            $debug->set($site, false);
+            $app->dbmaster->query('UPDATE wpm_site SET debug_until = NULL, last_check = NULL WHERE wpm_site_id = ?', $site['wpm_site_id']);
+            $event($site, 'debug', 'done', 'Debug mode turned off after ' . WpDebug::HOURS . ' hours.');
+        } catch (\Throwable $e) {
+            error_log("wpmanager: debug mode of {$site['domain']} not turned off: " . $e->getMessage());
         }
     }
 }

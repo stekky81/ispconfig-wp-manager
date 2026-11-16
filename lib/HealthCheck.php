@@ -124,6 +124,9 @@ final class HealthCheck
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_USERAGENT => 'ispconfig-wp-manager health check',
+            // Looks behind the maintenance mode of this module. WordPress finds no valid login in it, and
+            // page caches skip a request with a login cookie: the check sees what PHP makes now.
+            CURLOPT_COOKIE => MaintenanceMode::BYPASS_COOKIE . '=1',
         ]);
         curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);

@@ -36,6 +36,11 @@ final class SiteInventory
             self::orEmptyList($runner->mustRun($wp->themeList())),
         );
         $report['wp_cron_disabled'] = WpCron::isDisabled($runner->run($wp->configGet('DISABLE_WP_CRON')));
+        // For the maintenance tools of the panel. A site where these fail still gets its updates read.
+        $admins = $runner->run($wp->userList('administrator'));
+        $report['admins'] = $admins['exit'] === 0 ? SiteUsers::parseAdmins($admins['stdout']) : [];
+        $report['maintenance'] = (new MaintenanceMode($this->config, $this->guard))->isOn($site, $runner);
+        $report['debug'] = WpCli::isTrue($runner->run($wp->configGet('WP_DEBUG')));
         return $report;
     }
 
@@ -60,6 +65,9 @@ final class SiteInventory
             'plugins' => self::items(self::decode($plugins)),
             'themes' => self::items(self::decode($themes)),
             'wp_cron_disabled' => false,
+            'admins' => [],
+            'maintenance' => false,
+            'debug' => false,
         ];
     }
 
@@ -75,6 +83,12 @@ final class SiteInventory
     private static function orEmptyList(string $output): string
     {
         return trim($output) === '' ? '[]' : $output;
+    }
+
+    /** A list printed by WP-CLI as JSON, or an exception. */
+    public static function decodeList(string $output): array
+    {
+        return self::decode(self::orEmptyList($output));
     }
 
     /** WP-CLI prints JSON on one line, after any PHP notice of the site. */

@@ -42,3 +42,8 @@
 - Project skeleton: ISPConfig interface module, server plugin, node worker, installer
 - Shared library with validation, encrypted job secrets, safe WP-CLI command building, dry-run
 - Unit tests and CI
+- Maintenance tools on the site page: maintenance mode (503 to visitors, the site to logged-in users, kept across
+  updates, restores and pushes), one-click login with a temporary administrator, password reset of an administrator,
+  debug mode for 24 hours with the log in `private/`, activation, deactivation and removal of plugins and themes with
+  health check and rollback; the page looks again by itself while an action runs
+- The health check sees the site behind the maintenance mode and past page caches

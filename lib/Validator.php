@@ -75,6 +75,15 @@ final class Validator
         return $value;
     }
 
+    /** The folder of an installed plugin or theme: wider than a slug of wordpress.org, never an option. */
+    public static function wpExtension(string $value): string
+    {
+        if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/', $value) || str_contains($value, '..')) {
+            throw new ValidationException("Invalid plugin or theme name: {$value}");
+        }
+        return $value;
+    }
+
     /** @return list<string> slugs from a list separated by commas or spaces */
     public static function wpSlugList(string $value): array
     {

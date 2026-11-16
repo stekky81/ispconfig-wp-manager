@@ -34,6 +34,9 @@ penetration test, and multiserver setups were not covered. Please report problem
   becomes SQL. Serialized values of a site are read by a parser of the module, never by `unserialize()` in root.
 - **Passwords** travel on stdin, are masked in logs and are encrypted at rest with the shared key. They are never
   sent by email.
+- **Maintenance tools**: the one-click login creates a temporary administrator, deleted after 15 minutes if unused and
+  2 hours after the login; only users with its form of name are ever deleted. Its password and the one of a reset are
+  shown once and expire; the debug log stays outside the web root and debug turns itself off after 24 hours.
 - **Emails**: recipients are checked one by one (no line breaks, no headers can be added through them); text from a
   site or a command is stripped of control characters and cut before it goes into a message.
 
@@ -58,6 +61,12 @@ Known and accepted for now:
   the site: a changed backup can bring back any file or row, but its dump cannot give commands to the `mysql` client.
   They exist for the rollback of an update and for going back after a change, not for disaster recovery: a hacked site
   can infect its own backups, so do not use them to clean it. Keep the backups of ISPConfig, or external ones, for that.
+
+- **One-click login on a site without HTTPS** sends the temporary password, and then the session cookie, unencrypted,
+  as any login on that site would. The page says so. Security plugins that move the login page or ask for a second
+  factor stop the button; the page then shows user and password for a login by hand.
+- **The maintenance mode lets through any browser with a cookie named like the login cookie of WordPress.** That shows
+  the site, not wp-admin: WordPress checks the cookie itself. It hides a site from visitors, it does not protect it.
 
 ## Multiserver
 
@@ -100,6 +109,7 @@ moments:
 | Staging: update from production and push to production | Yes, with the database copied by `mysqldump` and `mysql` between the two site users |
 | Install | Yes |
 | Clone | Yes, with the database copied by `mysqldump` and `mysql` between the two site users |
+| Maintenance tools: users, debug, plugins and themes | Yes; the maintenance file and the debug log are written and read by `tee`, `grep`, `rm` and `tail` as the site user |
 
 Since 2026-11-16 nothing of the module runs WP-CLI outside the sandbox: a clone no longer uses `wp db export` and
 `wp db import`, which start programs.
@@ -140,3 +150,5 @@ Fixed:
 | Low | The worker log was readable by every user, and an unreadable backup folder could stop the worker |
 | Medium | A node could change every column of `wpm_site`, and the worker trusted the folder and the user of a row: a node that was broken into could send the worker of another node to another folder or user |
 | Medium | Install and clone ran WP-CLI outside the sandbox; a clone ran the code of the source there |
+| Medium | (design) Turning debug on with `WP_DEBUG` first would show errors to visitors if the next step failed: the display goes off and the log moves first |
+| Low | (design) A node could name a real administrator in `login_user` and have it deleted at expiry: only names of the one-click login are deleted, and the column is cleared |

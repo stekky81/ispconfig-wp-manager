@@ -31,6 +31,9 @@ It has not run on production servers yet.
   production or pushed to production as a whole, with a list of what will be lost, typed confirmation, backup,
   maintenance mode, health check and automatic rollback.
 - **WP-Cron switch**: move a site between WP-Cron and a real cron job.
+- **Maintenance tools**: maintenance mode that lets logged-in users through, one-click login to wp-admin with a
+  temporary administrator, password reset of an administrator, debug mode with the log outside the web root for 24
+  hours, and activation, deactivation and removal of plugins and themes with a health check and a way back.
 - **Emails**, with the mail settings of ISPConfig: a notice when a site is ready (never with passwords), an alert at
   once for rollbacks and failures, and a daily or weekly summary.
 - **Safety first**: dry-run mode, no changes to folders that are not empty, everything runs as the site user,

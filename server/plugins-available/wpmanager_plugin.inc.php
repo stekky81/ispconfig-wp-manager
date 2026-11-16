@@ -32,9 +32,9 @@ class wpmanager_plugin
 
         // An action asked in the panel: the worker reads the current record itself.
         $action = (string)($site['action_request'] ?? '');
-        if (in_array($action, ['backup', 'restore', 'update', 'wpcron', 'refresh', 'push'], true)) {
+        require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
+        if (in_array($action, \WpManager\SiteActions::ALL, true)) {
             try {
-                require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
                 $queue = new \WpManager\JobQueue(\WpManager\Config::loadTrusted()->get('spool_dir'));
                 $queue->push($action, (int)$site['wpm_site_id'], []);
             } catch (\Throwable $e) {
@@ -48,7 +48,6 @@ class wpmanager_plugin
         }
 
         try {
-            require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
             $config = \WpManager\Config::loadTrusted();
             $queue = new \WpManager\JobQueue($config->get('spool_dir'));
             $queue->push('install', (int)$site['wpm_site_id'], $site);

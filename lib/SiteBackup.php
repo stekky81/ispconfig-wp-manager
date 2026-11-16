@@ -101,6 +101,9 @@ final class SiteBackup implements SiteBackups
             throw new \RuntimeException("{$id} is not a complete backup");
         }
         $this->verify($dir, $user, $runner);
+        // The backup holds the .maintenance of its time: the site keeps the one it has now.
+        $maintenance = new MaintenanceMode($this->config, $this->guard);
+        $wasInMaintenance = $maintenance->isOn($site, $runner);
 
         $staging = "{$dir}/restore";
         try {
@@ -117,6 +120,11 @@ final class SiteBackup implements SiteBackups
         } finally {
             // The dump is the whole database in clear: never left behind, not even after a failure.
             $runner->run(new Command(['rm', '-rf', '--', $staging, "{$dir}/db.sql"], $user));
+            try {
+                $maintenance->set($site, $wasInMaintenance, $runner);
+            } catch (\RuntimeException $e) {
+                error_log("wpmanager: maintenance mode of {$site['domain']} not set again after the restore: " . $e->getMessage());
+            }
         }
     }
 

@@ -124,7 +124,8 @@ grant_nodes() {
     # Only the columns a worker writes: the folder, the user and the server of a site stay as the panel set them.
     local node_columns='status, status_message, wp_version, secret_db, secret_wp, secret_access, secret_since,
         action_request, action_param, action_status, action_message, backups_json, updates_json, updates_count,
-        last_check, last_auto, auto_skip, wp_cron'
+        last_check, last_auto, auto_skip, wp_cron, secret_result, secret_until, login_user, login_until, login_used,
+        debug_until, debug_tail'
     local revoke
     for account in "${accounts[@]}"; do
         user=${account%%$'\t'*} from=${account#*$'\t'}

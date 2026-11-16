@@ -58,20 +58,16 @@ if (isset($_GET['backup_uploads']) && in_array($_GET['backup_uploads'], ['y', 'n
 
 // The request reaches the node through the datalog, like every other change.
 $action = (string)($_GET['action'] ?? '');
-if (in_array($action, ['backup', 'restore', 'update', 'wpcron'], true)) {
+if (in_array($action, \WpManager\SiteActions::SITE_PAGE, true)) {
     $app->auth->csrf_token_check('GET');
-    $param = match ($action) {
-        'restore' => (string)($_GET['backup'] ?? ''),
-        'update' => (string)($_GET['scope'] ?? ''),
-        'wpcron' => (string)($_GET['mode'] ?? ''),
-        default => '',
+    $key = match ($action) {
+        'restore' => 'backup',
+        'update' => 'scope',
+        'wpcron' => 'mode',
+        default => 'param',
     };
-    $allowed = match ($action) {
-        'restore' => array_column(json_decode((string)$site['backups_json'], true) ?: [], 'id'),
-        'update' => \WpManager\SiteUpdater::SCOPES,
-        'wpcron' => [\WpManager\WpCron::WORDPRESS, \WpManager\WpCron::REAL],
-        default => [''],
-    };
+    $param = is_string($_GET[$key] ?? null) ? $_GET[$key] : '';
+    $allowed = \WpManager\SiteActions::allowedParams($action, $site);
     $valid = $site['status'] === 'installed' && in_array($param, $allowed, true);
     if ($valid && $site['action_request'] === '') {
         $update = ['action_request' => $action, 'action_param' => $param, 'action_status' => 'requested', 'action_message' => ''];
@@ -95,6 +91,26 @@ if (in_array($action, ['backup', 'restore', 'update', 'wpcron'], true)) {
             $site['action_message'] = $e->getMessage();
         }
     }
+}
+
+// A password the worker made for this page: shown once, and only while it is valid.
+if ((string)($site['secret_result'] ?? '') !== '') {
+    $live = $app->db->queryOneRecord('SELECT secret_until > NOW() AS live FROM wpm_site WHERE wpm_site_id = ?', $id);
+    // Cleared first, and only by one request: two pages open at once do not both show it.
+    $app->db->query('UPDATE wpm_site SET secret_result = NULL, secret_until = NULL WHERE wpm_site_id = ? AND secret_result = ?', $id, $site['secret_result']);
+    if ((int)($live['live'] ?? 0) === 1 && $app->db->affectedRows() === 1) {
+        try {
+            $result = json_decode(\WpManager\Crypto::fromFile($config->get('key_file'))->decrypt((string)$site['secret_result']), true);
+        } catch (\Throwable) {
+            $result = null;
+        }
+        if (is_array($result) && in_array($result['kind'] ?? '', ['login', 'password'], true)) {
+            $app->tpl->setVar($result['kind'] . '_ready', 1);
+            $app->tpl->setVar('result_user', $escape($result['user'] ?? ''));
+            $app->tpl->setVar('result_password', $escape($result['password'] ?? ''));
+        }
+    }
+    $site['secret_result'] = null;
 }
 
 if (isset($_POST['reveal'])) {
@@ -154,6 +170,51 @@ $app->tpl->setVar('auto_update_on', $site['auto_update'] === 'y' ? 1 : 0);
 $app->tpl->setVar('backup_uploads_on', $site['backup_uploads'] === 'y' ? 1 : 0);
 $app->tpl->setVar('real_cron_on', $site['wp_cron'] === 'real' ? 1 : 0);
 $app->tpl->setVar('action_status', $escape($site['action_status']));
+
+// Maintenance tools, from the last check of the node.
+$report = json_decode((string)$site['updates_json'], true);
+$report = is_array($report) ? $report : [];
+$app->tpl->setVar('maintenance_on', !empty($report['maintenance']) ? 1 : 0);
+$app->tpl->setVar('debug_until', $escape($site['debug_until'] ?? ''));
+$app->tpl->setVar('debug_elsewhere', empty($site['debug_until']) && !empty($report['debug']) ? 1 : 0);
+$app->tpl->setVar('debug_tail', $escape($site['debug_tail'] ?? ''));
+$app->tpl->setVar('debug_log_path', $escape(rtrim((string)$site['document_root'], '/') . '/' . \WpManager\WpDebug::LOG));
+$app->tpl->setVar('site_is_http', str_starts_with((string)($site['site_url'] ?: 'http://'), 'http://') ? 1 : 0);
+$app->tpl->setVar('login_active', $escape($site['login_user'] !== '' ? $site['login_until'] : ''));
+$app->tpl->setVar('unused_minutes', \WpManager\SiteUsers::UNUSED_MINUTES);
+$app->tpl->setVar('used_hours', intdiv(\WpManager\SiteUsers::USED_MINUTES, 60));
+$app->tpl->setVar('debug_hours', \WpManager\WpDebug::HOURS);
+$app->tpl->setLoop('admins', array_map(
+    static fn(array $admin): array => ['admin_id' => (int)$admin['id'], 'admin_login' => $escape($admin['login'])],
+    array_filter(is_array($report['admins'] ?? null) ? $report['admins'] : [], 'is_array'),
+));
+// Buttons only for what the action accepts now: the same list the request is checked against.
+$extensionRows = static function (string $type, string $key) use ($site, $report, $escape): array {
+    $can = [];
+    foreach (['activate', 'deactivate', 'delete'] as $verb) {
+        $can[$verb] = in_array("{$type}_{$verb}", \WpManager\SiteExtensions::ACTIONS, true)
+            ? \WpManager\SiteActions::allowedParams("{$type}_{$verb}", $site) : [];
+    }
+    $rows = [];
+    foreach (is_array($report[$key] ?? null) ? $report[$key] : [] as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $name = (string)($item['name'] ?? '');
+        $rows[] = [
+            'ext_name' => $escape($name),
+            'ext_param' => $escape(rawurlencode($name)),
+            'ext_status' => $escape($item['status'] ?? ''),
+            'ext_version' => $escape($item['version'] ?? ''),
+            'can_activate' => in_array($name, $can['activate'], true) ? 1 : 0,
+            'can_deactivate' => in_array($name, $can['deactivate'], true) ? 1 : 0,
+            'can_delete' => in_array($name, $can['delete'], true) ? 1 : 0,
+        ];
+    }
+    return $rows;
+};
+$app->tpl->setLoop('plugins', $extensionRows('plugin', 'plugins'));
+$app->tpl->setLoop('themes', $extensionRows('theme', 'themes'));
 $app->tpl->setVar('action_message', $escape($site['action_message'] ?? ''));
 
 $check_token = $app->auth->csrf_token_get('wpm_site_check');
