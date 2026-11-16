@@ -8,6 +8,7 @@
 require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
+require_once 'lib/wpm_audit.inc.php';
 
 use WpManager\SiteRemoval;
 
@@ -104,6 +105,7 @@ if (isset($_POST['confirm_domain'])) {
         }
         $app->db->datalogDelete('wpm_site', 'wpm_site_id', $id);
         $summary = implode(', ', array_map(static fn(array $item): string => "{$item['table']} {$item['label']}", $plan));
+        wpm_audit($app, $site, 'remove', '', $summary);
         $app->db->query(
             "INSERT INTO wpm_event (wpm_site_id, server_id, domain, kind, outcome, message) VALUES (?, ?, ?, 'remove', 'done', ?)",
             $id,

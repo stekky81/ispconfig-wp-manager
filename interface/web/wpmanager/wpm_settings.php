@@ -7,6 +7,7 @@ require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
+require_once 'lib/wpm_audit.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
@@ -28,11 +29,16 @@ if (isset($_POST['locale'])) {
     $app->auth->csrf_token_check();
     try {
         $settings = \WpManager\Settings::fromInput($_POST);
+        $previous = $app->db->queryOneRecord("SELECT setting_value FROM wpm_setting WHERE setting_name = 'defaults'");
+        $changed = \WpManager\Settings::changes(is_array($previous) ? \WpManager\Settings::fromJson((string)$previous['setting_value']) : [], $settings);
         $app->db->query(
             'REPLACE INTO wpm_setting (setting_name, setting_value) VALUES (?, ?)',
             'defaults',
             json_encode($settings, JSON_THROW_ON_ERROR),
         );
+        if ($changed !== []) {
+            wpm_audit($app, null, 'settings', '', implode('; ', $changed));
+        }
         $app->tpl->setVar('saved', 1);
     } catch (\WpManager\ValidationException $e) {
         $app->tpl->setVar('error_msg', $escape($e->getMessage()));

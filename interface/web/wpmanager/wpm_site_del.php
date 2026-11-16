@@ -17,5 +17,20 @@ if ($_SESSION['s']['user']['typ'] !== 'admin') {
     $app->error('Only administrators can remove WordPress sites in this version.');
 }
 
-$app->uses('tform_actions');
-$app->tform_actions->onDelete();
+require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
+require_once 'lib/wpm_audit.inc.php';
+
+$app->load('tform_actions');
+
+/** Written once the row is gone: onDelete() checks the CSRF token first. */
+class page_action extends tform_actions
+{
+    public function onAfterDelete()
+    {
+        global $app;
+        wpm_audit($app, $this->dataRecord, 'unlist');
+    }
+}
+
+$page = new page_action;
+$page->onDelete();

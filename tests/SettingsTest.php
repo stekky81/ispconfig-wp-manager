@@ -134,4 +134,16 @@ final class SettingsTest extends TestCase
             'site ready' => [['notify_site_ready' => 'maybe']],
         ];
     }
+
+    public function testChangesListWhatTheAdminChanged(): void
+    {
+        $before = ['updates' => ['auto' => 'y'], 'wordpress' => ['plugins' => ['akismet'], 'locale' => 'it_IT']];
+        $after = ['updates' => ['auto' => 'n'], 'wordpress' => ['plugins' => ['akismet', 'wordfence'], 'locale' => 'it_IT']];
+
+        self::assertSame([
+            'wordpress.plugins: akismet → akismet, wordfence',
+            'updates.auto: y → n',
+        ], Settings::changes($before, $after));
+        self::assertSame([], Settings::changes($after, $after));
+    }
 }

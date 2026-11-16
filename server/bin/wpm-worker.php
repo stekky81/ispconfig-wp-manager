@@ -34,6 +34,7 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 
+use WpManager\AuditLog;
 use WpManager\Config;
 use WpManager\AutoUpdatePolicy;
 use WpManager\Crypto;
@@ -512,7 +513,7 @@ if (!$config->isDryRun()) {
                     $site['wpm_site_id'],
                     $site['login_user'],
                 );
-                $event($site, 'login', 'done', "Temporary administrator: {$done}.");
+                $event($site, 'login_expired', 'done', "Temporary administrator: {$done}.");
             } elseif ($site['login_used'] !== 'y' && $users->hasSession($site, (string)$site['login_user'])) {
                 // Logged in: it lives for the work in wp-admin, from now.
                 $app->dbmaster->query(
@@ -536,7 +537,7 @@ if (!$config->isDryRun()) {
             }
             $debug->set($site, false);
             $app->dbmaster->query('UPDATE wpm_site SET debug_until = NULL, last_check = NULL WHERE wpm_site_id = ?', $site['wpm_site_id']);
-            $event($site, 'debug', 'done', 'Debug mode turned off after ' . WpDebug::HOURS . ' hours.');
+            $event($site, 'debug_expired', 'done', 'Debug mode turned off after ' . WpDebug::HOURS . ' hours.');
         } catch (\Throwable $e) {
             error_log("wpmanager: debug mode of {$site['domain']} not turned off: " . $e->getMessage());
         }
@@ -682,7 +683,7 @@ if (!$config->isDryRun()) {
             if ($mail !== null) {
                 $sendMail($mail);
             }
-            $app->dbmaster->query('DELETE FROM wpm_event WHERE created < NOW() - INTERVAL 60 DAY');
+            $app->dbmaster->query('DELETE FROM wpm_event WHERE created < NOW() - INTERVAL ' . AuditLog::RETENTION_DAYS . ' DAY');
         }
     }
 }

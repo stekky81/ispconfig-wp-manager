@@ -9,6 +9,7 @@ require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
+require_once 'lib/wpm_audit.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
@@ -57,6 +58,7 @@ if (isset($_POST['confirm_domain'])) {
             'action_status' => 'requested',
             'action_message' => '',
         ], 'wpm_site_id', $id);
+        wpm_audit($app, $staging, $direction, (string)$production['domain']);
         header('Location: wpm_site_view.php?id=' . $id);
         exit;
     }

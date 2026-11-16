@@ -107,6 +107,22 @@ CREATE TABLE IF NOT EXISTS `wpm_event` (
   KEY `created` (`created`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Who asked for what in the panel: written by the panel only, kept for a year (AuditLog).
+CREATE TABLE IF NOT EXISTS `wpm_audit` (
+  `audit_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `username` varchar(64) NOT NULL DEFAULT '',
+  `ip` varchar(45) NOT NULL DEFAULT '',
+  `wpm_site_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `domain` varchar(255) NOT NULL DEFAULT '',
+  `action` varchar(32) NOT NULL DEFAULT '',
+  `param` varchar(255) NOT NULL DEFAULT '',
+  `detail` varchar(1000) NOT NULL DEFAULT '',
+  PRIMARY KEY (`audit_id`),
+  KEY `created` (`created`),
+  KEY `site` (`wpm_site_id`, `created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Summaries already sent, one row each: the first node that adds the row sends it.
 CREATE TABLE IF NOT EXISTS `wpm_notice` (
   `notice` varchar(64) NOT NULL,

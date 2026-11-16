@@ -30,6 +30,12 @@ $items[] = [
     'html_id' => 'wpm_updates',
 ];
 $items[] = [
+    'title' => 'Log',
+    'target' => 'content',
+    'link' => 'wpmanager/wpm_audit.php',
+    'html_id' => 'wpm_audit',
+];
+$items[] = [
     'title' => 'Settings',
     'target' => 'content',
     'link' => 'wpmanager/wpm_settings.php',

@@ -190,6 +190,14 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] The same for a site on a slave node
 - [x] The removal is in the events
 
+### Audit log
+
+- [x] A row for each request of the panel, with user, address and parameter; the settings with what changed; a save
+      that changes nothing adds no row; taking a site off the list too
+- [x] The outcome of the worker next to each request; automatic events as done by nobody
+- [x] No password in the log, also after a password reset that was shown
+- [x] Filters, pages of 50, rows older than a year deleted at the next request; the last rows on the site page
+
 ### Security
 
 - [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write

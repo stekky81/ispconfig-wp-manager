@@ -134,7 +134,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   staging (create, update from production, push to production); WP-Cron switch; `--uninstall`; clear failure
   messages with retries that resume; objects of plugin classes and page caches in clones; multiserver, with its
   security review; emails; clone to another node; every WP-CLI command in the sandbox; maintenance tools (maintenance mode, one-click login, password reset, debug,
-  plugins and themes); full removal of a site. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  plugins and themes); full removal of a site; audit log. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
 - **Next**: the remaining 1.0 items of ROADMAP.md, one decision at a time with Stefano; the production pilot comes last.
   Security review done: see `docs/security.md`, including what remains open.

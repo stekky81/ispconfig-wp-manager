@@ -11,6 +11,7 @@ require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
+require_once 'lib/wpm_audit.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
@@ -116,6 +117,7 @@ class page_action extends tform_actions
         $record['sys_perm_other'] = '';
 
         $this->id = $app->db->datalogInsert('wpm_site', $record, 'wpm_site_id');
+        wpm_audit($app, ['wpm_site_id' => $this->id, 'domain' => $record['domain']], 'create', '', "server {$record['server_id']}, client {$record['client_id']}");
 
         header('Location: wpm_site_list.php');
         exit;

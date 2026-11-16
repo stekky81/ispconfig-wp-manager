@@ -1,0 +1,41 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<div class='page-header'>
+    <h1>{tmpl_var name='head_txt'}</h1>
+</div>
+
+<div class="panel" style="padding:20px;">
+    <p class="fieldDescription">{tmpl_var name='desc_txt'}</p>
+    <div class="form-inline" id="audit_filters">
+        <input type="text" class="form-control" id="audit_site" value="{tmpl_var name='filter_site'}" placeholder="{tmpl_var name='site_txt'}" />
+        <input type="text" class="form-control" id="audit_user" value="{tmpl_var name='filter_user'}" placeholder="{tmpl_var name='user_txt'}" />
+        <select class="form-control" id="audit_action">{tmpl_var name='action_options'}</select>
+        <input type="date" class="form-control" id="audit_from" value="{tmpl_var name='filter_from'}" title="{tmpl_var name='from_txt'}" />
+        <input type="date" class="form-control" id="audit_to" value="{tmpl_var name='filter_to'}" title="{tmpl_var name='to_txt'}" />
+        <button class="btn btn-default formbutton-default" type="button" id="audit_filter"
+            onclick="var v = function (i) { return encodeURIComponent(document.getElementById(i).value); }; ISPConfig.loadContent('wpmanager/wpm_audit.php?site=' + v('audit_site') + '&amp;user=' + v('audit_user') + '&amp;action=' + v('audit_action') + '&amp;from=' + v('audit_from') + '&amp;to=' + v('audit_to'));">{tmpl_var name='filter_txt'}</button>
+    </div>
+
+    <tmpl_if name="has_rows">
+    <table class="table" id="audit_rows">
+        <thead><tr><th>{tmpl_var name='when_txt'}</th><th>{tmpl_var name='who_txt'}</th><th>{tmpl_var name='site_txt'}</th><th>{tmpl_var name='what_txt'}</th><th>{tmpl_var name='outcome_txt'}</th></tr></thead>
+        <tbody>
+            <tmpl_loop name="rows">
+            <tr>
+                <td>{tmpl_var name='created'}</td>
+                <td><tmpl_if name="is_automatic"><em>{tmpl_var name='automatic_txt'}</em><tmpl_else>{tmpl_var name='username'}<br /><small>{tmpl_var name='ip'}</small></tmpl_if></td>
+                <td><tmpl_if name="wpm_site_id"><a href="#" data-load-content="wpmanager/wpm_site_view.php?id={tmpl_var name='wpm_site_id'}">{tmpl_var name='domain'}</a><tmpl_else>{tmpl_var name='domain'}</tmpl_if></td>
+                <td>{tmpl_var name='action_label'}<tmpl_if name="param"> <code>{tmpl_var name='param'}</code></tmpl_if><tmpl_if name="detail"><br /><small>{tmpl_var name='detail'}</small></tmpl_if></td>
+                <td>{tmpl_var name='outcome'}<tmpl_if name="outcome_message"><br /><small>{tmpl_var name='outcome_message'}</small></tmpl_if></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+    <tmpl_else>
+    <p id="audit_empty">{tmpl_var name='empty_txt'}</p>
+    </tmpl_if>
+
+    <p>
+        <tmpl_if name="prev_query"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_audit.php?{tmpl_var name='prev_query'}">{tmpl_var name='newer_txt'}</button></tmpl_if>
+        <tmpl_if name="next_query"><button class="btn btn-default formbutton-default" type="button" id="audit_older" data-load-content="wpmanager/wpm_audit.php?{tmpl_var name='next_query'}">{tmpl_var name='older_txt'}</button></tmpl_if>
+    </p>
+</div>

@@ -206,6 +206,19 @@ final class Notifications
         'refresh' => 'update of the staging from production',
         'push' => 'push of the staging to production',
         'wpcron' => 'WP-Cron switch',
+        'maintenance' => 'maintenance mode',
+        'debug' => 'debug mode',
+        'debuglog' => 'reading of the debug log',
+        'debug_expired' => 'end of the debug mode',
+        'login' => 'one-click login',
+        'login_expired' => 'end of a temporary login',
+        'password' => 'password reset',
+        'plugin_activate' => 'plugin activation',
+        'plugin_deactivate' => 'plugin deactivation',
+        'plugin_delete' => 'plugin removal',
+        'theme_activate' => 'theme activation',
+        'theme_delete' => 'theme removal',
+        'remove' => 'removal of the site',
     ];
 
     private static function siteUrl(array $site): string

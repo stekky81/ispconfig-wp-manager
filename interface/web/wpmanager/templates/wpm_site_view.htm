@@ -256,6 +256,23 @@
         </tmpl_if>
     </tmpl_if>
 
+    <h2>{tmpl_var name='audit_txt'}</h2>
+    <tmpl_if name="has_audit">
+    <table class="table" id="site_audit">
+        <tbody>
+            <tmpl_loop name="audit">
+            <tr>
+                <td>{tmpl_var name='created'}</td>
+                <td><tmpl_if name="username">{tmpl_var name='username'}<tmpl_else><em>{tmpl_var name='automatic_txt'}</em></tmpl_if></td>
+                <td>{tmpl_var name='action_label'}<tmpl_if name="param"> <code>{tmpl_var name='param'}</code></tmpl_if></td>
+                <td>{tmpl_var name='outcome'}</td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+    </tmpl_if>
+    <p><button class="btn btn-default formbutton-default" type="button" id="site_audit_all" data-load-content="wpmanager/wpm_audit.php?site={tmpl_var name='domain'}">{tmpl_var name='audit_all_txt'}</button></p>
+
     <tmpl_if name="status_message">
         <h2>{tmpl_var name='log_txt'}</h2>
         <pre>{tmpl_var name='status_message'}</pre>

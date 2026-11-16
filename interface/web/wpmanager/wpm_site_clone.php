@@ -9,6 +9,7 @@ require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
+require_once 'lib/wpm_audit.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
@@ -103,7 +104,8 @@ if (isset($_POST['domain'])) {
             $record['sys_perm_user'] = 'riud';
             $record['sys_perm_group'] = 'riud';
             $record['sys_perm_other'] = '';
-            $app->db->datalogInsert('wpm_site', $record, 'wpm_site_id');
+            $newId = $app->db->datalogInsert('wpm_site', $record, 'wpm_site_id');
+            wpm_audit($app, ['wpm_site_id' => $newId, 'domain' => $record['domain']], $staging ? 'staging' : 'clone', (string)$source['domain'], "server {$record['server_id']}, client {$record['client_id']}");
             header('Location: ' . ($staging ? 'wpm_site_view.php?id=' . $id : 'wpm_site_list.php'));
             exit;
         }

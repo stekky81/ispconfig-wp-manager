@@ -68,6 +68,18 @@ final class SiteActions
         };
     }
 
+    /** The login of an administrator, by the ID the panel sends for a password reset; '' if the last check did not see it. */
+    public static function adminLogin(array $site, string $id): string
+    {
+        $report = json_decode((string)($site['updates_json'] ?? ''), true);
+        foreach (is_array($report['admins'] ?? null) ? $report['admins'] : [] as $admin) {
+            if (is_array($admin) && (string)(int)($admin['id'] ?? 0) === $id) {
+                return (string)($admin['login'] ?? '');
+            }
+        }
+        return '';
+    }
+
     private static function isExtensionName(string $name): bool
     {
         try {

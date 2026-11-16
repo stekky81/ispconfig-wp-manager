@@ -66,6 +66,27 @@ final class Settings
         return $out;
     }
 
+    /**
+     * What changed between two sets of settings, as "section.key: old → new", for the audit log.
+     *
+     * @return list<string>
+     */
+    public static function changes(array $before, array $after): array
+    {
+        $show = static fn(mixed $value): string => $value === null ? '-' : (is_array($value) ? implode(', ', $value) : (string)$value);
+        $changes = [];
+        foreach (self::ALLOWED as $section => $keys) {
+            foreach ($keys as $key) {
+                $old = $before[$section][$key] ?? null;
+                $new = $after[$section][$key] ?? null;
+                if ($old !== $new) {
+                    $changes[] = "{$section}.{$key}: {$show($old)} → {$show($new)}";
+                }
+            }
+        }
+        return $changes;
+    }
+
     /** Size in MB, -1 = unlimited. */
     private static function quota(mixed $value): int
     {

@@ -95,3 +95,6 @@ $wb['delete_txt'] = 'Remove';
 $wb['delete_plugin_confirm_txt'] = 'Remove this plugin? A backup is taken first. Its files are deleted; what it keeps in the database stays.';
 $wb['delete_theme_confirm_txt'] = 'Remove this theme? A backup is taken first.';
 $wb['activate_theme_confirm_txt'] = 'Activate this theme? The site changes its look at once. If the site breaks, the previous theme comes back.';
+$wb['audit_txt'] = 'Recent activity';
+$wb['audit_all_txt'] = 'Whole log of this site';
+$wb['automatic_txt'] = 'automatic';

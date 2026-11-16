@@ -8,6 +8,7 @@ require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
+require_once 'lib/wpm_audit.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
@@ -39,6 +40,7 @@ $credentials = new \WpManager\SiteCredentials(\WpManager\Crypto::fromFile($confi
 if (isset($_GET['check'])) {
     $app->auth->csrf_token_check('GET');
     $app->db->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $id);
+    wpm_audit($app, $site, 'check');
     $site['last_check'] = null;
     $app->tpl->setVar('check_requested', 1);
 }
@@ -47,12 +49,14 @@ if (isset($_GET['check'])) {
 if (isset($_GET['auto']) && in_array($_GET['auto'], ['y', 'n'], true)) {
     $app->auth->csrf_token_check('GET');
     $app->db->query("UPDATE wpm_site SET auto_update = ?, auto_skip = '' WHERE wpm_site_id = ?", $_GET['auto'], $id);
+    wpm_audit($app, $site, 'auto_switch', $_GET['auto']);
     $site['auto_update'] = $_GET['auto'];
 }
 
 if (isset($_GET['backup_uploads']) && in_array($_GET['backup_uploads'], ['y', 'n'], true)) {
     $app->auth->csrf_token_check('GET');
     $app->db->query('UPDATE wpm_site SET backup_uploads = ? WHERE wpm_site_id = ?', $_GET['backup_uploads'], $id);
+    wpm_audit($app, $site, 'backup_uploads', $_GET['backup_uploads']);
     $site['backup_uploads'] = $_GET['backup_uploads'];
 }
 
@@ -85,6 +89,7 @@ if (in_array($action, \WpManager\SiteActions::SITE_PAGE, true)) {
                 $api->logout();
             }
             $app->db->datalogUpdate('wpm_site', $update, 'wpm_site_id', $id);
+            wpm_audit($app, $site, $action, $param, $action === 'password' ? \WpManager\SiteActions::adminLogin($site, $param) : '');
             $site = $update + $site;
         } catch (\Throwable $e) {
             $site['action_status'] = 'failed';
@@ -106,6 +111,7 @@ if ((string)($site['secret_result'] ?? '') !== '') {
         }
         if (is_array($result) && in_array($result['kind'] ?? '', ['login', 'password'], true)) {
             $app->tpl->setVar($result['kind'] . '_ready', 1);
+            wpm_audit($app, $site, $result['kind'] === 'login' ? 'show_login' : 'show_password', (string)($result['user'] ?? ''));
             $app->tpl->setVar('result_user', $escape($result['user'] ?? ''));
             $app->tpl->setVar('result_password', $escape($result['password'] ?? ''));
         }
@@ -121,6 +127,7 @@ if (isset($_POST['reveal'])) {
         $app->db->datalogUpdate('wpm_site', ['secret_wp' => null, 'secret_access' => null, 'secret_since' => null], 'wpm_site_id', $id);
         $site['secret_wp'] = $site['secret_access'] = $site['secret_since'] = null;
         $app->tpl->setVar('revealed', 1);
+        wpm_audit($app, $site, 'reveal_passwords');
         $app->tpl->setVar(array_map($escape, $shown));
     }
 }
@@ -216,6 +223,18 @@ $extensionRows = static function (string $type, string $key) use ($site, $report
 $app->tpl->setLoop('plugins', $extensionRows('plugin', 'plugins'));
 $app->tpl->setLoop('themes', $extensionRows('theme', 'themes'));
 $app->tpl->setVar('action_message', $escape($site['action_message'] ?? ''));
+
+$audit_rows = [];
+$labels = (static function () use ($app): array {
+    $wb = [];
+    include 'lib/lang/' . $app->functions->check_language($_SESSION['s']['language']) . '_wpm_audit.lng';
+    return $wb;
+})();
+foreach (wpm_audit_rows($app, \WpManager\AuditLog::filters([]), $id, 10, 0) as $row) {
+    $audit_rows[] = array_map($escape, $row) + ['action_label' => $escape($labels['action_' . $row['action'] . '_txt'] ?? $row['action'])];
+}
+$app->tpl->setLoop('audit', $audit_rows);
+$app->tpl->setVar('has_audit', $audit_rows === [] ? 0 : 1);
 
 $check_token = $app->auth->csrf_token_get('wpm_site_check');
 $app->tpl->setVar('check_csrf_id', $check_token['csrf_id']);

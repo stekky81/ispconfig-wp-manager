@@ -84,7 +84,8 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
       be new or empty, the rest of the web root stays untouched
 - [x] Full site removal (website, DB, users) with double confirmation; no backup of the module (decided 2026-11-16:
       the backups of ISPConfig or external ones bring a site back)
-- [ ] Audit log (who did what, when) and notifications (install done, update failed, vulnerability)
+- [x] Audit log (who did what, when) and notifications (install done, update failed); notifications of
+      vulnerabilities come with the vulnerability check
 - [ ] Declared compatibility matrix (ISPConfig, Ubuntu/Debian, PHP versions)
 - [ ] User documentation (not only installation)
 - [ ] Docker-based integration tests in CI for `lib/` (MariaDB + WP-CLI, no ISPConfig)

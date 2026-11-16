@@ -50,3 +50,5 @@
 - Full removal of a site from its page: everything ISPConfig attaches to the website, its databases included, listed
   before a typed confirmation; refused while it has a staging or a clone of it is being installed. The icon of the list
   is now "Take off the list", which deletes nothing
+- Audit log: every request of the panel and every view of a password, with user, address and outcome, kept for a
+  year, on its own page with filters and on each site page; events are kept for a year too

@@ -215,6 +215,20 @@ Refused while the site is being installed, while an action runs, while a clone o
 has a staging site: the staging goes first. The removal is written to `wpm_event`, with the panel user. "Take off the
 list", the icon of the list, still only drops the record of the module and deletes nothing.
 
+## Audit log
+
+Decided with the maintainer on 2026-11-16. The panel writes a row in `wpm_audit` for every request it accepts: new
+site, clone, staging, every action of the site page, the switches of a site, update or push of a staging, removal,
+taking a site off the list, changes of the settings (which key, from what to what), and every view of a password
+(generated passwords, one-click login, password reset). Each row has the panel user, the address, the time, the site,
+the action and its parameter; never a password. The worker writes the outcome in `wpm_event` as before; the log page
+(WordPress → Log) shows next to each request the first event of its kind on its site within 24 hours, and also the
+changes the worker makes by itself (automatic updates, the end of a debug mode or of a temporary login), as done by
+nobody. Filters: site, user, action, period; 50 rows a page. The site page shows its last 10 rows.
+
+Rows and events are kept for a year. The panel deletes older rows of `wpm_audit` when it writes a new one, so the
+nodes need no access to it; the worker deletes older events with the summary.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the
@@ -234,7 +248,7 @@ the master (System → Main config → Mail: sender, SMTP server; the copy in th
   the sites that are still broken (failed install, failed rollback), what happened in the period, updates available.
   An older warning stays on the page of its site, or every summary would repeat it. The workers record what they do in `wpm_event` on the master; the first
   node that adds the name of the summary to `wpm_notice` sends it, so a multiserver setup gets one email. It is due
-  from 6:00, in the time of the master database. Events older than 60 days are deleted.
+  from 6:00, in the time of the master database. Events older than a year are deleted.
 
 Recipients are set in the settings page (up to 10, separated by commas); empty means the admin email of ISPConfig.
 Without a valid admin email the sender is `wpmanager@<node>`. `Notifications` builds the messages; a failed email is

@@ -71,6 +71,9 @@ Known and accepted for now:
 - **Full removal** deletes for good, with no backup of the module: the admin types the domain and ticks a box. Only
   admins can do it, as everything in the module for now.
 
+- **Audit log**: written by the panel only; nodes have no grant on `wpm_audit`. An admin with access to the database
+  of ISPConfig can still change it: it records what happened through the panel, it is not tamper-proof.
+
 ## Multiserver
 
 Reviewed on 2026-11-16, with a node joined to the master in the test environment.

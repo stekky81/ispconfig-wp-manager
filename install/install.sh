@@ -101,7 +101,7 @@ create_tables() {
 
     # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our tables.
     local table
-    for table in wpm_site wpm_setting wpm_event wpm_notice wpm_transfer wpm_transfer_piece; do
+    for table in wpm_site wpm_setting wpm_event wpm_audit wpm_notice wpm_transfer wpm_transfer_piece; do
         if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
             "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`$table\` TO '$panel_user'@'localhost'"; then
             echo "WARNING: could not grant access on $table to '$panel_user'@'localhost'; check the grants manually" >&2
