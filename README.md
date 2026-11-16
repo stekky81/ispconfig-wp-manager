@@ -36,6 +36,7 @@ It has not run on production servers yet.
   hours, and activation, deactivation and removal of plugins and themes with a health check and a way back.
 - **Full removal** of a site: website, domains, users, cron jobs, databases and the database users nobody else uses,
   listed before a typed confirmation. No backup is taken: keep the backups of ISPConfig.
+- **Clients and resellers** use the module on their own sites, within the limits of their ISPConfig package.
 - **SSH keys** for the SFTP user, in the new site form and on the site page.
 - **Security**: known vulnerabilities of WordPress, plugins and themes from Wordfence Intelligence (with your own free
   API key), with an email and an early automatic update when a fixed version exists; file permission check and fix;

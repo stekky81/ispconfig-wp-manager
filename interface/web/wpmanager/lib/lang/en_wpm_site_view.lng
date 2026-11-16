@@ -131,3 +131,4 @@ $wb['ssh_other_txt'] = 'There are keys this page cannot show; saving replaces th
 $wb['ssh_desc_txt'] = 'One public key per line (the content of a .pub file). Saving replaces the keys of the SFTP user; the password stays. The SSH key of the client in ISPConfig, if any, is added by ISPConfig anyway.';
 $wb['ssh_save_txt'] = 'Save the keys';
 $wb['ssh_saved_txt'] = 'Keys saved: ISPConfig writes them on the server within a minute.';
+$wb['no_permission_txt'] = 'You may look at this site, but not change it.';

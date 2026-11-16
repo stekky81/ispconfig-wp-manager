@@ -9,13 +9,9 @@ require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
 require_once 'lib/wpm_audit.inc.php';
+require_once 'lib/wpm_scope.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
-
-// MVP: admins only, like the creation form.
-if ($_SESSION['s']['user']['typ'] !== 'admin') {
-    $app->error('Only administrators can view WordPress sites in this version.');
-}
 
 $app->uses('tpl');
 $app->tpl->newTemplate('form.tpl.htm');
@@ -26,9 +22,16 @@ include $lng_file;
 $app->tpl->setVar($wb);
 
 $id = $app->functions->intval($_REQUEST['id'] ?? 0);
-$site = $app->db->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $id);
+// Clients and resellers: only through their permissions on the website in ISPConfig.
+$site = wpm_site($app, $id, 'r');
 if (!is_array($site)) {
     $app->error($wb['site_not_found_txt']);
+}
+// Every request that changes something, or shows a password, needs the update permission on the website.
+$canChange = wpm_is_admin() || wpm_site($app, $id, 'u') !== null;
+$changes = array_intersect(['check', 'auto', 'backup_uploads', 'action'], array_keys($_GET)) !== [] || $_POST !== [];
+if ($changes && !$canChange) {
+    $app->error($wb['no_permission_txt']);
 }
 
 $escape = static fn($value): string => $app->functions->htmlentities((string)$value);
@@ -76,6 +79,15 @@ if (in_array($action, \WpManager\SiteActions::SITE_PAGE, true)) {
     if ($valid && $site['action_request'] === '') {
         $update = ['action_request' => $action, 'action_param' => $param, 'action_status' => 'requested', 'action_message' => ''];
         try {
+            if ($action === 'wpcron' && $param === \WpManager\WpCron::REAL && !wpm_is_admin() && (int)$site['cron_job_id'] === 0) {
+                foreach (wpm_limit_holders($app, (int)$site['client_id']) as $holder) {
+                    $limit = (int)($holder['limits']['limit_cron'] ?? -1);
+                    $used = (int)($app->db->queryOneRecord('SELECT COUNT(*) AS n FROM cron WHERE sys_groupid = (SELECT groupid FROM sys_group WHERE client_id = ?)', (int)$holder['limits']['client_id'])['n'] ?? 0);
+                    if ($limit === 0 || ($limit > 0 && $used >= $limit)) {
+                        throw new \RuntimeException("{$holder['who']} has no cron job left: WP-Cron stays as it is.");
+                    }
+                }
+            }
             if ($action === 'wpcron' && !$config->isDryRun()) {
                 // Job first when turning WP-Cron off, so that the site is not left with no cron at all.
                 $api = \WpManager\IspconfigApi::fromConfig($config);
@@ -181,12 +193,16 @@ foreach (['domain', 'status', 'origin', 'access_type', 'access_user', 'wp_admin_
 }
 $app->tpl->setVar('id', $id);
 $stagingSite = $app->db->queryOneRecord('SELECT wpm_site_id, domain FROM wpm_site WHERE staging_of = ?', $id);
-$production = (int)$site['staging_of'] > 0 ? $app->db->queryOneRecord('SELECT wpm_site_id, domain FROM wpm_site WHERE wpm_site_id = ?', $site['staging_of']) : null;
-$app->tpl->setVar('staging_id', is_array($stagingSite) ? (int)$stagingSite['wpm_site_id'] : 0);
-$app->tpl->setVar('staging_domain', is_array($stagingSite) ? $escape($stagingSite['domain']) : '');
+$production = (int)$site['staging_of'] > 0 ? wpm_site($app, (int)$site['staging_of'], 'r') : null;
+// A staging of another client is not linked, but it still blocks a second one.
+$stagingVisible = is_array($stagingSite) && wpm_site($app, (int)$stagingSite['wpm_site_id'], 'r') !== null;
+$app->tpl->setVar('staging_id', $stagingVisible ? (int)$stagingSite['wpm_site_id'] : 0);
+$app->tpl->setVar('staging_domain', $stagingVisible ? $escape($stagingSite['domain']) : '');
 $app->tpl->setVar('production_id', is_array($production) ? (int)$production['wpm_site_id'] : 0);
 $app->tpl->setVar('production_domain', is_array($production) ? $escape($production['domain']) : '');
 $app->tpl->setVar('can_stage', $site['status'] === 'installed' && (int)$site['staging_of'] === 0 && !is_array($stagingSite) ? 1 : 0);
+$app->tpl->setVar('can_remove', wpm_is_admin() || wpm_site($app, $id, 'd') !== null ? 1 : 0);
+$app->tpl->setVar('is_admin', wpm_is_admin() ? 1 : 0);
 $app->tpl->setVar('site_url', $escape($site['site_url'] ?: 'http://' . $site['domain']));
 $app->tpl->setVar('status_message', $escape($site['status_message'] ?? ''));
 $app->tpl->setVar('can_reveal', $credentials->canReveal($site) ? 1 : 0);
@@ -324,6 +340,8 @@ $labels = (static function () use ($app): array {
     return $wb;
 })();
 foreach (wpm_audit_rows($app, \WpManager\AuditLog::filters([]), $id, 10, 0) as $row) {
+    // The addresses of the admins are not for the clients.
+    $row['ip'] = wpm_is_admin() ? $row['ip'] : '';
     $audit_rows[] = array_map($escape, $row) + ['action_label' => $escape($labels['action_' . $row['action'] . '_txt'] ?? $row['action'])];
 }
 $app->tpl->setLoop('audit', $audit_rows);

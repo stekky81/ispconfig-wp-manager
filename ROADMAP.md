@@ -78,7 +78,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
 - [x] SFTP login with SSH keys (the password stays, as the way in if a key is lost)
 - [x] Security: known-vulnerability check for plugins/themes (Wordfence Intelligence, terms checked on 2026-11-16),
       file permission check, hardening for existing sites
-- [ ] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them);
+- [x] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them);
       a clone to another client stays admin only
 - [ ] Optional: install in a subfolder of an existing website (`example.com/blog`); the subfolder must
       be new or empty, the rest of the web root stays untouched

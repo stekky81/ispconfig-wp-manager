@@ -21,3 +21,5 @@ $wb['wp_admin_email_error_isemail'] = "L'email dell'amministratore WordPress non
 $wb['wp_theme_help_txt'] = 'Vuoto: il tema predefinito di questa versione di WordPress. Un nome installa e attiva quel tema da wordpress.org (lì \'default\' è un tema molto vecchio che non funziona con PHP 8).';
 $wb['ssh_keys_txt'] = 'Chiavi SSH pubbliche';
 $wb['ssh_keys_help_txt'] = 'Facoltative, solo per SFTP: una chiave pubblica per riga (il contenuto di un file .pub). La password generata resta, come via d\'accesso se una chiave si perde.';
+$wb['hd_quota_txt'] = 'Spazio web (MB)';
+$wb['hd_quota_help_txt'] = 'Al massimo lo spazio rimasto nel tuo pacchetto; un sito WordPress nuovo occupa circa 400 MB, quindi almeno 500.';

@@ -11,7 +11,7 @@ penetration test, and multiserver setups were not covered. Please report problem
 | Actor | Can | Cannot |
 |-------|-----|--------|
 | ISPConfig admin | Everything in the module | Change `dry_run`, the Remote API account or the key from the panel |
-| Client or reseller with the module enabled | Nothing yet: every page refuses | |
+| Client or reseller with the module enabled | Its own sites, as ISPConfig lets it read, change or delete their websites; new sites, clones and stagings within its limits | See or change other sites, settings, the whole log, take a site off the list, clone to another client |
 | Site owner | Their own files and database, and what ISPConfig lets one client's sites share (see below) | Read `secret.key`, `config.php` or the job spool, or reach the sites of another client |
 | Panel user (`ispconfig`) | Read `config.php` and `secret.key` | Change `config.php` or anything root runs |
 
@@ -82,6 +82,12 @@ Known and accepted for now:
 
 - **SSH keys**: plain public keys only, without options; they reach the node through ISPConfig, like any change of
   a shell user.
+
+- **Clients and resellers** reach a site only through its website in ISPConfig, with `getAuthSQL` of ISPConfig: read
+  to see it, update for every action and for showing a password, delete to remove it. The record of the module never
+  decides alone. Their limits (websites, databases, database users, FTP and shell users, jailed shells, web space, web
+  servers, PHP versions, cron jobs for real cron) are checked by the panel before anything is created, because the
+  Remote API does not. The addresses in the log are shown to admins only.
 
 ## Multiserver
 

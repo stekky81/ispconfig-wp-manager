@@ -215,6 +215,16 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] Keys replaced from the site page: the old key is refused, the new one works; the passwords are not revealed
 - [x] A key with options is refused and the stored keys stay
 
+### Clients and resellers
+
+- [x] A client sees its sites only: not the sites of another client, not settings, log or the admin menu items; a
+      request with its own token on a site of another client does nothing
+- [x] Limits: SFTP refused without shell users, another client and another web server refused, too much web space
+      refused; a site within the limits is created with the space asked and belongs to the client; a second site
+      refused when the space is over; real cron refused without cron jobs
+- [x] A reseller sees the sites of its clients and may choose them in the new site form; it cannot remove them
+      when ISPConfig gives its group only `ru` on their websites, as in the Sites module
+
 ### Security
 
 - [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write

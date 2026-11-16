@@ -128,7 +128,10 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 19. `mysql -N` prints a NULL as the text `NULL`: a test that waits for a column to be set must compare with it.
 20. Never edit a file in the VM with `php -r` inside `bash -c '...'`: the shell expands the `$` of PHP and the file is
     overwritten (it happened to the master `config.php` on 2026-11-16, rebuilt with a new Remote API password).
-    Write a PHP script on the Mac and pass it on stdin; keep a copy of the file first.
+    Write a PHP script on the Mac and pass it on stdin; keep a copy of the file first. In a test script, a PHP string
+    in double quotes expands `$` too (`"$6$rounds..."`): hash passwords with `openssl passwd -6 -stdin`.
+21. Panel users are in `sys_user`, password column `passwort`. To test as a client, back up `sys_user` and `client`
+    with mysqldump first and restore them after.
 
 
 ## Current status (2026-11-16)
@@ -140,7 +143,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   messages with retries that resume; objects of plugin classes and page caches in clones; multiserver, with its
   security review; emails; clone to another node; every WP-CLI command in the sandbox; maintenance tools (maintenance mode, one-click login, password reset, debug,
   plugins and themes); full removal of a site; audit log; known vulnerabilities (Wordfence Intelligence), file permissions,
-  hardening; SSH keys for SFTP. The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  hardening; SSH keys for SFTP; clients and resellers. The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
 - **Next**: the remaining 1.0 items of ROADMAP.md, one decision at a time with Stefano; the production pilot comes last.
   Security review done: see `docs/security.md`, including what remains open.
@@ -155,5 +158,5 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 
 ## Known open issues / roadmap
 
-- Admin-only for now; clients/resellers and quota checks later.
+- Clients and resellers: through their permissions on the website in ISPConfig (`lib/wpm_scope.inc.php`).
 - Planned work, by milestone: see [ROADMAP.md](ROADMAP.md).

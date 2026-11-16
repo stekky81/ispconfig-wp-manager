@@ -10,12 +10,10 @@ require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
 require_once 'lib/wpm_audit.inc.php';
+require_once 'lib/wpm_scope.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
-if ($_SESSION['s']['user']['typ'] !== 'admin') {
-    $app->error('Only administrators can manage staging sites in this version.');
-}
 
 $app->uses('tpl');
 $app->tpl->newTemplate('form.tpl.htm');
@@ -32,8 +30,10 @@ $direction = (string)($_REQUEST['direction'] ?? '');
 if (!in_array($direction, ['refresh', 'push'], true)) {
     $app->error($wb['invalid_txt']);
 }
-$staging = $app->db->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ? AND staging_of > 0', $id);
-$production = is_array($staging) ? $app->db->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $staging['staging_of']) : null;
+// Both sites change: the user needs the update permission on both websites.
+$staging = wpm_site($app, $id, 'u');
+$staging = is_array($staging) && (int)$staging['staging_of'] > 0 ? $staging : null;
+$production = is_array($staging) ? wpm_site($app, (int)$staging['staging_of'], 'u') : null;
 try {
     if (!is_array($staging) || !is_array($production)) {
         throw new \RuntimeException($wb['invalid_txt']);

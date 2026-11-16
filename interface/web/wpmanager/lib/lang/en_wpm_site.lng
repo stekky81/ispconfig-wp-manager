@@ -21,3 +21,5 @@ $wb['wp_admin_email_error_isemail'] = 'The WordPress admin email is not valid.';
 $wb['wp_theme_help_txt'] = 'Empty: the default theme of this WordPress release. A name installs and activates that theme from wordpress.org (\'default\' there is a very old theme that does not work with PHP 8).';
 $wb['ssh_keys_txt'] = 'SSH public keys';
 $wb['ssh_keys_help_txt'] = 'Optional, SFTP only: one public key per line (the content of a .pub file). The generated password stays as the way in if a key is lost.';
+$wb['hd_quota_txt'] = 'Web space (MB)';
+$wb['hd_quota_help_txt'] = 'At most the space left in your package; a new WordPress site needs about 400 MB, so at least 500.';

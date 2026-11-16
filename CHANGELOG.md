@@ -56,3 +56,5 @@
   site page with the notice of Defiant, emailed once, fixed by an early automatic update when a fixed version exists;
   file permission check and fix; hardening switches per site, applied to new sites from the settings
 - SSH keys for the SFTP user, in the new site form and on the site page, checked before they reach ISPConfig
+- Clients and resellers: their own sites through their permissions on the websites in ISPConfig, new sites, clones and
+  stagings within the limits of their package, checked by the panel

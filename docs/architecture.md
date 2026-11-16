@@ -271,6 +271,23 @@ has no keys. The site page shows the SHA256 fingerprints, as `ssh-keygen -l` pri
 log with the fingerprints. The page is one form: each button says what it posts (`form_action`), so that saving keys
 never reveals the passwords.
 
+## Clients and resellers
+
+Decided with the maintainer on 2026-11-16. The module is opened to a client or a reseller with the usual module
+checkbox of its panel user in ISPConfig. Who sees what follows the website in ISPConfig, never the record of the
+module (`lib/wpm_scope.inc.php`): a site is listed and opened only if `getAuthSQL('r')` of ISPConfig lets the user read
+its website, every action and every view of a password needs `u`, removal needs `d`, exactly as in the Sites module. A
+website moved to another client in ISPConfig moves in the module too. A reseller sees the sites of its clients through
+the groups ISPConfig gives it.
+
+A client creates sites for itself, a reseller for itself and its clients; clones and stagings stay with the client
+that owns the source website (a clone to another client stays admin only). Before anything is created the panel checks
+the limits of the client and of its reseller (`ClientLimits`): websites, databases, database users, FTP or shell users,
+jailed shells for SFTP, the web servers and PHP versions of the client, and the web space. A client with limited space
+gets a "Web space" field with the default of the settings, cut to what is left; below 500 MB nothing is created. Real
+cron needs a cron job left. Admins are not limited, as in ISPConfig. Settings, the whole log, the record-only removal
+from the list and the detected sites of nobody stay with the admins.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

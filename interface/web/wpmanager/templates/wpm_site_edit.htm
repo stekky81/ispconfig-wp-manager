@@ -29,6 +29,12 @@
     <label for="access_type" class="col-sm-3 control-label">{tmpl_var name='access_type_txt'}</label>
     <div class="col-sm-9"><select name="access_type" id="access_type" class="form-control">{tmpl_var name='access_type'}</select></div>
 </div>
+<tmpl_if name="quota_field">
+<div class="form-group">
+    <label for="hd_quota" class="col-sm-3 control-label">{tmpl_var name='hd_quota_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="hd_quota" id="hd_quota" value="{tmpl_var name='hd_quota'}" class="form-control" /><p class="help-block">{tmpl_var name='hd_quota_help_txt'} <tmpl_if name="quota_problems"><strong id="quota_problems">{tmpl_var name='quota_problems'}</strong></tmpl_if></p></div>
+</div>
+</tmpl_if>
 <div class="form-group">
     <label for="ssh_keys" class="col-sm-3 control-label">{tmpl_var name='ssh_keys_txt'}</label>
     <div class="col-sm-9"><textarea name="ssh_keys" id="ssh_keys" rows="3" class="form-control" placeholder="ssh-ed25519 AAAA... name@laptop"></textarea><p class="help-block">{tmpl_var name='ssh_keys_help_txt'}</p></div>

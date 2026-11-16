@@ -9,14 +9,12 @@ require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_audit.inc.php';
+require_once 'lib/wpm_scope.inc.php';
 
 use WpManager\SiteRemoval;
 
 $app->auth->check_module_permissions('wpmanager');
 
-if ($_SESSION['s']['user']['typ'] !== 'admin') {
-    $app->error('Only administrators can remove WordPress sites in this version.');
-}
 
 $app->uses('tpl');
 $app->tpl->newTemplate('form.tpl.htm');
@@ -32,7 +30,8 @@ $id = $app->functions->intval($_REQUEST['id'] ?? 0);
 
 /** Everything read again at each request: what the admin confirms is what is deleted. */
 $read = static function () use ($app, $id): array {
-    $site = $app->db->queryOneRecord('SELECT * FROM wpm_site WHERE wpm_site_id = ?', $id);
+    // Clients and resellers: only with the delete permission on the website, as in the Sites module.
+    $site = wpm_site($app, $id, 'd');
     if (!is_array($site)) {
         return [null, null, '', [], []];
     }

@@ -68,7 +68,7 @@ final class SiteProvisioner
                     'type' => 'vhost',
                     'parent_domain_id' => 0,
                     'vhost_type' => 'name',
-                    'hd_quota' => $d['hd_quota'],
+                    'hd_quota' => $req->hdQuota ?? $d['hd_quota'],
                     'traffic_quota' => $d['traffic_quota'],
                     'subdomain' => $d['subdomain'],
                     'php' => $d['php'],

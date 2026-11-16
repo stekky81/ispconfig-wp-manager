@@ -6,12 +6,10 @@
 require_once '../../lib/config.inc.php';
 require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
+require_once 'lib/wpm_scope.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
-if ($_SESSION['s']['user']['typ'] !== 'admin') {
-    $app->error('Only administrators can view the update overview in this version.');
-}
 
 $app->uses('tpl');
 $app->tpl->newTemplate('form.tpl.htm');
@@ -26,7 +24,7 @@ $escape = static fn($value): string => $app->functions->htmlentities((string)$va
 $rows = $app->db->queryAllRecords(
     "SELECT s.wpm_site_id, s.domain, s.wp_version, s.updates_count, s.updates_json, s.last_check, s.action_status, s.action_message, s.vulns_count, s.vulns_fixable, v.server_name
      FROM wpm_site s LEFT JOIN server v ON v.server_id = s.server_id
-     WHERE s.status = 'installed' ORDER BY s.vulns_count DESC, s.updates_count DESC, s.domain"
+     WHERE s.status = 'installed' AND " . wpm_site_scope($app, 's') . " ORDER BY s.vulns_count DESC, s.updates_count DESC, s.domain"
 );
 
 $servers = [];

@@ -12,12 +12,34 @@ require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
 require_once 'lib/wpm_audit.inc.php';
+require_once 'lib/wpm_scope.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
 
-// MVP: admins only. Clients and resellers come later, with quota checks.
-if ($_SESSION['s']['user']['typ'] !== 'admin') {
-    $app->error('Only administrators can create WordPress sites in this version.');
+/**
+ * For clients and resellers: their clients, the web servers of the chosen client and the PHP versions they may use,
+ * never what the SQL of the form would list for an admin.
+ *
+ * @return array{clients: array<int, string>, servers: array<int, string>}
+ */
+function wpm_choices($app, ?int $clientId = null): array
+{
+    $clients = [];
+    foreach (wpm_allowed_clients($app) ?? [] as $id) {
+        $row = $app->db->queryOneRecord("SELECT client_id, CONCAT(IF(company_name != '', CONCAT(company_name, ' :: '), ''), contact_name, ' (', username, ')') AS name FROM client WHERE client_id = ?", $id);
+        if (is_array($row)) {
+            $clients[(int)$row['client_id']] = (string)$row['name'];
+        }
+    }
+    $client = $app->db->queryOneRecord('SELECT * FROM client WHERE client_id = ?', $clientId ?? array_key_first($clients) ?? 0);
+    $allowed = is_array($client) ? \WpManager\ClientLimits::webServers($client) : [];
+    $servers = [];
+    foreach ($app->db->queryAllRecords('SELECT server_id, server_name FROM server WHERE mirror_server_id = 0 AND web_server = 1 ORDER BY server_name') ?: [] as $row) {
+        if ($allowed === [] || in_array((int)$row['server_id'], $allowed, true)) {
+            $servers[(int)$row['server_id']] = (string)$row['server_name'];
+        }
+    }
+    return ['clients' => $clients, 'servers' => $servers];
 }
 
 $app->uses('tpl,tform,tform_actions');
@@ -36,6 +58,20 @@ class page_action extends tform_actions
         $fields['wp_plugins']['default'] = implode(', ', $config->get('wordpress.plugins'));
         $fields['wp_theme']['default'] = (string)$config->get('wordpress.theme');
         $fields['server_php_id']['default'] = (string)$config->get('site_defaults.server_php_id');
+        if (!wpm_is_admin()) {
+            $choices = wpm_choices($app);
+            unset($fields['client_id']['datasource'], $fields['server_id']['datasource']);
+            $fields['client_id']['value'] = $choices['clients'];
+            $fields['server_id']['value'] = $choices['servers'];
+            $fields['server_php_id']['datasource']['querystring'] = "SELECT server_php_id, name FROM server_php WHERE active = 'y' AND client_id IN (0, "
+                . (int)($_SESSION['s']['user']['client_id'] ?? 0) . ') ORDER BY name';
+            // The web space left in the package, for the first client of the list.
+            $first = (int)(array_key_first($choices['clients']) ?? 0);
+            $fit = wpm_limits_for_new_site($app, $first, 'sftp', (int)$config->get('site_defaults.hd_quota'));
+            $app->tpl->setVar('quota_field', 1);
+            $app->tpl->setVar('hd_quota', $fit['quota'] < 0 ? '' : (string)$fit['quota']);
+            $app->tpl->setVar('quota_problems', htmlspecialchars(implode('. ', $fit['problems']), ENT_QUOTES));
+        }
 
         parent::onShowNew();
     }
@@ -67,6 +103,34 @@ class page_action extends tform_actions
 
         try {
             $config = wpm_config($app);
+            $quota = (int)$config->get('site_defaults.hd_quota');
+            if (!wpm_is_admin()) {
+                // The options of the form are only a help: what was posted is checked again here.
+                $clientId = (int)$this->dataRecord['client_id'];
+                $choices = wpm_choices($app, $clientId);
+                if (!isset($choices['clients'][$clientId])) {
+                    throw new \WpManager\ValidationException('You cannot create sites for this client');
+                }
+                if (!isset($choices['servers'][(int)$this->dataRecord['server_id']])) {
+                    throw new \WpManager\ValidationException('This client cannot use this web server');
+                }
+                $php = (int)($this->dataRecord['server_php_id'] ?? 0);
+                if ($php > 0 && !is_array($app->db->queryOneRecord('SELECT server_php_id FROM server_php WHERE server_php_id = ? AND client_id IN (0, ?)', $php, $clientId))) {
+                    throw new \WpManager\ValidationException('This client cannot use this PHP version');
+                }
+                $fit = wpm_limits_for_new_site($app, $clientId, (string)($this->dataRecord['access_type'] ?? 'sftp'), $quota);
+                if ($fit['problems'] !== []) {
+                    throw new \WpManager\ValidationException(implode('. ', $fit['problems']) . '.');
+                }
+                $asked = trim(is_string($_POST['hd_quota'] ?? null) ? $_POST['hd_quota'] : '');
+                $quota = $fit['quota'];
+                if ($asked !== '') {
+                    if (!ctype_digit($asked) || (int)$asked < \WpManager\ClientLimits::MIN_QUOTA_MB || ($fit['quota'] >= 0 && (int)$asked > $fit['quota'])) {
+                        throw new \WpManager\ValidationException('Web space must be between ' . \WpManager\ClientLimits::MIN_QUOTA_MB . ' and ' . ($fit['quota'] < 0 ? 'any' : $fit['quota']) . ' MB');
+                    }
+                    $quota = (int)$asked;
+                }
+            }
             $request = new \WpManager\SiteRequest(
                 (string)$this->dataRecord['domain'],
                 $this->dataRecord['client_id'],
@@ -80,6 +144,7 @@ class page_action extends tform_actions
                 (string)($this->dataRecord['wp_theme'] ?? ''),
                 $this->dataRecord['server_php_id'] ?? '0',
                 is_string($_POST['ssh_keys'] ?? null) ? $_POST['ssh_keys'] : '',
+                $quota,
             );
             // The Remote API accepts any server id, so a typo would create a site with no database.
             $dbServerId = $config->get('site_defaults.database_server_id') ?? $request->serverId;
@@ -111,8 +176,8 @@ class page_action extends tform_actions
             return;
         }
 
-        $record['sys_userid'] = (int)$_SESSION['s']['user']['userid'];
-        $record['sys_groupid'] = (int)$_SESSION['s']['user']['default_group'];
+        // The record belongs to whoever owns the website in ISPConfig.
+        $record = wpm_owner($app, (int)$record['domain_id']) + $record;
         $record['sys_perm_user'] = 'riud';
         $record['sys_perm_group'] = 'riud';
         $record['sys_perm_other'] = '';

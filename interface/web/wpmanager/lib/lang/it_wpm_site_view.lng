@@ -131,3 +131,4 @@ $wb['ssh_other_txt'] = 'Ci sono chiavi che questa pagina non sa mostrare; salvan
 $wb['ssh_desc_txt'] = 'Una chiave pubblica per riga (il contenuto di un file .pub). Salvando si sostituiscono le chiavi dell\'utente SFTP; la password resta. La chiave SSH del cliente in ISPConfig, se c\'è, la aggiunge comunque ISPConfig.';
 $wb['ssh_save_txt'] = 'Salva le chiavi';
 $wb['ssh_saved_txt'] = 'Chiavi salvate: ISPConfig le scrive sul server entro un minuto.';
+$wb['no_permission_txt'] = 'Puoi vedere questo sito, ma non modificarlo.';

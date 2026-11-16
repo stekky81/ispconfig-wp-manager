@@ -26,6 +26,8 @@ final class SiteRequest
     public readonly ?int $phpVersionId;
     /** @var list<array{type:string, blob:string, comment:string}> public keys of the SFTP user */
     public readonly array $sshKeys;
+    /** MB of web space, -1 = unlimited; null = the default of the settings */
+    public readonly ?int $hdQuota;
 
     public function __construct(
         string $domain,
@@ -40,6 +42,7 @@ final class SiteRequest
         ?string $theme = null,
         mixed $phpVersionId = null,
         string $sshKeys = '',
+        ?int $hdQuota = null,
     ) {
         $this->domain = Validator::domain($domain);
         $this->clientId = Validator::positiveId($clientId);
@@ -57,6 +60,10 @@ final class SiteRequest
         $this->theme = $theme === null || $theme === '' ? $theme : Validator::wpSlug($theme);
         $this->phpVersionId = $phpVersionId === null ? null : Validator::phpVersionId($phpVersionId);
         $this->sshKeys = SshKeys::parse($sshKeys);
+        if ($hdQuota !== null && $hdQuota !== -1 && $hdQuota < 1) {
+            throw new ValidationException('Invalid web space: ' . $hdQuota);
+        }
+        $this->hdQuota = $hdQuota;
         if ($this->sshKeys !== [] && $this->accessType !== 'sftp') {
             throw new ValidationException('SSH keys work with SFTP only, not with FTP');
         }

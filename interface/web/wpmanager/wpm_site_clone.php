@@ -10,12 +10,9 @@ require_once '../../lib/app.inc.php';
 require_once '/opt/ispconfig-wp-manager/lib/bootstrap.php';
 require_once 'lib/wpm_config.inc.php';
 require_once 'lib/wpm_audit.inc.php';
+require_once 'lib/wpm_scope.inc.php';
 
 $app->auth->check_module_permissions('wpmanager');
-
-if ($_SESSION['s']['user']['typ'] !== 'admin') {
-    $app->error('Only administrators can clone WordPress sites in this version.');
-}
 
 $app->uses('tpl');
 $app->tpl->newTemplate('form.tpl.htm');
@@ -28,9 +25,14 @@ $app->tpl->setVar($wb);
 $escape = static fn($value): string => $app->functions->htmlentities((string)$value);
 
 $id = $app->functions->intval($_REQUEST['id'] ?? 0);
-$source = $app->db->queryOneRecord("SELECT * FROM wpm_site WHERE wpm_site_id = ? AND status = 'installed'", $id);
-if (!is_array($source)) {
+// Clients and resellers clone only sites they may change, and only for the client that owns the website.
+$source = wpm_site($app, $id, 'u');
+if (!is_array($source) || $source['status'] !== 'installed') {
     $app->error($wb['source_not_found_txt']);
+}
+$owner = $app->db->queryOneRecord('SELECT g.client_id FROM web_domain d INNER JOIN sys_group g ON g.groupid = d.sys_groupid WHERE d.domain_id = ?', $source['domain_id']);
+if (!wpm_is_admin()) {
+    $_POST['client_id'] = (int)($owner['client_id'] ?? -1);
 }
 
 $config = wpm_config($app);
@@ -44,7 +46,7 @@ if ($staging) {
         $app->error($escape($e->getMessage()));
     }
     // A staging belongs to the client of its production site.
-    $_POST['client_id'] = (int)$source['client_id'];
+    $_POST['client_id'] = wpm_is_admin() ? (int)$source['client_id'] : (int)($owner['client_id'] ?? -1);
 }
 
 if (isset($_POST['domain'])) {
@@ -67,6 +69,19 @@ if (isset($_POST['domain'])) {
         if (!is_array($app->db->queryOneRecord('SELECT server_id FROM server WHERE server_id = ? AND web_server = 1 AND mirror_server_id = 0', $serverId))) {
             throw new \WpManager\ValidationException($wb['server_invalid_txt']);
         }
+        $quota = (int)$config->get('site_defaults.hd_quota');
+        if (!wpm_is_admin()) {
+            $client = $app->db->queryOneRecord('SELECT * FROM client WHERE client_id = ?', (int)$_POST['client_id']);
+            $servers = is_array($client) ? \WpManager\ClientLimits::webServers($client) : [];
+            if (!is_array($client) || ($servers !== [] && !in_array($serverId, $servers, true))) {
+                throw new \WpManager\ValidationException($wb['server_invalid_txt']);
+            }
+            $fit = wpm_limits_for_new_site($app, (int)$_POST['client_id'], (string)($_POST['access_type'] ?? 'sftp'), $quota);
+            if ($fit['problems'] !== []) {
+                throw new \WpManager\ValidationException(implode('. ', $fit['problems']) . '.');
+            }
+            $quota = $fit['quota'];
+        }
         $website = $app->db->queryOneRecord('SELECT server_php_id FROM web_domain WHERE domain_id = ?', $source['domain_id']);
         // PHP versions belong to their server: on another node the clone gets the default one.
         $phpId = $serverId === (int)$source['server_id'] ? (int)($website['server_php_id'] ?? 0) : 0;
@@ -83,6 +98,8 @@ if (isset($_POST['domain'])) {
             '',
             '',
             (string)$phpId,
+            '',
+            $quota,
         );
         $transport = $config->isDryRun() ? new \WpManager\DryRunTransport() : null;
         $api = \WpManager\IspconfigApi::fromConfig($config, $transport);
@@ -99,8 +116,7 @@ if (isset($_POST['domain'])) {
             $record['wp_title'] = '';
             $record['clone_of'] = (int)$source['wpm_site_id'];
             $record['staging_of'] = $staging ? (int)$source['wpm_site_id'] : 0;
-            $record['sys_userid'] = (int)$_SESSION['s']['user']['userid'];
-            $record['sys_groupid'] = (int)$_SESSION['s']['user']['default_group'];
+            $record = wpm_owner($app, (int)$record['domain_id']) + $record;
             $record['sys_perm_user'] = 'riud';
             $record['sys_perm_group'] = 'riud';
             $record['sys_perm_other'] = '';
@@ -115,14 +131,20 @@ if (isset($_POST['domain'])) {
 }
 
 $clients = '';
-foreach ($app->db->queryAllRecords("SELECT client_id, CONCAT(IF(company_name != '', CONCAT(company_name, ' :: '), ''), contact_name, ' (', username, ')') AS name FROM client ORDER BY company_name, contact_name") as $client) {
+$clientFilter = wpm_is_admin() ? '' : ' WHERE client_id = ' . (int)($owner['client_id'] ?? -1);
+foreach ($app->db->queryAllRecords("SELECT client_id, CONCAT(IF(company_name != '', CONCAT(company_name, ' :: '), ''), contact_name, ' (', username, ')') AS name FROM client{$clientFilter} ORDER BY company_name, contact_name") as $client) {
     $selected = (int)$client['client_id'] === (int)$source['client_id'] ? ' selected="selected"' : '';
     $clients .= '<option value="' . (int)$client['client_id'] . '"' . $selected . '>' . $escape($client['name']) . '</option>';
 }
 
 $servers = '';
 $chosen = (int)($_POST['server_id'] ?? $source['server_id']);
+$ownerRow = wpm_is_admin() ? null : $app->db->queryOneRecord('SELECT * FROM client WHERE client_id = ?', (int)($owner['client_id'] ?? -1));
+$allowedServers = is_array($ownerRow) ? \WpManager\ClientLimits::webServers($ownerRow) : [];
 foreach ($app->db->queryAllRecords('SELECT server_id, server_name FROM server WHERE web_server = 1 AND mirror_server_id = 0 ORDER BY server_name') as $server) {
+    if ($allowedServers !== [] && !in_array((int)$server['server_id'], $allowedServers, true)) {
+        continue;
+    }
     $selected = (int)$server['server_id'] === $chosen ? ' selected="selected"' : '';
     $servers .= '<option value="' . (int)$server['server_id'] . '"' . $selected . '>' . $escape($server['server_name']) . '</option>';
 }

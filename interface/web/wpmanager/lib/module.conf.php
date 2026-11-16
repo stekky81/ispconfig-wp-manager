@@ -29,6 +29,8 @@ $items[] = [
     'link' => 'wpmanager/wpm_updates.php',
     'html_id' => 'wpm_updates',
 ];
+// The log of every site and the settings are for admins only.
+if (($_SESSION['s']['user']['typ'] ?? '') === 'admin') {
 $items[] = [
     'title' => 'Log',
     'target' => 'content',
@@ -41,6 +43,7 @@ $items[] = [
     'link' => 'wpmanager/wpm_settings.php',
     'html_id' => 'wpm_settings',
 ];
+}
 
 $module['nav'][] = [
     'title' => 'WordPress',
