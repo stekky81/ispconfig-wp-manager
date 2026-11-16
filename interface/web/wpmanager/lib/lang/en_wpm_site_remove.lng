@@ -1,0 +1,23 @@
+<?php
+$wb['head_txt'] = 'Remove';
+$wb['site_not_found_txt'] = 'WordPress site not found.';
+$wb['refused_txt'] = 'This site cannot be removed now';
+$wb['warning_txt'] = 'This deletes the website with its files, its databases and its users from every server. This module keeps no backup: after this, only the backups of ISPConfig or external ones bring the site back.';
+$wb['list_txt'] = 'What will be deleted:';
+$wb['not_attached_txt'] = 'The database named by WordPress is not attached to this website in ISPConfig, so it stays:';
+$wb['kept_txt'] = 'Database users that another database also uses stay. The client and its other websites are not touched.';
+$wb['confirm_txt'] = 'To confirm, type the domain';
+$wb['no_backup_txt'] = 'I know that this module keeps no backup of the site';
+$wb['confirm_error_txt'] = 'Type the exact domain and tick the box to confirm.';
+$wb['remove_btn_txt'] = 'Remove the site for good';
+$wb['cancel_txt'] = 'Cancel';
+$wb['table_web_domain_txt'] = 'Website or domain';
+$wb['table_ftp_user_txt'] = 'FTP/SFTP user';
+$wb['table_shell_user_txt'] = 'Shell user';
+$wb['table_cron_txt'] = 'Cron job';
+$wb['table_webdav_user_txt'] = 'WebDAV user';
+$wb['table_web_folder_user_txt'] = 'User of a protected folder';
+$wb['table_web_folder_txt'] = 'Protected folder';
+$wb['table_web_backup_txt'] = 'ISPConfig backup record';
+$wb['table_web_database_txt'] = 'Database';
+$wb['table_web_database_user_txt'] = 'Database user';

@@ -7,4 +7,5 @@ $wb['status_txt'] = 'Status';
 $wb['status_message_txt'] = 'Details';
 $wb['wp_version_txt'] = 'WordPress';
 $wb['updates_txt'] = 'Updates';
-$wb['delete_confirmation'] = 'Remove this site from the WordPress list? The website itself is not deleted.';
+$wb['delete_confirmation'] = 'Take this site off the WordPress list? Nothing is deleted: not the website, its files or its database. To delete the site, use Delete the site on its page.';
+$wb['unlist_txt'] = 'Take off the list';

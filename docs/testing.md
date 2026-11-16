@@ -181,6 +181,15 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] Themes: activate and back, remove an inactive one; the active theme cannot be removed
 - [x] The same on a site of a slave node, with the column grants of the node
 
+### Full removal
+
+- [x] A site with a staging is refused; the staging goes first
+- [x] A wrong domain or no tick removes nothing
+- [x] Website, alias domain, FTP and shell users, cron job, databases and folder gone, also in MariaDB and on the
+      system; a database user shared with a database of another website stays, with that database intact
+- [x] The same for a site on a slave node
+- [x] The removal is in the events
+
 ### Security
 
 - [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write

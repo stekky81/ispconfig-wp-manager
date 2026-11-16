@@ -12,6 +12,7 @@
         <tmpl_if name="is_installed"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_clone.php?id={tmpl_var name='id'}">{tmpl_var name='clone_txt'}</button></tmpl_if>
         <tmpl_if name="can_stage"><button class="btn btn-default formbutton-default" type="button" id="create_staging" data-load-content="wpmanager/wpm_site_clone.php?id={tmpl_var name='id'}&amp;staging=1">{tmpl_var name='create_staging_txt'}</button></tmpl_if>
         <a class="btn btn-default formbutton-default" href="#" onclick="ISPConfig.capp('sites', '{tmpl_var name='website_redirect'}'); return false;">{tmpl_var name='open_website_txt'}</a>
+        <button class="btn btn-default formbutton-danger" type="button" id="remove_site" data-load-content="wpmanager/wpm_site_remove.php?id={tmpl_var name='id'}">{tmpl_var name='remove_site_txt'}</button>
     </p>
 
     <table class="table">

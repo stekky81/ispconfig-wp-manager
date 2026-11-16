@@ -196,6 +196,25 @@ page looks again every 15 seconds while an action runs.
 Everything runs as the site user, in the PHP sandbox; user commands load no plugin or theme. Passwords for the page
 travel encrypted in `wpm_site.secret_result`, are cleared when shown and expire at `secret_until`.
 
+## Full removal
+
+Decided with the maintainer on 2026-11-16. "Delete the site" on the site page opens a page that lists everything that
+will go, read again when the admin confirms: the website, its alias domains and subdomains, FTP/SFTP, shell and WebDAV
+users, cron jobs, protected folders and their users, ISPConfig backup records, its databases, and the database users
+that no database of another website uses. The admin types the domain and ticks that the module keeps no backup: after
+this, only the backups of ISPConfig or external ones bring the site back.
+
+The panel deletes the records through the datalog, as the Sites module of ISPConfig does (`web_vhost_domain_del.php` in
+3.3.2), and the nodes remove files, vhosts, databases and users as for any change made in ISPConfig. Unlike that module
+it also deletes the databases, which ISPConfig only detaches; a database user goes with a datalog record for every
+server (`server_id` 0), like ISPConfig deletes one. A database that WordPress uses but that is not attached to the
+website stays, and the page says so. `SiteRemoval` decides what goes and in which order: what hangs on the website
+first, the website last.
+
+Refused while the site is being installed, while an action runs, while a clone of it is being installed, and while it
+has a staging site: the staging goes first. The removal is written to `wpm_event`, with the panel user. "Take off the
+list", the icon of the list, still only drops the record of the module and deletes nothing.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

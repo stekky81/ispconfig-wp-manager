@@ -34,6 +34,8 @@ It has not run on production servers yet.
 - **Maintenance tools**: maintenance mode that lets logged-in users through, one-click login to wp-admin with a
   temporary administrator, password reset of an administrator, debug mode with the log outside the web root for 24
   hours, and activation, deactivation and removal of plugins and themes with a health check and a way back.
+- **Full removal** of a site: website, domains, users, cron jobs, databases and the database users nobody else uses,
+  listed before a typed confirmation. No backup is taken: keep the backups of ISPConfig.
 - **Emails**, with the mail settings of ISPConfig: a notice when a site is ready (never with passwords), an alert at
   once for rollbacks and failures, and a daily or weekly summary.
 - **Safety first**: dry-run mode, no changes to folders that are not empty, everything runs as the site user,

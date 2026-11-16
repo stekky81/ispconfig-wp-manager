@@ -1,0 +1,23 @@
+<?php
+$wb['head_txt'] = 'Elimina';
+$wb['site_not_found_txt'] = 'Sito WordPress non trovato.';
+$wb['refused_txt'] = 'Questo sito non si può eliminare ora';
+$wb['warning_txt'] = 'Questa operazione cancella il sito web con i suoi file, i suoi database e i suoi utenti da tutti i server. Questo modulo non tiene nessun backup: dopo, il sito si recupera solo dai backup di ISPConfig o da quelli esterni.';
+$wb['list_txt'] = 'Cosa verrà cancellato:';
+$wb['not_attached_txt'] = 'Il database indicato da WordPress non è collegato a questo sito web in ISPConfig, quindi resta:';
+$wb['kept_txt'] = 'Gli utenti database usati anche da un altro database restano. Il cliente e i suoi altri siti web non vengono toccati.';
+$wb['confirm_txt'] = 'Per confermare, scrivi il dominio';
+$wb['no_backup_txt'] = 'So che questo modulo non tiene nessun backup del sito';
+$wb['confirm_error_txt'] = 'Scrivi il dominio esatto e spunta la casella per confermare.';
+$wb['remove_btn_txt'] = 'Elimina il sito per sempre';
+$wb['cancel_txt'] = 'Annulla';
+$wb['table_web_domain_txt'] = 'Sito web o dominio';
+$wb['table_ftp_user_txt'] = 'Utente FTP/SFTP';
+$wb['table_shell_user_txt'] = 'Utente shell';
+$wb['table_cron_txt'] = 'Cron job';
+$wb['table_webdav_user_txt'] = 'Utente WebDAV';
+$wb['table_web_folder_user_txt'] = 'Utente di una cartella protetta';
+$wb['table_web_folder_txt'] = 'Cartella protetta';
+$wb['table_web_backup_txt'] = 'Record di backup di ISPConfig';
+$wb['table_web_database_txt'] = 'Database';
+$wb['table_web_database_user_txt'] = 'Utente database';

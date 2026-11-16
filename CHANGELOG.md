@@ -47,3 +47,6 @@
   debug mode for 24 hours with the log in `private/`, activation, deactivation and removal of plugins and themes with
   health check and rollback; the page looks again by itself while an action runs
 - The health check sees the site behind the maintenance mode and past page caches
+- Full removal of a site from its page: everything ISPConfig attaches to the website, its databases included, listed
+  before a typed confirmation; refused while it has a staging or a clone of it is being installed. The icon of the list
+  is now "Take off the list", which deletes nothing

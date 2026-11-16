@@ -68,6 +68,9 @@ Known and accepted for now:
 - **The maintenance mode lets through any browser with a cookie named like the login cookie of WordPress.** That shows
   the site, not wp-admin: WordPress checks the cookie itself. It hides a site from visitors, it does not protect it.
 
+- **Full removal** deletes for good, with no backup of the module: the admin types the domain and ticks a box. Only
+  admins can do it, as everything in the module for now.
+
 ## Multiserver
 
 Reviewed on 2026-11-16, with a node joined to the master in the test environment.
