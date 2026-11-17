@@ -145,6 +145,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 23. PHP caches `stat()`: a test that checks a file after a command changed it needs `clearstatcache()` first.
 24. The GitHub runner ships the MySQL 8 client, whose `mysqldump` fails against MariaDB; the CI installs `mariadb-client`.
     Job logs need a login, annotations do not: failed integration tests are written as annotations.
+25. WordPress caches the updates it knows for 12 hours (site transient `update_plugins`, `update_themes`): a test that
+    puts back an old plugin must delete it (`wp transient delete update_plugins --network`), or the check finds nothing.
 
 
 ## Current status (2026-11-16)

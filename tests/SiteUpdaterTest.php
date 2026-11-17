@@ -175,6 +175,19 @@ final class SiteUpdaterTest extends TestCase
         self::assertStringContainsString("'theme' 'update' '--all'", $log);
     }
 
+    /** Mode 'plugins' of NativeUpdates: WordPress keeps its minor releases, the module does not touch the core. */
+    public function testAutomaticUpdatesOfPluginsAndThemesLeaveTheCoreAlone(): void
+    {
+        $runner = new Runner(true);
+        $result = $this->updater([200, 200])->update($this->site(), SiteUpdater::AUTOMATIC_EXTENSIONS, $runner);
+        $log = implode("\n", $runner->log());
+
+        self::assertStringNotContainsString("'core'", $log);
+        self::assertStringContainsString("'plugin' 'update' '--all'", $log);
+        self::assertStringContainsString("'theme' 'update' '--all'", $log);
+        self::assertStringContainsString('Updated (automatic, plugins and themes)', $result['message']);
+    }
+
     /** @dataProvider minorScopes */
     public function testOnlyTheMajorButtonLeavesTheBranch(string $scope, bool $minor): void
     {
@@ -216,6 +229,7 @@ final class SiteUpdaterTest extends TestCase
     public function testThePanelCanNotAskForTheAutomaticScope(): void
     {
         self::assertNotContains(SiteUpdater::AUTOMATIC, SiteUpdater::SCOPES);
+        self::assertNotContains(SiteUpdater::AUTOMATIC_EXTENSIONS, SiteUpdater::SCOPES);
     }
 
     public function testUnknownScopeIsRefused(): void

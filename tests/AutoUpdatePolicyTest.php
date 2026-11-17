@@ -7,6 +7,7 @@ namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
 use WPStation\AutoUpdatePolicy;
+use WPStation\SiteUpdater;
 
 final class AutoUpdatePolicyTest extends TestCase
 {
@@ -106,5 +107,22 @@ final class AutoUpdatePolicyTest extends TestCase
         self::assertTrue(AutoUpdatePolicy::shouldRun(['auto_update' => 'y', 'auto_skip' => ''], $report, true));
         self::assertFalse(AutoUpdatePolicy::shouldRun(['auto_update' => 'n', 'auto_skip' => ''], $report, true));
         self::assertFalse(AutoUpdatePolicy::shouldRun(['auto_update' => 'y', 'auto_skip' => ''], $report, false));
+    }
+
+    /** Mode 'plugins': a minor core release is the job of WordPress, and alone it starts nothing here. */
+    public function testMinorCoreReleasesOnlyInModeAll(): void
+    {
+        $core = $this->report('7.1.4');
+        $plugins = ['auto_update' => 'y', 'auto_core' => 'n', 'auto_skip' => ''];
+        $all = ['auto_update' => 'y', 'auto_core' => 'y', 'auto_skip' => ''];
+
+        self::assertFalse(AutoUpdatePolicy::shouldRun($plugins, $core, true));
+        self::assertTrue(AutoUpdatePolicy::shouldRun($all, $core, true));
+        self::assertSame(SiteUpdater::AUTOMATIC_EXTENSIONS, AutoUpdatePolicy::scope($plugins));
+        self::assertSame(SiteUpdater::AUTOMATIC, AutoUpdatePolicy::scope($all));
+        // A rolled back set of plugins is still skipped when a core release joins it, which WordPress handles.
+        $both = $this->report('7.1.4', ['a' => '2']);
+        $skipped = ['auto_skip' => AutoUpdatePolicy::fingerprint($this->report(null, ['a' => '2']), false)] + $plugins;
+        self::assertFalse(AutoUpdatePolicy::shouldRun($skipped, $both, true));
     }
 }

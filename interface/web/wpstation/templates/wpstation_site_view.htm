@@ -102,15 +102,20 @@
         <a class="btn btn-default formbutton-success" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=update&scope=major&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='major_confirm_txt'}');">{tmpl_var name='major_update_txt'} {tmpl_var name='major_update'}</a>
     </div>
     </tmpl_unless></tmpl_if>
-    <p id="auto_update">
-        <tmpl_if name="auto_update_on">
-            {tmpl_var name='auto_on_txt'}
-            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&auto=n&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_off_txt'}</button>
-        <tmpl_else>
-            {tmpl_var name='auto_off_txt'}<tmpl_if name="is_detected"> {tmpl_var name='auto_off_detected_txt'}</tmpl_if>
-            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&auto=y&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_on_txt'}</button>
-        </tmpl_if>
-    </p>
+    <div id="update_mode">
+        <p><strong>{tmpl_var name='update_mode_txt'}</strong></p>
+        <p class="btn-group" id="update_mode_buttons">
+            <tmpl_loop name="update_modes">
+            <button class="btn btn-default <tmpl_if name='mode_current'>formbutton-success<tmpl_else>formbutton-default</tmpl_if>" type="button" <tmpl_if name='mode_current'>disabled="disabled" aria-pressed="true"</tmpl_if> data-load-content="{tmpl_var name='mode_link'}">{tmpl_var name='mode_label'}</button>
+            </tmpl_loop>
+        </p>
+        <p id="update_mode_desc">{tmpl_var name='mode_desc'}<tmpl_if name="mode_wordpress_detected"> {tmpl_var name='auto_off_detected_txt'}</tmpl_if></p>
+        <ul id="native_notes" class="fieldDescription">
+            <tmpl_loop name="native_notes"><li>{tmpl_var name='note'}</li></tmpl_loop>
+        </ul>
+        <tmpl_if name="native_pending"><p class="fieldDescription" id="native_pending">{tmpl_var name='native_pending_txt'}</p></tmpl_if>
+        <tmpl_if name="native_message"><div class="alert alert-warning" id="native_message">{tmpl_var name='native_message'}</div></tmpl_if>
+    </div>
     <p>{tmpl_var name='last_check_txt'}: {tmpl_var name='last_check'}
         <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&check=1&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='check_now_txt'}</button>
     </p>

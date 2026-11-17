@@ -54,7 +54,8 @@ Until November 2026 it was called `ispconfig-wp-manager`.
 - **Overview** of core, plugin and theme updates of every site, per node and per site.
 - **Safe updates** with backup, health check and automatic rollback, and a separate button for a new major version of
   WordPress.
-- **Automatic updates**, on by default: plugins, themes and minor WordPress releases.
+- **Who updates each site**: WordPress as before, WPStation for plugins and themes, or WPStation for everything; the
+  automatic updates of WordPress are turned off where WPStation takes over, so nothing is updated twice.
 - **Backups and restore** from the site page, optionally without `wp-content/uploads`. They are meant for rollbacks and
   do not replace the backups of ISPConfig.
 
@@ -83,7 +84,8 @@ Until November 2026 it was called `ispconfig-wp-manager`.
 
 > [!IMPORTANT]
 > Automatic updates start as soon as `dry_run` is turned off, for the sites WPStation created. Sites it finds on a node
-> start with them off until you turn them on. To look at a node without any update, set `updates.auto` to `n` first. See
+> stay with the updates of WordPress until you choose otherwise. To look at a node without any update by WPStation, set
+> `updates.auto` to `n` first. See
 > [docs/installation.md](docs/installation.md).
 
 ## Screenshots

@@ -52,8 +52,13 @@ CREATE TABLE IF NOT EXISTS `wpstation_site` (
   `action_status` varchar(20) NOT NULL DEFAULT '',
   `action_message` text,
   `backups_json` text,
-  -- Automatic updates: auto_skip identifies versions that were rolled back
+  -- Automatic updates: auto_skip identifies versions that were rolled back. auto_core: minor core releases by this
+  -- module too, not by WordPress. native_updates: the must-use plugin the node last put in the site ('', plugins, all;
+  -- 'unknown' until the node looked), see NativeUpdates.
   `auto_update` enum('y','n') NOT NULL DEFAULT 'y',
+  `auto_core` enum('y','n') NOT NULL DEFAULT 'n',
+  `native_updates` varchar(16) NOT NULL DEFAULT 'unknown',
+  `native_message` varchar(255) NOT NULL DEFAULT '',
   `auto_skip` varchar(40) NOT NULL DEFAULT '',
   `last_auto` datetime DEFAULT NULL,
   `backup_uploads` enum('y','n') NOT NULL DEFAULT 'y',
@@ -389,6 +394,20 @@ SET @wpstation_sql = (
     'ALTER TABLE `wpstation_site` MODIFY `status` enum(\'queued\',\'installing\',\'installed\',\'error\',\'removed\') NOT NULL DEFAULT \'queued\'')
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpstation_site' AND COLUMN_NAME = 'status' AND COLUMN_TYPE LIKE '%removed%'
+);
+PREPARE wpstation_stmt FROM @wpstation_sql;
+EXECUTE wpstation_stmt;
+DEALLOCATE PREPARE wpstation_stmt;
+
+-- Upgrade from the versions without the choice of who updates a site (NativeUpdates).
+SET @wpstation_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpstation_site`
+       ADD `auto_core` enum(\'y\',\'n\') NOT NULL DEFAULT \'n\' AFTER `auto_update`,
+       ADD `native_updates` varchar(16) NOT NULL DEFAULT \'unknown\' AFTER `auto_core`,
+       ADD `native_message` varchar(255) NOT NULL DEFAULT \'\' AFTER `native_updates`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpstation_site' AND COLUMN_NAME = 'auto_core'
 );
 PREPARE wpstation_stmt FROM @wpstation_sql;
 EXECUTE wpstation_stmt;

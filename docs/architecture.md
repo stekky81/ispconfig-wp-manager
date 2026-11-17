@@ -70,11 +70,35 @@ checked again. What worked before and does not work now, or a failed command, re
 The checks compare before and after, so a login page moved on purpose is not a failure. They call the local web server
 directly: a vhost bound to a single IP address may need a different address.
 
-Automatic updates are on by default for the sites the module creates or clones, and off for the sites the scan finds
-(decided on 2026-11-17: the module does not change on its own a site nobody handed to it). They cover plugins, themes
-and minor core releases, never a new branch of WordPress. They
-go through the same steps, one site per worker run and once a day per site at most. Three switches stop them: `dry_run`,
-Automatic updates in the settings and the switch of each site. After a rollback the same set of versions is skipped until
+### Who updates a site on its own
+
+Each site has an update mode (`NativeUpdates`), chosen on its page, stored as `auto_update` and `auto_core`:
+
+| Mode | WPStation updates on its own | WordPress updates on its own |
+|------|------------------------------|------------------------------|
+| WordPress | nothing | what it is set to do: minor core releases and translations by default, plugins and themes turned on in wp-admin |
+| WPStation: plugins and themes | plugins and themes | minor core releases (or what `wp-config.php` says) and translations |
+| WPStation: everything | plugins, themes and minor core releases | translations |
+
+Sites the module creates or clones start in "plugins and themes"; sites the scan finds start in "WordPress" (decided on
+2026-11-17: the module does not change on its own a site nobody handed to it). The core stays with WordPress in the
+middle mode because its minor releases are the most urgent and the least risky, and WordPress checks twice a day.
+
+The automatic updates of WordPress are turned off with a must-use plugin, `wp-content/mu-plugins/wpstation-updates.php`,
+that only adds `__return_false` filters (`auto_update_plugin`, `auto_update_theme`, and `auto_update_core` in the last
+mode) and hides the toggles of wp-admin. The worker writes and removes it as the site user and changes only a file with
+its marker; a site that sets `WPMU_PLUGIN_DIR` or `WP_CONTENT_DIR` gets a message instead, and keeps the updates of
+WordPress. Each run the worker brings in line, a few at a time, the sites whose applied state (`native_updates`, set by the
+node) differs from the wanted one, so a change of mode, of the switch in the settings or a new site is applied within a
+minute or two; the daily check applies it again, after a restore for instance. With **Settings → Automatic updates** off,
+the file goes from every site and WordPress gets its updates back, so that nobody is left without updates. A site taken off
+the list comes back at the next scan in mode WordPress, and the file goes then. `install.sh --uninstall` removes it from the
+sites of its machine, and the mark `.native-updates` in the spool: without the mark, the worker looks at every site of
+its node again, so a new install puts the file back at once. Translations are always left to WordPress.
+
+Automatic updates of the module never install a new branch of WordPress. They go through the same steps, one site per
+worker run and once a day per site at most. Three switches stop them: `dry_run`, Automatic updates in the settings and the
+mode of each site. After a rollback the same set of versions is skipped until
 a different version appears, otherwise a broken update would break the site again every day. The outcome appears in the
 site list. The panel has no bulk update on purpose. A new branch of WordPress is only installed from its own button on the
 site page, with the same checks and rollback.
@@ -349,8 +373,8 @@ written to the log of the worker and stops nothing.
 
 Once an hour the worker looks for `wp-config.php` in `/var/www/clients/client*/web*/web` and adds to `wpstation_site`
 the sites ISPConfig knows and the list does not have yet, with `origin = detected` and no secrets. It changes
-nothing in the sites: it only runs `wp core version` as the site user. Removing such a site from the list is
-therefore temporary. On a slave node this needs INSERT on `wpstation_site`, see the multiserver note below.
+nothing in the sites: it only runs `wp core version` as the site user, and the site starts in update mode WordPress, so
+nothing is updated by the module until someone chooses so. Removing such a site from the list is therefore temporary. On a slave node this needs INSERT on `wpstation_site`, see the multiserver note below.
 
 ## Safety rules (enforced in code)
 

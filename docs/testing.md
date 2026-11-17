@@ -149,6 +149,21 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] After a rollback the same versions are not tried again
 - [x] A major release is never automatic; its own button updates it
 
+### Who updates a site
+
+- [x] After an upgrade every installed site gets its state within a few minutes: the must-use plugin in the sites in mode
+      "plugins and themes", nothing in the sites in mode WordPress (master and node)
+- [x] The three buttons on the site page change the mode; the file follows within a minute, with the core filter only in
+      "everything"; WordPress itself (`apply_filters`) agrees
+- [x] An automatic update in mode "plugins and themes" updates plugins and themes, not the core
+- [x] Settings → Automatic updates off: the file goes from every site, the page says why; on again: it comes back
+- [x] A site found by the scan starts in mode WordPress, with the hint on its page (checked before the three modes, with
+      the switch of that time)
+- [x] A file of the same name not written by the module is left alone, with a message (integration test; the page shows
+      `native_message`)
+- [x] `install.sh --uninstall` removes the file from the sites of its machine; the installer puts the module back and the
+      worker the file
+
 ### Clone
 
 - [x] Long domain to short domain, to another client: site works, source unchanged

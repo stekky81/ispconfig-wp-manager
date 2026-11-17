@@ -41,6 +41,10 @@ penetration test, and multiserver setups were not covered. Please report problem
   nodes can write: one level below `web/`, never `..`, never hidden, never a folder of ISPConfig or WordPress. A folder
   that is a link is refused, so a site owner cannot send the worker into another site. The node deletes only
   `web/<folder>`, its backups and its debug log, as the site user, and never a website.
+- **Update modes**: the must-use plugin that turns off the automatic updates of WordPress is written and removed by the site
+  user, and only a file with the marker of the module is ever changed or removed. It only adds `__return_false` filters.
+  The mode is set by the panel (`auto_update`, `auto_core`), which a node cannot change; the node only records what it
+  applied. A site owner who deletes the file only gives WordPress its updates back, on their own site.
 - **Emails**: recipients are checked one by one (no line breaks, no headers can be added through them); text from a
   site or a command is stripped of control characters and cut before it goes into a message.
 

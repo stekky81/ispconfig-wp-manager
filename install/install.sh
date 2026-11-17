@@ -37,6 +37,22 @@ info() { echo "==> $*"; }
 [[ -d $ISP_DIR ]] || die "ISPConfig not found in $ISP_DIR"
 [[ "$(cd "$(dirname "$0")/.." && pwd)" == "$APP_DIR" ]] || die "clone the repository into $APP_DIR first"
 
+# The sites of this machine get the automatic updates of WordPress back: the must-use plugin of the module goes,
+# removed by the site user, only where it carries our marker (NativeUpdates).
+remove_native_updates() {
+    local file owner
+    shopt -s nullglob
+    for file in /var/www/clients/client*/web*/web/wp-content/mu-plugins/wpstation-updates.php \
+        /var/www/clients/client*/web*/web/*/wp-content/mu-plugins/wpstation-updates.php; do
+        [[ -f $file && ! -L $file ]] || continue
+        owner=$(stat -c %U -- "$file")
+        [[ $owner =~ ^web[0-9]+$ ]] || continue
+        sudo -u "$owner" -- grep -qF 'ispconfig-wpstation native updates' "$file" || continue
+        sudo -u "$owner" -- rm -f -- "$file" && info "WordPress updates itself again: removed $file"
+    done
+    shopt -u nullglob
+}
+
 if [[ $UNINSTALL -eq 1 ]]; then
     info "Removing the module and cron"
     # Our own module folder only (a copy, or a symlink from older versions).
@@ -46,7 +62,11 @@ if [[ $UNINSTALL -eq 1 ]]; then
     rm -f "$ISP_DIR/server/plugins-enabled/wpstation_plugin.inc.php"
     rm -f "$ISP_DIR/server/plugins-available/wpstation_plugin.inc.php"
     rm -f "$CRON_FILE"
-    info "Done. Tables, spool and key were kept; websites were not touched."
+    # After the cron: a worker started from now on cannot put it back.
+    remove_native_updates
+    # Without it, the worker of a new install looks at every site again and puts the file back where it belongs.
+    rm -f "$SPOOL_DIR/.native-updates"
+    info "Done. Tables, spool and key were kept; websites were not touched, except for the file above."
     exit 0
 fi
 
@@ -125,7 +145,7 @@ grant_nodes() {
     local node_columns='status, status_message, wp_version, secret_db, secret_wp, secret_access, secret_since,
         action_request, action_param, action_status, action_message, backups_json, updates_json, updates_count,
         last_check, last_auto, auto_skip, wp_cron, secret_result, secret_until, login_user, login_until, login_used,
-        debug_until, debug_tail, vulns_json, vulns_count, vulns_fixable'
+        debug_until, debug_tail, vulns_json, vulns_count, vulns_fixable, native_updates, native_message'
     local revoke
     for account in "${accounts[@]}"; do
         user=${account%%$'\t'*} from=${account#*$'\t'}

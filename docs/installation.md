@@ -55,8 +55,8 @@ Ubuntu cloud images disable it (`/etc/ssh/sshd_config.d/60-cloudimg-settings.con
 ## Before turning off dry-run
 
 `dry_run = true` stops every change. Turning it off starts the worker for real, and that includes
-**automatic updates of the sites this module created**. Sites it finds on the node start with automatic updates off,
-until someone turns them on from the site page. To look at a node first without any automatic update, set this in
+**automatic updates of the sites this module created**. Sites it finds on the node start in update mode WordPress: WordPress
+keeps updating them as before, until someone chooses another mode on the site page. To look at a node first without any automatic update, set this in
 `config.php` before changing `dry_run`:
 
 ```php
@@ -104,4 +104,6 @@ again afterwards does no harm.
 sudo ./install/install.sh --uninstall
 ```
 
-Removes the module, the server plugin and the cron job. Tables, keys, backups and websites are **not** deleted.
+Removes the module, the server plugin and the cron job, and the must-use plugin `wpstation-updates.php` from the sites of
+the machine, so that WordPress updates them by itself again. Run it on every node. Tables, keys, backups and websites are
+**not** deleted.

@@ -15,6 +15,8 @@ final class SiteUpdater
     public const SCOPES = ['all', 'core', 'plugins', 'themes', 'major'];
     /** Plugins, themes and minor core releases: the unattended update of the worker. */
     public const AUTOMATIC = 'automatic';
+    /** Plugins and themes only: minor core releases are left to WordPress (NativeUpdates, mode 'plugins'). */
+    public const AUTOMATIC_EXTENSIONS = 'automatic_extensions';
 
     public function __construct(
         private readonly Config $config,
@@ -27,7 +29,7 @@ final class SiteUpdater
     /** @return array{outcome:string, message:string} outcome: updated, refused, rolled_back or rollback_failed */
     public function update(array $site, string $scope, ?Runner $runner = null): array
     {
-        if ($scope !== self::AUTOMATIC && !in_array($scope, self::SCOPES, true)) {
+        if (!in_array($scope, [self::AUTOMATIC, self::AUTOMATIC_EXTENSIONS], true) && !in_array($scope, self::SCOPES, true)) {
             throw new \InvalidArgumentException("Invalid update scope: {$scope}");
         }
         $runner ??= new Runner($this->config->isDryRun(), [], 1800);
@@ -57,7 +59,8 @@ final class SiteUpdater
         if ($broken !== []) {
             return $this->rollback($site, $backup, $before, $runner, 'Broken after the update: ' . $this->health->describe($broken));
         }
-        return ['outcome' => 'updated', 'message' => "Updated ({$scope}). Backup {$backup} kept."];
+        $label = $scope === self::AUTOMATIC_EXTENSIONS ? 'automatic, plugins and themes' : $scope;
+        return ['outcome' => 'updated', 'message' => "Updated ({$label}). Backup {$backup} kept."];
     }
 
     private function runUpdates(array $site, string $scope, Runner $runner): void
@@ -70,10 +73,10 @@ final class SiteUpdater
             $runner->mustRun($wp->coreUpdate($scope !== 'major'));
             $runner->mustRun($wp->coreUpdateDb());
         }
-        if (in_array($scope, ['all', 'plugins', self::AUTOMATIC], true)) {
+        if (in_array($scope, ['all', 'plugins', self::AUTOMATIC, self::AUTOMATIC_EXTENSIONS], true)) {
             $runner->mustRun($wp->pluginUpdateAll());
         }
-        if (in_array($scope, ['all', 'themes', self::AUTOMATIC], true)) {
+        if (in_array($scope, ['all', 'themes', self::AUTOMATIC, self::AUTOMATIC_EXTENSIONS], true)) {
             $runner->mustRun($wp->themeUpdateAll());
         }
     }

@@ -32,6 +32,18 @@ final class SiteInventoryTest extends TestCase
         self::assertSame('4.1', $report['themes'][0]['update']);
     }
 
+    public function testPluginsAndThemesWithTheAutomaticUpdatesOfWordPress(): void
+    {
+        $plugins = '[{"name":"akismet","status":"active","version":"5.0","update":"none","auto_update":"on"},'
+            . '{"name":"hello","status":"inactive","version":"1.7.2","update":"none","auto_update":"off"}]';
+        $themes = '[{"name":"astra","status":"active","version":"4.0","update":"none","auto_update":"on"}]';
+        $report = SiteInventory::report('7.1.4', '[]', $plugins, $themes);
+
+        self::assertSame(['akismet'], $report['native_plugins']);
+        self::assertSame(['astra'], $report['native_themes']);
+        self::assertSame(['name' => 'akismet', 'status' => 'active', 'version' => '5.0', 'update' => ''], $report['plugins'][0]);
+    }
+
     public function testMinorReleaseIsKeptNextToANewBranch(): void
     {
         $core = '[{"version":"7.2","update_type":"major"},{"version":"7.1.5","update_type":"minor"}]';

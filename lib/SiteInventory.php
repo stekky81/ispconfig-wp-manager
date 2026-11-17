@@ -34,6 +34,11 @@ final class SiteInventory
             self::orEmptyList($runner->mustRun($wp->themeList())),
         );
         $report['wp_cron_disabled'] = WpCron::isDisabled($runner->run($wp->configGet('DISABLE_WP_CRON')));
+        // What WordPress updates by itself, shown next to the update mode of the site (NativeUpdates).
+        $report['native_core'] = NativeUpdates::coreState(
+            $runner->run($wp->configGet('AUTOMATIC_UPDATER_DISABLED')),
+            $runner->run($wp->configGet('WP_AUTO_UPDATE_CORE')),
+        );
         // For the maintenance tools of the panel. A site where these fail still gets its updates read.
         $admins = $runner->run($wp->userList('administrator'));
         $report['admins'] = $admins['exit'] === 0 ? SiteUsers::parseAdmins($admins['stdout']) : [];
@@ -58,12 +63,17 @@ final class SiteInventory
                 $coreMinor = $candidate;
             }
         }
+        $pluginData = self::decode($plugins);
+        $themeData = self::decode($themes);
         return [
             'version' => $installed,
             'core_update' => $coreUpdate,
             'core_minor' => $coreMinor,
-            'plugins' => self::items(self::decode($plugins)),
-            'themes' => self::items(self::decode($themes)),
+            'plugins' => self::items($pluginData),
+            'themes' => self::items($themeData),
+            'native_core' => 'minor',
+            'native_plugins' => NativeUpdates::turnedOn(array_slice($pluginData, 0, self::MAX_ITEMS)),
+            'native_themes' => NativeUpdates::turnedOn(array_slice($themeData, 0, self::MAX_ITEMS)),
             'wp_cron_disabled' => false,
             'admins' => [],
             'maintenance' => false,

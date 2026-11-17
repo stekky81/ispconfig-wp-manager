@@ -29,7 +29,7 @@ if (!is_array($site)) {
 }
 // Every request that changes something, or shows a password, needs the update permission on the website.
 $canChange = wpstation_is_admin() || wpstation_site($app, $id, 'u') !== null;
-$changes = array_intersect(['check', 'auto', 'backup_uploads', 'action'], array_keys($_GET)) !== [] || $_POST !== [];
+$changes = array_intersect(['check', 'update_mode', 'backup_uploads', 'action'], array_keys($_GET)) !== [] || $_POST !== [];
 if ($changes && !$canChange) {
     $app->error($wb['no_permission_txt']);
 }
@@ -48,12 +48,19 @@ if (isset($_GET['check'])) {
     $app->tpl->setVar('check_requested', 1);
 }
 
-// Read directly from the master by the worker: nothing to hand over to the node.
-if (isset($_GET['auto']) && in_array($_GET['auto'], ['y', 'n'], true)) {
+// Who updates the site on its own (NativeUpdates). Read from the master by the worker, which puts the must-use plugin in
+// the site within a minute: nothing to hand over to the node.
+if (isset($_GET['update_mode']) && in_array($_GET['update_mode'], \WPStation\NativeUpdates::MODES, true)) {
     $app->auth->csrf_token_check('GET');
-    $app->db->query("UPDATE wpstation_site SET auto_update = ?, auto_skip = '' WHERE wpstation_site_id = ?", $_GET['auto'], $id);
-    wpstation_audit($app, $site, 'auto_switch', $_GET['auto']);
-    $site['auto_update'] = $_GET['auto'];
+    $switches = \WPStation\NativeUpdates::switches($_GET['update_mode']);
+    $app->db->query(
+        "UPDATE wpstation_site SET auto_update = ?, auto_core = ?, auto_skip = '' WHERE wpstation_site_id = ?",
+        $switches['auto_update'],
+        $switches['auto_core'],
+        $id,
+    );
+    wpstation_audit($app, $site, 'auto_switch', $_GET['update_mode']);
+    $site = $switches + $site;
 }
 
 if (isset($_GET['backup_uploads']) && in_array($_GET['backup_uploads'], ['y', 'n'], true)) {
@@ -249,7 +256,6 @@ foreach (json_decode((string)$site['backups_json'], true) ?: [] as $backup) {
 $app->tpl->setLoop('backups', $backup_rows);
 $app->tpl->setVar('has_backups', $backup_rows === [] ? 0 : 1);
 $app->tpl->setVar('action_busy', $action_busy ? 1 : 0);
-$app->tpl->setVar('auto_update_on', $site['auto_update'] === 'y' ? 1 : 0);
 $app->tpl->setVar('is_detected', $site['origin'] === 'detected' ? 1 : 0);
 $app->tpl->setVar('backup_uploads_on', $site['backup_uploads'] === 'y' ? 1 : 0);
 $app->tpl->setVar('real_cron_on', $site['wp_cron'] === 'real' ? 1 : 0);
@@ -258,6 +264,19 @@ $app->tpl->setVar('action_status', $escape($site['action_status']));
 // Maintenance tools, from the last check of the node.
 $report = json_decode((string)$site['updates_json'], true);
 $report = is_array($report) ? $report : [];
+
+// Who updates the site on its own, and what WordPress does by itself.
+$mode = \WPStation\NativeUpdates::mode($site);
+$autoEnabled = $config->get('updates.auto') === 'y';
+$app->tpl->setVar('mode_desc', $escape($wb['mode_' . $mode . '_desc_txt']));
+$app->tpl->setVar('mode_wordpress_detected', $mode === 'wordpress' && $site['origin'] === 'detected' ? 1 : 0);
+$app->tpl->setLoop('native_notes', array_map(
+    static fn(array $note): array => ['note' => $escape(str_replace('{x}', $note[1], $wb[$note[0]]))],
+    \WPStation\NativeUpdates::notes($mode, $autoEnabled, $report),
+));
+$pending = \WPStation\NativeUpdates::desired($site, $autoEnabled) !== (string)$site['native_updates'];
+$app->tpl->setVar('native_pending', $pending && $site['status'] === 'installed' ? 1 : 0);
+$app->tpl->setVar('native_message', $escape($site['native_message']));
 $app->tpl->setVar('maintenance_on', !empty($report['maintenance']) ? 1 : 0);
 $app->tpl->setVar('debug_until', $escape($site['debug_until'] ?? ''));
 $app->tpl->setVar('debug_elsewhere', empty($site['debug_until']) && !empty($report['debug']) ? 1 : 0);
@@ -367,6 +386,13 @@ $app->tpl->setVar('has_audit', $audit_rows === [] ? 0 : 1);
 $check_token = $app->auth->csrf_token_get('wpstation_site_check');
 $app->tpl->setVar('check_csrf_id', $check_token['csrf_id']);
 $app->tpl->setVar('check_csrf_key', $check_token['csrf_key']);
+// The buttons of the update modes carry the same token as the other buttons of the page.
+$app->tpl->setLoop('update_modes', array_map(static fn(string $m): array => [
+    'mode_label' => $escape($wb['mode_' . $m . '_txt']),
+    'mode_link' => $escape('wpstation/wpstation_site_view.php?id=' . $id . '&update_mode=' . $m
+        . '&_csrf_id=' . rawurlencode((string)$check_token['csrf_id']) . '&_csrf_key=' . rawurlencode((string)$check_token['csrf_key'])),
+    'mode_current' => $m === $mode ? 1 : 0,
+], \WPStation\NativeUpdates::MODES));
 
 $csrf_token = $app->auth->csrf_token_get('wpstation_site_view');
 $app->tpl->setVar('_csrf_id', $csrf_token['csrf_id']);

@@ -42,6 +42,7 @@ use WPStation\FailureMessage;
 use WPStation\HealthCheck;
 use WPStation\JobQueue;
 use WPStation\MaintenanceMode;
+use WPStation\NativeUpdates;
 use WPStation\Notifications;
 use WPStation\PathGuard;
 use WPStation\RetryPolicy;
@@ -661,10 +662,52 @@ if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPSTATION_SC
 }
 
 // Update overview. Read-only: no file changes, and normal plugins and themes do not load.
+// Who updates each site on its own (NativeUpdates): the must-use plugin follows the mode of the site and the switch in
+// the settings. A site whose mode changed, or that was just found (native_updates 'unknown'), is brought in line within
+// a minute, a few per run. What was tried is recorded even when it failed: the daily check tries again.
+if (!$config->isDryRun()) {
+    // After an uninstall (which removed the files and this mark) or on a first run: every site of the node is looked at.
+    $nativeMark = $config->get('spool_dir') . '/.native-updates';
+    if (!is_file($nativeMark)) {
+        $app->dbmaster->query("UPDATE wpstation_site SET native_updates = 'unknown' WHERE server_id = ?", $conf['server_id']);
+        touch($nativeMark);
+    }
+    $nativeEnabled = $settings->get('updates.auto') === 'y';
+    $native = new NativeUpdates($config, new PathGuard($config->get('web_root_base')));
+    $aligned = 0;
+    $sites = $app->dbmaster->queryAllRecords(
+        "SELECT * FROM wpstation_site WHERE server_id = ? AND status = 'installed' AND action_request = ''",
+        $conf['server_id'],
+    );
+    foreach ($sites ?: [] as $site) {
+        $state = NativeUpdates::desired($site, $nativeEnabled);
+        if ($state === (string)$site['native_updates'] || $distrust($site) !== '') {
+            continue;
+        }
+        try {
+            $message = $native->apply($site, $state);
+        } catch (\Throwable $e) {
+            $message = 'The automatic updates of WordPress were not changed: ' . $e->getMessage();
+        }
+        $app->dbmaster->query(
+            'UPDATE wpstation_site SET native_updates = ?, native_message = ? WHERE wpstation_site_id = ?',
+            $state,
+            mb_substr($message, 0, 255),
+            $site['wpstation_site_id'],
+        );
+        if (++$aligned >= 5) {
+            break;
+        }
+    }
+}
+
 if (!$config->isDryRun()) {
     $inventory = new SiteInventory($config, new PathGuard($config->get('web_root_base')));
+    $native = new NativeUpdates($config, new PathGuard($config->get('web_root_base')));
+    $nativeEnabled = $settings->get('updates.auto') === 'y';
     $due = $app->dbmaster->queryAllRecords(
-        "SELECT s.wpstation_site_id, s.domain_id, s.server_id, s.domain, s.subfolder, s.document_root, s.system_user FROM wpstation_site s
+        "SELECT s.wpstation_site_id, s.domain_id, s.server_id, s.domain, s.subfolder, s.document_root, s.system_user,
+                s.auto_update, s.auto_core FROM wpstation_site s
          INNER JOIN web_domain d ON d.domain_id = s.domain_id AND d.active = 'y'
          WHERE s.server_id = ? AND s.status = 'installed'
            AND (s.last_check IS NULL OR s.last_check < NOW() - INTERVAL " . WPSTATION_CHECK_INTERVAL . ' SECOND)
@@ -684,13 +727,23 @@ if (!$config->isDryRun()) {
         }
         try {
             $report = $inventory->collect($site);
+            // Once a day the must-use plugin is checked again: a restore or a hand may have changed it.
+            $state = NativeUpdates::desired($site, $nativeEnabled);
+            try {
+                $nativeMessage = $native->apply($site, $state);
+            } catch (\Throwable $e) {
+                $nativeMessage = 'The automatic updates of WordPress were not changed: ' . $e->getMessage();
+            }
             $app->dbmaster->query(
-                'UPDATE wpstation_site SET updates_json = ?, updates_count = ?, last_check = NOW(), wp_version = IF(? = \'\', wp_version, ?), wp_cron = ? WHERE wpstation_site_id = ?',
+                'UPDATE wpstation_site SET updates_json = ?, updates_count = ?, last_check = NOW(), wp_version = IF(? = \'\', wp_version, ?), wp_cron = ?,
+                    native_updates = ?, native_message = ? WHERE wpstation_site_id = ?',
                 json_encode($report, JSON_THROW_ON_ERROR),
                 SiteInventory::updateCount($report),
                 $report['version'],
                 $report['version'],
                 $report['wp_cron_disabled'] ? WpCron::REAL : WpCron::WORDPRESS,
+                $state,
+                mb_substr($nativeMessage, 0, 255),
                 $site['wpstation_site_id'],
             );
             $fresh = $app->dbmaster->queryOneRecord('SELECT * FROM wpstation_site WHERE wpstation_site_id = ?', $site['wpstation_site_id']);
@@ -803,7 +856,7 @@ if (!$config->isDryRun()) {
             continue;
         }
         try {
-            $result = $updater->update($site, SiteUpdater::AUTOMATIC);
+            $result = $updater->update($site, AutoUpdatePolicy::scope($site));
         } catch (\Throwable $e) {
             $result = ['outcome' => 'failed', 'message' => 'Automatic update not started: ' . $e->getMessage()];
         }
@@ -815,7 +868,7 @@ if (!$config->isDryRun()) {
             'Automatic update: ' . mb_substr($result['message'], 0, 1900),
             json_encode($listBackups($site), JSON_THROW_ON_ERROR),
             $rolledBack ? 1 : 0,
-            AutoUpdatePolicy::fingerprint($report),
+            AutoUpdatePolicy::fingerprint($report, AutoUpdatePolicy::includesCore($site)),
             $site['wpstation_site_id'],
         );
         $event($site, 'auto_update', $result['outcome'], $result['message']);

@@ -346,11 +346,11 @@ final class WpCli
 
     public function pluginList(): Command
     {
-        return $this->cmd(['plugin', 'list', '--fields=name,status,version,update,update_version', '--format=json', '--skip-plugins', '--skip-themes']);
+        return $this->cmd(['plugin', 'list', '--fields=name,status,version,update,update_version,auto_update', '--format=json', '--skip-plugins', '--skip-themes']);
     }
 
     public function themeList(): Command
     {
-        return $this->cmd(['theme', 'list', '--fields=name,status,version,update,update_version', '--format=json', '--skip-plugins', '--skip-themes']);
+        return $this->cmd(['theme', 'list', '--fields=name,status,version,update,update_version,auto_update', '--format=json', '--skip-plugins', '--skip-themes']);
     }
 }
