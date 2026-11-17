@@ -97,6 +97,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
   The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
 - Do not change the VM clock from `multipass exec` with `date -s`: the client can hang. Kill it if it does.
+  The VMs stand still while the Mac sleeps; `ntpsec` (from the autoinstaller) then exits with "Panic: offset too big"
+  and the clock falls days behind. `sync` installs a drop-in with `Restart=always` and restarts it when it is down.
 - Do not run `destroy`/`delete` while a `create` or `mount` is running: it hung multipassd once.
   If multipassd hangs: `sudo pkill -9 -f "com.canonical.multipass/bin/"`, then reload the launchd plist.
 

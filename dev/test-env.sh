@@ -178,6 +178,25 @@ if [[ -d $dst ]]; then mv "$dst" "$dst.old"; fi
 mv "$new" "$dst"
 rm -rf "$dst.old" /tmp/wpm-sync.tgz
 EOS
+    keep_clock "$name"
+}
+
+# A VM stands still while the Mac sleeps. ntpd (ntpsec, from the autoinstaller) then finds an offset of hours, exits
+# with "Panic: offset too big" and stays down: the clock falls days behind. Restarted, its -g steps the clock again.
+# --no-block: a clock step under a running `multipass exec` can hang the client.
+keep_clock() {
+    local name=$1
+    timeout 60 multipass exec "$name" -- sudo bash -s <<'EOS'
+set -euo pipefail
+systemctl cat ntpsec >/dev/null 2>&1 || exit 0
+dropin=/etc/systemd/system/ntpsec.service.d/90-wpm-test.conf
+if [[ ! -f $dropin ]]; then
+    mkdir -p "${dropin%/*}"
+    printf '[Service]\nRestart=always\nRestartSec=30\n' > "$dropin"
+    systemctl daemon-reload
+fi
+systemctl is-active --quiet ntpsec || systemctl --no-block restart ntpsec
+EOS
 }
 
 cmd_slave() {
