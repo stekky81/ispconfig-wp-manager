@@ -18,9 +18,10 @@ class list_action extends listform_actions
     {
         global $app;
 
-        // Read before the parent call, which replaces status with its display value.
-        $summary = \WPStation\SiteStatus::summary((string)$rec['status'], $rec['status_message'] ?? null)
-            ?: \WPStation\SiteStatus::actionProblem((string)$rec['action_status'], $rec['action_message'] ?? null);
+        // Read before the parent call, which replaces status with its display value. Short: the column is narrow,
+        // and the page of the site has the whole text.
+        $summary = \WPStation\SiteStatus::summary((string)$rec['status'], $rec['status_message'] ?? null, 100)
+            ?: \WPStation\SiteStatus::actionProblem((string)$rec['action_status'], $rec['action_message'] ?? null, 100);
         $subfolder = (string)($rec['subfolder'] ?? '');
         $rec = parent::prepareDataRow($rec);
         if ($subfolder !== '') {
