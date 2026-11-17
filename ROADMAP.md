@@ -3,7 +3,7 @@
 Planned work, by milestone. Tick items as they land (with the commit or PR).
 Pre-release: no milestone is considered done until it has passed `docs/testing.md` in the test VM.
 
-**Next:** to be decided (staging is done, see [docs/architecture.md](docs/architecture.md#staging)). See
+**Next:** the optional install in a subfolder, then the first pilot on production. See
 [docs/security.md](docs/security.md) for the security review and what it left open.
 
 ## 0.1 — Skeleton
@@ -86,6 +86,7 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
       the backups of ISPConfig or external ones bring a site back)
 - [x] Audit log (who did what, when) and notifications (install done, update failed); notifications of
       vulnerabilities come with the vulnerability check
-- [ ] Declared compatibility matrix (ISPConfig, Ubuntu/Debian, PHP versions)
-- [ ] User documentation (not only installation)
+- [x] Declared compatibility matrix (ISPConfig, Ubuntu/Debian, PHP versions): [docs/compatibility.md](docs/compatibility.md)
+- [x] User documentation (not only installation): [administrator guide](docs/admin-guide.md) and
+      [client guide](docs/client-guide.md)
 - [x] Docker-based integration tests in CI for `lib/` (MariaDB + WP-CLI, no ISPConfig)

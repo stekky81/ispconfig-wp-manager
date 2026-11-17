@@ -149,7 +149,8 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   plugins and themes); full removal of a site; audit log; known vulnerabilities (Wordfence Intelligence), file permissions,
   hardening; SSH keys for SFTP; clients and resellers. The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: the remaining 1.0 items of ROADMAP.md, one decision at a time with Stefano; the production pilot comes last.
+- **Next**: the optional subfolder install (ROADMAP.md), one decision at a time with Stefano; the production pilot comes last.
+  User docs: `docs/admin-guide.md`, `docs/client-guide.md`, `docs/compatibility.md`: keep them in step with features.
   Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.

@@ -13,8 +13,8 @@ across one or more ISPConfig nodes — a free, open source alternative to commer
 
 ## Features
 
-Everything below works in the test environment on ISPConfig 3.3.2 (Ubuntu 24.04, Apache, single server).
-It has not run on production servers yet.
+Everything below works in the test environment: ISPConfig 3.3, Ubuntu 24.04, Apache, a master and a second web node
+(see [docs/compatibility.md](docs/compatibility.md)). It has not run on production servers yet.
 
 - **New WordPress site**: website, database, database user, SFTP or FTP user and WordPress in one form, with
   per-site PHP version, language, plugins and theme, and a settings page for the defaults.
@@ -54,15 +54,8 @@ It has not run on production servers yet.
 
 ## Status / roadmap
 
-| Milestone | Scope | Status |
-|-----------|-------|--------|
-| 0.1 | Module skeleton, installer, config, tests | done |
-| 0.2 | New WordPress site, detection of existing sites | done, except email |
-| 0.3 | Update overview | done, except summary email and production pilot |
-| 0.4 | Backups, safe and automatic updates | done |
-| 0.5 | Clone and staging | done on the same node; clone across nodes later |
-
-The detailed list of planned work is in [ROADMAP.md](ROADMAP.md).
+Milestones 0.1 to 0.5 are done, and most of 1.0. What is left before 1.0: an optional install in a subfolder of an
+existing website, and the first pilot on production servers. The detailed list is in [ROADMAP.md](ROADMAP.md).
 
 ## How it works
 
@@ -87,7 +80,8 @@ Details in [docs/architecture.md](docs/architecture.md).
 
 ## Requirements
 
-- ISPConfig 3.3 (tested on 3.3.2), on a single server or a multiserver setup (tested with a master and one node)
+- ISPConfig 3.3 (tested on 3.3.2 and 3.3.3), on a single server or a multiserver setup (tested with a master and one
+  node); see [docs/compatibility.md](docs/compatibility.md)
 - PHP 8.1+ with the `sodium` and `curl` extensions on the master and on every web node
 - [WP-CLI](https://wp-cli.org) in `/usr/local/bin/wp` on every web node, plus `sudo`, `rsync`, `tar`, `gzip`
   and a MySQL or MariaDB client
@@ -97,6 +91,13 @@ Details in [docs/architecture.md](docs/architecture.md).
 ## Installation
 
 See [docs/installation.md](docs/installation.md). **Read the warning above first.**
+
+## Documentation
+
+- [Administrator guide](docs/admin-guide.md): daily use of the module, and what to do when something goes wrong
+- [Client guide](docs/client-guide.md): what clients and resellers can do with their sites, to pass on to them
+- [Compatibility](docs/compatibility.md): what the module has run on, and how far
+- [Architecture](docs/architecture.md) and [security](docs/security.md): how it works and what it protects
 
 ## Testing
 

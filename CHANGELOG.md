@@ -59,3 +59,4 @@
 - Clients and resellers: their own sites through their permissions on the websites in ISPConfig, new sites, clones and
   stagings within the limits of their package, checked by the panel
 - Integration tests of `lib/` with real users, MariaDB, WP-CLI and WordPress, in the CI on every push
+- Documentation: administrator guide, client guide and compatibility matrix
