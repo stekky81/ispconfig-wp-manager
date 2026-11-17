@@ -14,6 +14,22 @@ They cover the shared classes in `lib/`: input validation, encryption of job sec
 building (escaping, run-as-user), path guard and empty-directory check, configuration merging.
 Every bug found in manual testing must get a regression test here first.
 
+### Integration tests (real users, MariaDB, WP-CLI, WordPress; no ISPConfig)
+
+`tests/Integration` runs the commands of `lib/` for real: as the site users through `sudo`, on a real WordPress, with
+MariaDB: backup and restore, clone with serialized data, maintenance mode across a restore, debug mode, hardening,
+permissions, temporary login, password reset, plugins, the daily check and the transfer store of the module. The CI
+runs them on every push (job `integration`: MariaDB 11.4 as a service container, PHP 8.3, WP-CLI 2.12.0). On a machine
+where creating two users is fine, as root:
+
+```bash
+dev/integration.sh setup        # users web901/web902, /var/www/clients-it, databases, WordPress; /etc/wpm-it.env
+set -a; . /etc/wpm-it.env; set +a; vendor/bin/phpunit --testsuite integration
+dev/integration.sh teardown
+```
+
+`MYSQL_HOST` and `MYSQL_PWD` tell the script how to reach MariaDB as root; `WPM_IT_DB_HOST` is the host the sites use.
+
 ## 2. Test environment
 
 Never test on the production nodes. Use two disposable VMs that mirror production.

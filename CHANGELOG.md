@@ -58,3 +58,4 @@
 - SSH keys for the SFTP user, in the new site form and on the site page, checked before they reach ISPConfig
 - Clients and resellers: their own sites through their permissions on the websites in ISPConfig, new sites, clones and
   stagings within the limits of their package, checked by the panel
+- Integration tests of `lib/` with real users, MariaDB, WP-CLI and WordPress, in the CI on every push

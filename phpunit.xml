@@ -8,6 +8,13 @@
     <testsuites>
         <testsuite name="unit">
             <directory>tests</directory>
+            <exclude>tests/Integration</exclude>
+            <exclude>tests/MysqlTransferStoreTest.php</exclude>
+        </testsuite>
+        <!-- Real users, MariaDB and WordPress: dev/integration.sh setup, then run as root with /etc/wpm-it.env. -->
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+            <file>tests/MysqlTransferStoreTest.php</file>
         </testsuite>
     </testsuites>
     <source>

@@ -27,4 +27,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck install/install.sh dev/test-env.sh dev/regression.sh
+      - run: shellcheck install/install.sh dev/test-env.sh dev/regression.sh dev/integration.sh
+
+  # Real users, MariaDB, WP-CLI and WordPress, without ISPConfig: the commands of lib/ run as they do on a node.
+  integration:
+    runs-on: ubuntu-24.04
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sodium, curl, mysqli
+          coverage: none
+      - run: composer install --no-interaction --no-progress
+      - name: WP-CLI
+        run: |
+          curl -sSfL -o /tmp/wp https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+          sudo install -m 0755 /tmp/wp /usr/local/bin/wp
+          wp --version
+      - name: Users, folders, databases and WordPress
+        run: sudo -E bash dev/integration.sh setup
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PWD: root
+          WPM_IT_DB_HOST: 127.0.0.1
+      - name: Integration tests, as root
+        run: sudo bash -c 'set -a; . /etc/wpm-it.env; set +a; php vendor/bin/phpunit --testsuite integration'

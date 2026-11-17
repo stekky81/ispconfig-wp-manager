@@ -42,8 +42,12 @@ Read `README.md` and `docs/architecture.md` first.
 
 ```bash
 composer install && composer lint && composer test   # PHP unit tests
-shellcheck install/install.sh dev/test-env.sh dev/regression.sh
+shellcheck install/install.sh dev/test-env.sh dev/regression.sh dev/integration.sh
 ```
+
+Integration tests (`tests/Integration`) run in the CI. To run them in the VM: copy the repository with `vendor/` to
+`/root/wpm-it` (`COPYFILE_DISABLE=1 tar czf - --exclude=.git . | multipass exec ispc-master -- sudo tar xzf - -C /root/wpm-it`,
+or tar adds `._*` files), then `dev/integration.sh setup`, the tests as root with `/etc/wpm-it.env`, and `teardown`.
 
 `shellcheck` is not on the Mac: run it in the VM after `sync`, with `sudo` (`dev/` is 0700 there).
 The `php` of Homebrew on the Mac can point to another version (7.4 on 2026-11-16, chosen outside this project: do not

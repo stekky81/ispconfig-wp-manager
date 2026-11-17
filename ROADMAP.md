@@ -88,4 +88,4 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
       vulnerabilities come with the vulnerability check
 - [ ] Declared compatibility matrix (ISPConfig, Ubuntu/Debian, PHP versions)
 - [ ] User documentation (not only installation)
-- [ ] Docker-based integration tests in CI for `lib/` (MariaDB + WP-CLI, no ISPConfig)
+- [x] Docker-based integration tests in CI for `lib/` (MariaDB + WP-CLI, no ISPConfig)

@@ -20,7 +20,8 @@
     },
     "scripts": {
         "lint": "find lib interface server tests config -name '*.php' -print0 | xargs -0 -n1 php -l",
-        "test": "phpunit"
+        "test": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration"
     },
     "config": {
         "sort-packages": true
