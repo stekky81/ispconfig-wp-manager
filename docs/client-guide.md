@@ -48,14 +48,17 @@ of WordPress.
 
 ## Updates
 
-Your sites are updated **automatically**: plugins, themes and minor releases of WordPress. Before every update a
-backup is taken. If the site stops working afterwards, the backup is put back by itself.
+Sites created from this menu are updated **automatically**: plugins, themes and minor releases of WordPress. Before
+every update a backup is taken. If the site stops working afterwards, the backup is put back by itself.
+
+Sites that were already on the server before, and were found there, start with automatic updates **off**: turn them on
+from the page of the site when you are ready.
 
 You can also:
 
 - update now, with the buttons under **Updates** on the site page;
 - move to a new major release of WordPress, with its own button. Check first that your plugins and theme support it;
-- turn off automatic updates for one site, if it must never change without you.
+- turn automatic updates on or off for one site, for example off if it must never change without you.
 
 ## Backups
 

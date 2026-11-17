@@ -70,7 +70,9 @@ checked again. What worked before and does not work now, or a failed command, re
 The checks compare before and after, so a login page moved on purpose is not a failure. They call the local web server
 directly: a vhost bound to a single IP address may need a different address.
 
-Automatic updates are on by default: plugins, themes and minor core releases, never a new branch of WordPress. They
+Automatic updates are on by default for the sites the module creates or clones, and off for the sites the scan finds
+(decided on 2026-11-17: the module does not change on its own a site nobody handed to it). They cover plugins, themes
+and minor core releases, never a new branch of WordPress. They
 go through the same steps, one site per worker run and once a day per site at most. Three switches stop them: `dry_run`,
 Automatic updates in the settings and the switch of each site. After a rollback the same set of versions is skipped until
 a different version appears, otherwise a broken update would break the site again every day. The outcome appears in the

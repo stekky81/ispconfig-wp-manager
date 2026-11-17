@@ -161,9 +161,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - **Next**: the production pilot (ROADMAP.md), one decision at a time with Stefano.
   User docs: `docs/admin-guide.md`, `docs/client-guide.md`, `docs/compatibility.md`: keep them in step with features.
   Security review done: see `docs/security.md`, including what remains open.
-- Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
-  before a read-only look at a real node.
-- The VM has a remote user `wpstation`, a client `testclient` and the test sites `sito28`, `big1` (30,000 posts, no
+- Automatic updates are on by default for created sites and start as soon as `dry_run` is off; detected sites start
+  with them off (2026-11-17). Turn them off in the settings before a read-only look at a real node anyway.
+- The VM has a remote user `wpmanager` (named before the rename), a client `testclient` and the test sites `sito28`, `big1` (30,000 posts, no
   large files) and `remote2` on the master, `nodo2a`, `nodo2e`, `remote1`, `remote3` on the slave; the older ones were
   deleted on 2026-11-16 (the master disk of 19 GB was full: every site takes about 400 MB, the jail included). Its
   `config.php` has `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.

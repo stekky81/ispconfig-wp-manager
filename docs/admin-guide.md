@@ -28,9 +28,10 @@ page reloads by itself every 15 seconds while it runs. One action at a time per 
 `dry_run` in `/opt/ispconfig-wpstation/config.php` is on after installation. It stops every change, on the master
 (the form only lists what it would do) and on each node (its own `config.php`). It cannot be changed from the panel.
 
-Turning it off on a node starts the worker for real, including **automatic updates of every WordPress site on that
-node**, also the ones the module did not create. To look at a node first, turn off **Settings → Automatic updates**
-before you change `dry_run`. Then turn them on again, or turn them off only for the sites that need it.
+Turning it off on a node starts the worker for real, including **automatic updates of the sites the module created**.
+Sites it finds on the node start with automatic updates off (see [Existing sites](#existing-sites)), so a node with
+only existing sites changes nothing on its own. To be sure, turn off **Settings → Automatic updates** before you change
+`dry_run`, and turn them on again when you are ready.
 
 ## New sites
 
@@ -78,8 +79,9 @@ digits, hyphens). The folder must not exist yet, or be empty.
 ## Existing sites
 
 Once an hour every node looks for WordPress in the websites of ISPConfig, in `web/` and one folder below it, and adds what it finds to the list, with
-origin "detected". It reads the version and changes nothing, but from then on **automatic updates apply to them** too,
-like every other site. Turn them off on the page of a site that must not change.
+origin "detected". It reads the version and changes nothing, and **automatic updates stay off** for these sites: the module
+does not change on its own a site it did not create. Turn them on from the page of each site once you have looked at it.
+Updates from the panel, backups and the other tools work from the start.
 
 There are two ways to take a site away:
 
@@ -92,8 +94,8 @@ There are two ways to take a site away:
 Once a day each node reads the versions of WordPress, plugins and themes of three sites per run, and the updates
 available. **Updates** shows them all; the page of a site shows its own, with **Check now**.
 
-**Automatic updates** (on by default) install plugins, themes and minor releases of WordPress, one site at a time, at
-most once a day per site. Three switches stop them: `dry_run`, **Settings → Automatic updates**, and the switch on the
+**Automatic updates** (on by default for the sites the module creates, off for the ones it finds) install plugins,
+themes and minor releases of WordPress, one site at a time, at most once a day per site. Three switches stop them: `dry_run`, **Settings → Automatic updates**, and the switch on the
 page of each site. A new major release of WordPress is never automatic: the site page shows a button for it. Check that
 plugins and themes support the new release first.
 

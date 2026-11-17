@@ -5,6 +5,8 @@
 - Renamed from `ispconfig-wp-manager` to WPStation: module `wpstation`, tables `wpstation_*`, namespace
   `WPStation\`, paths `/opt/ispconfig-wpstation` and `/etc/ispconfig-wpstation`, worker `wpstation-worker.php`.
   Nothing ran on production under the old name, so there is no migration
+- Sites found on a node start with automatic updates off: the module does not change on its own a site it did not
+  create, until someone turns them on from the site page
 - New sites from the panel, with SFTP or FTP access and per-site PHP version, language, plugins and theme
 - Dry-run report on the form, settings page for the defaults, one-time view of the generated passwords
 - Detection of existing WordPress installs

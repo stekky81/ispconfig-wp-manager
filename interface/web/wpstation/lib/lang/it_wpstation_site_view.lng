@@ -32,6 +32,7 @@ $wb['update_themes_txt'] = 'Solo temi';
 $wb['update_confirm_txt'] = 'Avviare questo aggiornamento? Prima viene fatto un backup.';
 $wb['auto_on_txt'] = 'Aggiornamenti automatici attivi: plugin, temi e versioni minor di WordPress.';
 $wb['auto_off_txt'] = 'Aggiornamenti automatici disattivati per questo sito.';
+$wb['auto_off_detected_txt'] = 'I siti trovati sul nodo partono con gli aggiornamenti automatici spenti: attivali dopo aver controllato il sito.';
 $wb['auto_turn_off_txt'] = 'Disattiva';
 $wb['auto_turn_on_txt'] = 'Attiva';
 $wb['major_available_txt'] = 'È disponibile una nuova versione major di WordPress:';

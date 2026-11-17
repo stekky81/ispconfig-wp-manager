@@ -82,8 +82,8 @@ Until November 2026 it was called `ispconfig-wp-manager`.
   daily or weekly summary.
 
 > [!IMPORTANT]
-> Automatic updates start as soon as `dry_run` is turned off, also on sites WPStation did not create.
-> To look at a node without changing it, set `updates.auto` to `n` first. See
+> Automatic updates start as soon as `dry_run` is turned off, for the sites WPStation created. Sites it finds on a node
+> start with them off until you turn them on. To look at a node without any update, set `updates.auto` to `n` first. See
 > [docs/installation.md](docs/installation.md).
 
 ## Screenshots

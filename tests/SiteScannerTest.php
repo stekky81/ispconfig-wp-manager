@@ -100,4 +100,14 @@ final class SiteScannerTest extends TestCase
             self::assertArrayNotHasKey($field, $record);
         }
     }
+
+    /** Decided on 2026-11-17: a site the module did not create is not updated on its own until someone says so. */
+    public function testADetectedSiteStartsWithAutomaticUpdatesOff(): void
+    {
+        $domain = ['domain_id' => 5, 'domain' => 'shop.example.com', 'server_id' => 1, 'system_user' => 'web5',
+            'document_root' => '/var/www/clients/client1/web5', 'sys_userid' => 1, 'sys_groupid' => 2,
+            'sys_perm_user' => 'riud', 'sys_perm_group' => 'ru', 'sys_perm_other' => '', 'ssl' => 'n'];
+        self::assertSame('n', SiteScanner::recordFor($domain, 3, '7.1.4')['auto_update']);
+        self::assertSame('n', SiteScanner::recordFor($domain, 3, '7.1.4', 'blog')['auto_update']);
+    }
 }

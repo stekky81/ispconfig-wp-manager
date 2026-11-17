@@ -250,6 +250,7 @@ $app->tpl->setLoop('backups', $backup_rows);
 $app->tpl->setVar('has_backups', $backup_rows === [] ? 0 : 1);
 $app->tpl->setVar('action_busy', $action_busy ? 1 : 0);
 $app->tpl->setVar('auto_update_on', $site['auto_update'] === 'y' ? 1 : 0);
+$app->tpl->setVar('is_detected', $site['origin'] === 'detected' ? 1 : 0);
 $app->tpl->setVar('backup_uploads_on', $site['backup_uploads'] === 'y' ? 1 : 0);
 $app->tpl->setVar('real_cron_on', $site['wp_cron'] === 'real' ? 1 : 0);
 $app->tpl->setVar('action_status', $escape($site['action_status']));

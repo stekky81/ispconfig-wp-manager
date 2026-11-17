@@ -55,8 +55,9 @@ Ubuntu cloud images disable it (`/etc/ssh/sshd_config.d/60-cloudimg-settings.con
 ## Before turning off dry-run
 
 `dry_run = true` stops every change. Turning it off starts the worker for real, and that includes
-**automatic updates of every site on the node**, also the ones this module did not create. To look at a node
-first, set this in `config.php` before changing `dry_run`:
+**automatic updates of the sites this module created**. Sites it finds on the node start with automatic updates off,
+until someone turns them on from the site page. To look at a node first without any automatic update, set this in
+`config.php` before changing `dry_run`:
 
 ```php
 'updates' => ['auto' => 'n'],

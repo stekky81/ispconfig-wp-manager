@@ -32,6 +32,7 @@ $wb['update_themes_txt'] = 'Themes only';
 $wb['update_confirm_txt'] = 'Start this update? A backup is taken first.';
 $wb['auto_on_txt'] = 'Automatic updates are on: plugins, themes and minor WordPress releases.';
 $wb['auto_off_txt'] = 'Automatic updates are off for this site.';
+$wb['auto_off_detected_txt'] = 'Sites found on the node start with them off: turn them on once you have looked at the site.';
 $wb['auto_turn_off_txt'] = 'Turn off';
 $wb['auto_turn_on_txt'] = 'Turn on';
 $wb['major_available_txt'] = 'A new major version of WordPress is available:';

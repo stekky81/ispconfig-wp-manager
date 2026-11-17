@@ -107,7 +107,7 @@
             {tmpl_var name='auto_on_txt'}
             <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&auto=n&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_off_txt'}</button>
         <tmpl_else>
-            {tmpl_var name='auto_off_txt'}
+            {tmpl_var name='auto_off_txt'}<tmpl_if name="is_detected"> {tmpl_var name='auto_off_detected_txt'}</tmpl_if>
             <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&auto=y&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_on_txt'}</button>
         </tmpl_if>
     </p>

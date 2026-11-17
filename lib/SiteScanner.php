@@ -82,6 +82,8 @@ final class SiteScanner
             'status' => 'installed',
             'status_message' => 'Existing WordPress install found on the node.',
             'wp_version' => $wpVersion,
+            // Nobody asked this module to look after the site yet: no update on its own until someone turns them on.
+            'auto_update' => 'n',
         ];
     }
 }
