@@ -7,7 +7,7 @@ Levels used below:
 
 - **Tested**: the manual test plan in [testing.md](testing.md) passed on it, in the test VMs.
 - **CI**: the automated tests run on it at every commit; the panel and ISPConfig were not involved.
-- **Not tested**: it may work, but nobody has tried. Reports are welcome.
+- **Not tested**: it may work, but nobody has tried. Reports are welcome: see [testers.md](testers.md).
 
 ## Tested
 

@@ -1,0 +1,52 @@
+name: Compatibility report
+description: WPStation worked (fully or in part) on your setup
+labels: [compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Working setups go into docs/compatibility.md. The steps are the ones in docs/testers.md.
+  - type: input
+    id: wpstation
+    attributes:
+      label: WPStation version or commit
+    validations:
+      required: true
+  - type: input
+    id: ispconfig
+    attributes:
+      label: ISPConfig version and layout
+      placeholder: "3.3.3p2, master + 1 node, database on a separate server"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and CPU
+      placeholder: "Debian 13, x86_64"
+    validations:
+      required: true
+  - type: input
+    id: stack
+    attributes:
+      label: Web server, database, PHP, WP-CLI
+      placeholder: "nginx 1.26, MySQL 8.4, PHP 8.3, WP-CLI 2.12"
+    validations:
+      required: true
+  - type: checkboxes
+    id: steps
+    attributes:
+      label: What worked
+      options:
+        - label: Dry-run
+        - label: A real site
+        - label: An existing site found by the scan
+        - label: Backup and update
+        - label: Clone and staging
+        - label: Site in a folder
+        - label: Tools
+        - label: Removal and uninstall
+  - type: textarea
+    id: notes
+    attributes:
+      label: What did not work, or needed a workaround

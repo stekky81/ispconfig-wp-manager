@@ -2,6 +2,8 @@
 
 Thanks for helping! This module changes live websites, so the rules are strict.
 
+Not a developer? Testing on your setup helps just as much: see [docs/testers.md](docs/testers.md).
+
 1. **Open an issue first** for anything larger than a small fix.
 2. **Tests are required.** New logic goes into `lib/` (framework-free) with unit tests in `tests/`.
    A bug fix starts with a test that reproduces the bug.

@@ -1,0 +1,50 @@
+name: Bug report
+description: Something broke or looked wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing WPStation. Remove domains, IP addresses and passwords from anything you paste.
+        A security problem? Do not open an issue: see SECURITY.md.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. WordPress → New WordPress site
+        2. ...
+  - type: input
+    id: wpstation
+    attributes:
+      label: WPStation version or commit
+      placeholder: "git -C /opt/ispconfig-wpstation log -1 --format=%h"
+    validations:
+      required: true
+  - type: input
+    id: ispconfig
+    attributes:
+      label: ISPConfig version
+      placeholder: "3.3.2p1, single server / master + 2 nodes"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS, web server, database, PHP
+      placeholder: "Debian 12, nginx, MariaDB 10.11, PHP 8.2"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: /var/log/ispconfig-wpstation.log, the error log of the web server, the install log on the page of the site.
+      render: text

@@ -102,6 +102,7 @@ See [docs/installation.md](docs/installation.md). **Read the warning above first
 - [Administrator guide](docs/admin-guide.md): daily use of the module, and what to do when something goes wrong
 - [Client guide](docs/client-guide.md): what clients and resellers can do with their sites, to pass on to them
 - [Compatibility](docs/compatibility.md): what the module has run on, and how far
+- [Help test it](docs/testers.md): a test server in half an hour, what to try, how to report
 - [Architecture](docs/architecture.md) and [security](docs/security.md): how it works and what it protects
 
 ## Testing
@@ -109,6 +110,9 @@ See [docs/installation.md](docs/installation.md). **Read the warning above first
 Automated tests cover the logic that does not need a live server; everything else follows the
 manual test plan in [docs/testing.md](docs/testing.md). `dev/regression.sh` checks in a test VM that
 existing sites did not change.
+
+**Testers wanted**, especially on nginx, Debian, MySQL or a separate database server: see
+[docs/testers.md](docs/testers.md). A disposable server is enough.
 
 ```bash
 composer install
@@ -118,6 +122,7 @@ composer test
 ## Security
 
 The design, what a review found and the risks that remain are in [docs/security.md](docs/security.md).
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 > [!IMPORTANT]
 > WP-CLI runs outside the jail of a site, as its own user, limited by a PHP sandbox that is not a jail. If you rely on
