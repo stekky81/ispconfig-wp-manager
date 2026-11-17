@@ -56,7 +56,7 @@ return [
 
     // Hardening of new sites and clones, usually set in the panel: file_edit, uploads_php, sensitive_files, xmlrpc.
     'hardening' => [
-        'new_sites' => ['file_edit', 'uploads_php', 'sensitive_files'],
+        'new_sites' => ['file_edit', 'uploads_php', 'sensitive_files', 'user_list'],
     ],
 
     'wordpress' => [

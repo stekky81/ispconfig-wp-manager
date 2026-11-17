@@ -11,7 +11,9 @@ namespace WPStation;
  * - file_edit: DISALLOW_FILE_EDIT, no editor of themes and plugins in wp-admin;
  * - uploads_php: no PHP runs from wp-content/uploads (.htaccess there);
  * - sensitive_files: readme.html, license.txt, copies of wp-config.php and .git are not served (.htaccess);
- * - xmlrpc: xmlrpc.php is not served (.htaccess): it stops Jetpack and the mobile app.
+ * - xmlrpc: xmlrpc.php is not served (.htaccess): it stops Jetpack and the mobile app;
+ * - user_list: visitors who are not logged in cannot list the users (REST API, ?author=N, the users sitemap, oEmbed),
+ *   with a must-use plugin: logged-in users keep the list, which the block editor needs to choose an author.
  *
  * The .htaccess measures are blocks marked with the name of the module, so that the rest of the file, the rules of
  * WordPress included, stays as it is. After turning one on, its own address must answer 403: a web server that
@@ -20,9 +22,12 @@ namespace WPStation;
  */
 final class SiteHardening
 {
-    public const MEASURES = ['file_edit', 'uploads_php', 'sensitive_files', 'xmlrpc'];
+    public const MEASURES = ['file_edit', 'uploads_php', 'sensitive_files', 'xmlrpc', 'user_list'];
     /** For new sites, unless the settings say otherwise. */
-    public const DEFAULTS = ['file_edit', 'uploads_php', 'sensitive_files'];
+    public const DEFAULTS = ['file_edit', 'uploads_php', 'sensitive_files', 'user_list'];
+
+    public const USERS_PLUGIN = 'wpstation-hide-users.php';
+    public const USERS_MARKER = 'ispconfig-wpstation hide users';
 
     private const MARK = 'ispconfig-wpstation';
 
@@ -50,7 +55,46 @@ final class SiteHardening
         'uploads_php' => '/wp-content/uploads/wpstation-hardening-check.php',
         'sensitive_files' => '/wp-config.php.wpstation-hardening-check',
         'xmlrpc' => '/xmlrpc.php',
+        // 404 here: the route is gone for visitors. The query form works without pretty permalinks too.
+        'user_list' => '/?rest_route=/wp/v2/users',
     ];
+
+    private const EXPECTED = ['user_list' => 404];
+
+    public static function usersPlugin(): string
+    {
+        return <<<'PHP'
+            <?php
+            /**
+             * Plugin Name: WPStation: hide the users
+             * Description: Visitors who are not logged in cannot list the users of the site: REST API, ?author=N, the users sitemap, oEmbed. Change it in the ISPConfig panel, not here.
+             */
+            // ispconfig-wpstation hide users. WPStation writes and removes this file.
+            add_filter('rest_endpoints', static function ($endpoints) {
+                if (!is_user_logged_in()) {
+                    foreach (array_keys($endpoints) as $route) {
+                        if (preg_match('#^/wp/v2/users(/|$)#', (string)$route)) {
+                            unset($endpoints[$route]);
+                        }
+                    }
+                }
+                return $endpoints;
+            });
+            add_action('init', static function () {
+                if (isset($_GET['author']) && !is_admin() && !is_user_logged_in()) {
+                    wp_die('', '', ['response' => 404]);
+                }
+            });
+            add_filter('wp_sitemaps_add_provider', static function ($provider, $name) {
+                return $name === 'users' ? false : $provider;
+            }, 10, 2);
+            add_filter('oembed_response_data', static function ($data) {
+                unset($data['author_name'], $data['author_url']);
+                return $data;
+            });
+
+            PHP;
+    }
 
     public function __construct(
         private readonly Config $config,
@@ -65,9 +109,11 @@ final class SiteHardening
         $state = [];
         foreach (self::MEASURES as $measure) {
             try {
-                $state[$measure] = $measure === 'file_edit'
-                    ? WpCli::isTrue($runner->run($this->wp($site)->configGet('DISALLOW_FILE_EDIT')))
-                    : $runner->run(new Command(['grep', '-qF', '--', self::begin($measure), $this->htaccess($site, $measure)], (string)$site['system_user']))['exit'] === 0;
+                $state[$measure] = match ($measure) {
+                    'file_edit' => WpCli::isTrue($runner->run($this->wp($site)->configGet('DISALLOW_FILE_EDIT'))),
+                    'user_list' => $this->mustUse()->has($site, self::USERS_PLUGIN, self::USERS_MARKER, $runner),
+                    default => $runner->run(new Command(['grep', '-qF', '--', self::begin($measure), $this->htaccess($site, $measure)], (string)$site['system_user']))['exit'] === 0,
+                };
             } catch (\RuntimeException) {
                 $state[$measure] = false;
             }
@@ -86,19 +132,24 @@ final class SiteHardening
         try {
             $this->apply($site, $measure, $on, $runner);
         } catch (\RuntimeException $e) {
-            return $this->undo($site, $measure, $on, $before, $runner, "Changing {$measure} failed: " . $e->getMessage());
+            $reason = str_starts_with($e->getMessage(), 'Not turned ') ? $e->getMessage() : "Changing {$measure} failed: " . $e->getMessage();
+            return $this->undo($site, $measure, $on, $before, $runner, $reason);
         }
         if ($on && isset(self::PROBES[$measure]) && !$runner->isDryRun()) {
             sleep(1);
             $status = $this->health->status($site, self::PROBES[$measure]);
-            if ($status !== 403) {
-                $why = $status >= 500 ? "the web server answers {$status} with it" : "it has no effect (HTTP {$status}): the web server does not read .htaccess there";
+            if ($status !== (self::EXPECTED[$measure] ?? 403)) {
+                $where = $measure === 'user_list' ? 'WordPress did not load the must-use plugin' : 'the web server does not read .htaccess there';
+                $why = $status >= 500 ? "the web server answers {$status} with it" : "it has no effect (HTTP {$status}): {$where}";
                 return $this->undo($site, $measure, $on, $before, $runner, "Not turned on: {$why}");
             }
         }
         $broken = $this->health->regressionsAfterChange($site, $before);
         if ($broken !== []) {
             return $this->undo($site, $measure, $on, $before, $runner, 'Broken after the change: ' . $this->health->describe($broken));
+        }
+        if ($measure === 'user_list') {
+            return ['outcome' => 'done', 'message' => $on ? 'The list of users is hidden from visitors.' : 'The list of users is visible again.'];
         }
         return ['outcome' => 'done', 'message' => ucfirst(str_replace('_', ' ', $measure)) . ($on ? ' on.' : ' off.')];
     }
@@ -137,6 +188,13 @@ final class SiteHardening
 
     private function apply(array $site, string $measure, bool $on, Runner $runner): void
     {
+        if ($measure === 'user_list') {
+            $reason = $this->mustUse()->put($site, self::USERS_PLUGIN, self::USERS_MARKER, $on ? self::usersPlugin() : null, $runner);
+            if ($reason !== '') {
+                throw new \RuntimeException('Not turned ' . ($on ? 'on' : 'off') . ': ' . $reason);
+            }
+            return;
+        }
         if ($measure === 'file_edit') {
             $wp = $this->wp($site);
             if ($on) {
@@ -177,7 +235,7 @@ final class SiteHardening
         if ($still !== []) {
             return ['outcome' => 'rollback_failed', 'message' => "{$reason}. Undone, but still broken: " . $this->health->describe($still)];
         }
-        return ['outcome' => str_starts_with($reason, 'Not turned on') ? 'refused' : 'rolled_back', 'message' => "{$reason}. Undone."];
+        return ['outcome' => str_starts_with($reason, 'Not turned ') ? 'refused' : 'rolled_back', 'message' => "{$reason}. Undone."];
     }
 
     private function htaccess(array $site, string $measure): string
@@ -203,6 +261,11 @@ final class SiteHardening
     private static function end(string $measure): string
     {
         return '# END ' . self::MARK . ' ' . str_replace('_', '-', $measure);
+    }
+
+    private function mustUse(): MustUsePlugin
+    {
+        return new MustUsePlugin($this->config, $this->guard);
     }
 
     private function wp(array $site): WpCli

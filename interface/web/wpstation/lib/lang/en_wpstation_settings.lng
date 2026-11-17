@@ -37,5 +37,6 @@ $wb['hardening_file_edit_txt'] = 'No file editor in wp-admin';
 $wb['hardening_uploads_php_txt'] = 'No PHP in uploads';
 $wb['hardening_sensitive_files_txt'] = 'Hide sensitive files';
 $wb['hardening_xmlrpc_txt'] = 'No XML-RPC (stops Jetpack and the mobile app)';
+$wb['hardening_user_list_txt'] = 'Hide the list of users from visitors';
 $wb['vuln_feed_txt'] = 'Vulnerability data';
 $wb['vuln_feed_none_txt'] = 'Not downloaded yet. Put the API key of your wordfence.com account (Account → Integrations) in config.php of a node, as vulnerabilities.wordfence_key.';

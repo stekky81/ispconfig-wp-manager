@@ -9,6 +9,8 @@
   themes (the default for created sites), or WPStation for everything. Where WPStation takes over, the automatic updates
   of WordPress are turned off with a must-use plugin, so nothing is updated twice and every update has a backup, a health
   check and a rollback. The page says what WordPress does by itself. Sites found on a node start in mode WordPress
+- Hardening: hide the list of users from visitors (REST API, `?author=N`, users sitemap, oEmbed), on by default for new
+  sites; the copyright notices of the vulnerability data are in a smaller font
 - New sites from the panel, with SFTP or FTP access and per-site PHP version, language, plugins and theme
 - Dry-run report on the form, settings page for the defaults, one-time view of the generated passwords
 - Detection of existing WordPress installs

@@ -78,11 +78,15 @@ abstract class IntegrationTestCase extends TestCase
         return (new Runner(false, [], 120))->run(new Command($args, "web{$n}", '/tmp', $stdin));
     }
 
-    /** No web server here: the pages answer 200, the addresses a hardening measure must close 403. */
+    /** No web server here: the pages answer 200, the addresses a hardening measure must close 403 (404 for the users). */
     protected static function health(): HealthCheck
     {
         $fetch = static fn(string $url): array => [
-            'code' => preg_match('#/(xmlrpc\.php|wp-config\.php\.wpstation-hardening-check|wp-content/uploads/wpstation-hardening-check\.php)$#', $url) ? 403 : 200,
+            'code' => match (true) {
+                (bool)preg_match('#/(xmlrpc\.php|wp-config\.php\.wpstation-hardening-check|wp-content/uploads/wpstation-hardening-check\.php)$#', $url) => 403,
+                str_ends_with($url, '/?rest_route=/wp/v2/users') => 404,
+                default => 200,
+            },
             'body' => '',
         ];
         return new HealthCheck($fetch, '127.0.0.1', 0);

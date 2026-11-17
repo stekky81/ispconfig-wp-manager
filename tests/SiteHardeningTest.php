@@ -92,6 +92,30 @@ final class SiteHardeningTest extends TestCase
         self::assertStringContainsString('is a link', $result['message']);
     }
 
+    public function testTheListOfUsersIsHiddenByAMustUsePlugin(): void
+    {
+        $contents = SiteHardening::usersPlugin();
+        $file = tempnam(sys_get_temp_dir(), 'wpstation-users');
+        file_put_contents($file, $contents);
+        exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($file) . ' 2>&1', $output, $exit);
+        unlink($file);
+
+        self::assertSame(0, $exit, implode("\n", $output));
+        self::assertStringContainsString(SiteHardening::USERS_MARKER, $contents);
+        foreach (["'rest_endpoints'", "'wp_sitemaps_add_provider'", "'oembed_response_data'", "\$_GET['author']", 'is_user_logged_in()'] as $part) {
+            self::assertStringContainsString($part, $contents);
+        }
+        self::assertContains('user_list', SiteHardening::MEASURES);
+        self::assertContains('user_list', SiteHardening::DEFAULTS);
+    }
+
+    public function testADryRunOfTheListOfUsersWritesNothing(): void
+    {
+        $runner = new Runner(true);
+        self::assertSame('done', $this->hardening()->set($this->site(), 'user_list', true, $runner)['outcome']);
+        self::assertSame([], $runner->log());
+    }
+
     public function testAnUnknownMeasureIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);

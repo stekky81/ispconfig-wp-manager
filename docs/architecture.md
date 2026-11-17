@@ -279,12 +279,15 @@ another user, and the mode of `wp-config.php`. "Fix the permissions" takes away 
 site user owns and sets `wp-config.php` to 640, then checks the site and puts everything back if it broke. Files of
 other users are only reported.
 
-**Hardening.** Four switches per site, each reversible (`SiteHardening`): no file editor (`DISALLOW_FILE_EDIT`), no PHP
-in `wp-content/uploads`, no `readme.html`, `license.txt`, copies of `wp-config.php` and `.git`, and no XML-RPC (which
-stops Jetpack and the mobile app). The last three are blocks marked with the name of the module in `.htaccess`, before
-the rules of WordPress, which stay as they are. After turning one on, its own address must answer 403, or the change is
-undone: a server that ignores `.htaccess` (nginx) says so instead of pretending. New sites and clones get the measures
-chosen in the settings (by default all but XML-RPC).
+**Hardening.** Five switches per site, each reversible (`SiteHardening`): no file editor (`DISALLOW_FILE_EDIT`), no PHP
+in `wp-content/uploads`, no `readme.html`, `license.txt`, copies of `wp-config.php` and `.git`, no XML-RPC (which
+stops Jetpack and the mobile app), and no list of users for visitors. Three are blocks marked with the name of the module
+in `.htaccess`, before the rules of WordPress, which stay as they are. After turning one on, its own address must answer
+403, or the change is undone: a server that ignores `.htaccess` (nginx) says so instead of pretending. The list of users
+is hidden by a must-use plugin (`MustUsePlugin`, like the update modes), so it works on any web server: for visitors who
+are not logged in it removes the `/wp/v2/users` routes of the REST API, answers 404 to `?author=N`, drops the users
+sitemap and the author of oEmbed answers; its check is `/?rest_route=/wp/v2/users`, which must answer 404. New sites and
+clones get the measures chosen in the settings (by default all but XML-RPC).
 
 ## SSH keys for SFTP
 

@@ -121,6 +121,8 @@ $wb['hardening_sensitive_files_txt'] = 'Nascondi i file sensibili';
 $wb['hardening_sensitive_files_desc_txt'] = 'readme.html, license.txt, copie di wp-config.php e cartelle .git non vengono serviti. Non rompe niente.';
 $wb['hardening_xmlrpc_txt'] = 'Niente XML-RPC';
 $wb['hardening_xmlrpc_desc_txt'] = 'xmlrpc.php non viene servito: niente forza bruta o pingback da lì, ma Jetpack e l\'app mobile di WordPress smettono di funzionare.';
+$wb['hardening_user_list_txt'] = 'Nascondi l\'elenco degli utenti';
+$wb['hardening_user_list_desc_txt'] = 'I visitatori non collegati non possono leggere i nomi utente: API REST (/wp-json/wp/v2/users), ?author=1, sitemap degli utenti, oEmbed. Gli utenti collegati vedono ancora l\'elenco. Gli archivi per autore richiedono i permalink. Un must-use plugin, wpstation-hide-users.php.';
 $wb['ssh_txt'] = 'Chiavi SSH per SFTP';
 $wb['ssh_none_txt'] = 'Nessuna chiave: l\'utente SFTP entra con la sua password.';
 $wb['ssh_other_txt'] = 'Ci sono chiavi che questa pagina non sa mostrare; salvando vengono sostituite.';

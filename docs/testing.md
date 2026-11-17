@@ -238,6 +238,9 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
       at the next run (2026-11-16: with the update simulated in the database, because the network of the test
       VM resets the update check of WordPress; it started 30 s after, where the usual rule waits a day)
 - [x] A new site gets the measures of the settings
+- [x] Hide the list of users: as a visitor `/wp-json/wp/v2/users`, `/?rest_route=/wp/v2/users` and `/?author=1` answer 404,
+      `wp-sitemap-users-1.xml` is gone (with pretty and plain permalinks); a logged-in user keeps the list (integration
+      test, `--user=1`); off again: all back
 - [x] A slave matches its sites against the feed downloaded by the master
 
 ### SSH keys

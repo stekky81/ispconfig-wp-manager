@@ -21,7 +21,8 @@ final class NativeUpdates
 {
     public const MODES = ['wordpress', 'plugins', 'all'];
     public const MARKER = 'ispconfig-wpstation native updates';
-    public const FILE = 'wp-content/mu-plugins/wpstation-updates.php';
+    public const NAME = 'wpstation-updates.php';
+    public const FILE = 'wp-content/mu-plugins/' . self::NAME;
 
     public function __construct(
         private readonly Config $config,
@@ -164,43 +165,8 @@ final class NativeUpdates
             throw new \InvalidArgumentException("Unknown state: {$state}");
         }
         $runner ??= new Runner($this->config->isDryRun(), [], 120);
-        if ($runner->isDryRun()) {
-            return '';
-        }
-        $user = (string)$site['system_user'];
-        $root = Subfolder::webRoot($site, $this->guard);
-        $file = $root . '/' . self::FILE;
-
-        $current = $runner->run(new Command(['cat', '--', $file], $user));
-        $ours = $current['exit'] === 0 && str_contains($current['stdout'], self::MARKER);
-        if ($current['exit'] === 0 && !$ours) {
-            return 'A file ' . self::FILE . ' that WPStation did not write is in the way: left alone.';
-        }
-        if ($state === '') {
-            if ($ours) {
-                $runner->mustRun(new Command(['rm', '-f', '--', $file], $user));
-            }
-            return '';
-        }
-        // WordPress would not load the file from the usual folder.
-        $wp = WpCli::forSite($this->config, $this->guard, $site);
-        foreach (['WPMU_PLUGIN_DIR', 'WP_CONTENT_DIR'] as $constant) {
-            if ($runner->run($wp->configHas($constant))['exit'] === 0) {
-                if ($ours) {
-                    $runner->mustRun(new Command(['rm', '-f', '--', $file], $user));
-                }
-                return "wp-config.php sets {$constant}: WPStation cannot turn off the automatic updates of WordPress here.";
-            }
-        }
-        if ($runner->run(new Command(['test', '-d', $root . '/wp-content'], $user))['exit'] !== 0) {
-            return 'The site has no wp-content folder: the automatic updates of WordPress were left as they are.';
-        }
-        $contents = self::fileContents($state);
-        if ($current['exit'] === 0 && $current['stdout'] === $contents) {
-            return '';
-        }
-        $runner->mustRun(new Command(['mkdir', '-p', '--', dirname($file)], $user));
-        $runner->mustRun(new Command(['tee', '--', $file], $user, null, $contents));
-        return '';
+        $reason = (new MustUsePlugin($this->config, $this->guard))
+            ->put($site, self::NAME, self::MARKER, $state === '' ? null : self::fileContents($state), $runner);
+        return $reason === '' ? '' : 'The automatic updates of WordPress were left as they are. ' . $reason;
     }
 }

@@ -109,8 +109,9 @@ The page of the staging has two buttons:
   here. When a fixed version exists, the site is updated soon by itself if automatic updates are on. When none exists,
   consider deactivating that plugin.
 - **File permissions**: files that anyone on the server could change. **Fix the permissions** corrects them.
-- **Hardening**: protections you can turn on or off. New sites have three of them on already. **No XML-RPC** also stops Jetpack
-  and the WordPress app for phones: leave it off if you use them.
+- **Hardening**: protections you can turn on or off. New sites have four of them on already. **No XML-RPC** also stops Jetpack
+  and the WordPress app for phones: leave it off if you use them. **Hide the list of users** keeps visitors from reading
+  the user names of the site, which attackers try first; you and the other users who are logged in still see them.
 - **SSH keys for SFTP**: if you log in with an SSH key, paste its public part here (the content of the `.pub` file),
   one key per line. Your password keeps working.
 

@@ -76,7 +76,8 @@ Until November 2026 it was called `ispconfig-wp-manager`.
 
 - Known vulnerabilities of WordPress, plugins and themes from Wordfence Intelligence (with your own free API key), with
   an email and an early automatic update when a fixed version exists.
-- File permission check and fix, hardening switches per site.
+- File permission check and fix, hardening switches per site: no file editor, no PHP in uploads, sensitive files and
+  XML-RPC closed, the list of users hidden from visitors.
 - Clients and resellers manage their own sites, within the limits of their ISPConfig package.
 - A log of who asked for what in the panel, with the outcome on the node.
 - Emails through the mail settings of ISPConfig: site ready (never with passwords), rollbacks and failures at once, a

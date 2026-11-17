@@ -182,10 +182,13 @@ On the site page:
   Without a fixed version nothing changes by itself: the page suggests deactivating the plugin.
 - **File permissions**: the daily check counts files anyone can write, files of other users, and the mode of
   `wp-config.php`. **Fix the permissions** corrects what the site user owns and undoes it if the site breaks.
-- **Hardening**: four switches per site, each reversible: no file editor in wp-admin, no PHP in uploads, hide sensitive
-  files, no XML-RPC. The last one stops Jetpack and the WordPress mobile app. **Settings → Hardening of new sites**
-  chooses those of new sites and clones (all but XML-RPC by default). On a web server that ignores `.htaccess` the
-  switch says so and stays off.
+- **Hardening**: five switches per site, each reversible: no file editor in wp-admin, no PHP in uploads, hide sensitive
+  files, no XML-RPC, hide the list of users. No XML-RPC stops Jetpack and the WordPress mobile app. **Hide the list of
+  users** keeps visitors who are not logged in from reading the user names, a first step of many attacks on the login:
+  the REST API (`/wp-json/wp/v2/users`), `?author=1`, the users sitemap and oEmbed. Logged-in users keep the list, which
+  the block editor needs; author archives then need pretty permalinks. It is a must-use plugin,
+  `wpstation-hide-users.php`. **Settings → Hardening of new sites** chooses those of new sites and clones (all but
+  XML-RPC by default). On a web server that ignores `.htaccess` the switch says so and stays off.
 - **SSH keys for SFTP**: one public key per line; saving replaces the keys of the SFTP user. The password stays.
 
 ## Clients and resellers

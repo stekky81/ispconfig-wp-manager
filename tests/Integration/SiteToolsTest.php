@@ -83,6 +83,33 @@ final class SiteToolsTest extends IntegrationTestCase
         self::assertNotSame(0, self::as(901, [(string)getenv('WPSTATION_IT_WP_CLI'), 'config', 'has', 'WP_DEBUG_LOG', '--path=' . self::web(901)])['exit']);
     }
 
+    /** The list of users, as an anonymous visitor and as WordPress sees it with every must-use plugin loaded. */
+    public function testTheListOfUsersIsHiddenFromVisitorsOnly(): void
+    {
+        $site = self::site(901);
+        $hardening = new SiteHardening(self::config(), self::guard(), self::health());
+        $wp = static fn(string $code, string ...$extra): string => trim(self::as(901, array_merge(
+            [(string)getenv('WPSTATION_IT_WP_CLI'), 'eval', $code, '--path=' . self::web(901)],
+            $extra,
+        ))['stdout']);
+        $users = "echo isset(rest_get_server()->get_routes()['/wp/v2/users']) ? 'listed' : 'hidden';";
+        $sitemap = "echo var_export(apply_filters('wp_sitemaps_add_provider', 'provider', 'users'), true);";
+
+        self::assertSame('listed', $wp($users));
+        try {
+            self::assertSame('done', $hardening->set($site, 'user_list', true)['outcome']);
+            self::assertTrue($hardening->state($site, new Runner(false))['user_list']);
+            self::assertSame('hidden', $wp($users));
+            self::assertSame('false', $wp($sitemap));
+            self::assertSame('listed', $wp($users, '--user=1'), 'a logged-in user keeps the list');
+        } finally {
+            self::assertSame('done', $hardening->set($site, 'user_list', false)['outcome']);
+        }
+        clearstatcache();
+        self::assertFileDoesNotExist(self::web(901) . '/wp-content/mu-plugins/' . SiteHardening::USERS_PLUGIN);
+        self::assertSame('listed', $wp($users));
+    }
+
     public function testHardeningLeavesTheRulesOfWordPressAsTheyWere(): void
     {
         $site = self::site(901);
@@ -94,7 +121,7 @@ final class SiteToolsTest extends IntegrationTestCase
             self::assertSame('done', $hardening->set($site, $measure, true)['outcome'], $measure);
         }
         $state = $hardening->state($site, new Runner(false));
-        self::assertSame(['file_edit' => true, 'uploads_php' => true, 'sensitive_files' => true, 'xmlrpc' => true], $state);
+        self::assertSame(['file_edit' => true, 'uploads_php' => true, 'sensitive_files' => true, 'xmlrpc' => true, 'user_list' => false], $state);
         self::assertStringEndsWith($wordpress, (string)file_get_contents(self::web(901) . '/.htaccess'));
         self::assertSame('web901', posix_getpwuid((int)fileowner(self::web(901) . '/wp-content/uploads/.htaccess'))['name']);
 

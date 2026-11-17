@@ -41,6 +41,9 @@ penetration test, and multiserver setups were not covered. Please report problem
   nodes can write: one level below `web/`, never `..`, never hidden, never a folder of ISPConfig or WordPress. A folder
   that is a link is refused, so a site owner cannot send the worker into another site. The node deletes only
   `web/<folder>`, its backups and its debug log, as the site user, and never a website.
+- **Hiding the list of users** is a must-use plugin, written and removed like the one of the update modes: only a file with
+  its marker, by the site user. It removes the user names from what anonymous visitors can read; it does not hide them
+  from logged-in users, and author archives with pretty permalinks still show the slug of their author.
 - **Update modes**: the must-use plugin that turns off the automatic updates of WordPress is written and removed by the site
   user, and only a file with the marker of the module is ever changed or removed. It only adds `__return_false` filters.
   The mode is set by the panel (`auto_update`, `auto_core`), which a node cannot change; the node only records what it

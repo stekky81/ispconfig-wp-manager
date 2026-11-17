@@ -55,7 +55,7 @@ final class Config
         ],
         // Hardening measures for new sites and clones (SiteHardening::MEASURES).
         'hardening' => [
-            'new_sites' => ['file_edit', 'uploads_php', 'sensitive_files'],
+            'new_sites' => ['file_edit', 'uploads_php', 'sensitive_files', 'user_list'],
         ],
         'wordpress' => [
             'locale' => 'it_IT',

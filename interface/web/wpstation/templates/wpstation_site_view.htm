@@ -203,7 +203,7 @@
         <p id="no_vulns">{tmpl_var name='no_vulns_txt'}</p>
         </tmpl_if>
         <p class="fieldDescription" id="vuln_attribution">{tmpl_var name='vuln_source_txt'} {tmpl_var name='vuln_feed'}.
-            <tmpl_loop name="copyrights"><br />{tmpl_var name='notice'} {tmpl_var name='license'} <tmpl_if name="license_url"><a href="{tmpl_var name='license_url'}" target="_blank" rel="noopener noreferrer">{tmpl_var name='license_url'}</a></tmpl_if></tmpl_loop>
+            <small class="text-muted"><tmpl_loop name="copyrights"><br />{tmpl_var name='notice'} {tmpl_var name='license'} <tmpl_if name="license_url"><a href="{tmpl_var name='license_url'}" target="_blank" rel="noopener noreferrer">{tmpl_var name='license_url'}</a></tmpl_if></tmpl_loop></small>
         </p>
     <tmpl_else>
         <p id="vulns_off">{tmpl_var name='vulns_off_txt'}</p>
