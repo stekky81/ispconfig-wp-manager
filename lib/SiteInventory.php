@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Reads the versions and available updates of a site. Runs on the web node.

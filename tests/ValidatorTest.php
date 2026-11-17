@@ -3,12 +3,12 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use WpManager\ValidationException;
-use WpManager\Validator;
+use WPStation\ValidationException;
+use WPStation\Validator;
 
 final class ValidatorTest extends TestCase
 {

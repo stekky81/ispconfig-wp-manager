@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Provisioning failed. Everything created so far was rolled back, except $leftovers,

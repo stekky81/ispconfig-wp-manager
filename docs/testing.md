@@ -23,12 +23,12 @@ runs them on every push (job `integration`: MariaDB 11.4 as a service container,
 where creating two users is fine, as root:
 
 ```bash
-dev/integration.sh setup        # users web901/web902, /var/www/clients-it, databases, WordPress; /etc/wpm-it.env
-set -a; . /etc/wpm-it.env; set +a; vendor/bin/phpunit --testsuite integration
+dev/integration.sh setup        # users web901/web902, /var/www/clients-it, databases, WordPress; /etc/wpstation-it.env
+set -a; . /etc/wpstation-it.env; set +a; vendor/bin/phpunit --testsuite integration
 dev/integration.sh teardown
 ```
 
-`MYSQL_HOST` and `MYSQL_PWD` tell the script how to reach MariaDB as root; `WPM_IT_DB_HOST` is the host the sites use.
+`MYSQL_HOST` and `MYSQL_PWD` tell the script how to reach MariaDB as root; `WPSTATION_IT_DB_HOST` is the host the sites use.
 
 ## 2. Test environment
 
@@ -45,7 +45,7 @@ UBUNTU=24.04 WEB=apache ./dev/test-env.sh create   # same Ubuntu and web server 
 ./dev/test-env.sh destroy                          # delete everything
 ```
 
-The project is copied into the VM at `/opt/ispconfig-wp-manager`: run `sync` after every change.
+The project is copied into the VM at `/opt/ispconfig-wpstation`: run `sync` after every change.
 (A live mount is not possible: the ISPConfig autoinstaller removes snapd, which Multipass mounts need.)
 The VM's own `config.php` is kept across syncs.
 
@@ -91,7 +91,7 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
       server 2, installed by the worker of the node, record updated on the master
 - [x] On the slave node: daily check, backup, plugin update, clone and staging with an update from production; a
       WordPress site of the node not in the list is detected and added on the master
-- [x] A node can update only the status columns of `wpm_site` on the master: folder, user, server and automatic update
+- [x] A node can update only the status columns of `wpstation_site` on the master: folder, user, server and automatic update
       switch are refused by MariaDB; the master installer runs twice without warnings
 - [x] A row changed behind the back of the panel (another user) or added for a website already in the list is refused by
       the worker, logged, and does not stop the other sites
@@ -108,7 +108,7 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] Site ready (no password) from the master and, with warnings, from the node; the failed backup sent at once
 - [x] One weekly summary for both nodes: problems, events, updates available
 - [x] WordPress reachable, admin login works, `wp-config.php` owned by `webN` with mode 0640 or stricter
-- [x] Secrets cleared from `wpm_site` after install (DB password) and after the reveal (the other two)
+- [x] Secrets cleared from `wpstation_site` after install (DB password) and after the reveal (the other two)
 - [x] Passwords shown once on the site detail page, and they work
 - [x] Passwords nobody looked at are deleted 7 days after the site is ready, and the page says they expired;
       after a reveal it says they were already shown

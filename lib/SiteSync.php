@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Copies everything of a site, files and the whole database, over another existing site of the
@@ -75,7 +75,7 @@ final class SiteSync
             try {
                 $maintenance->set($production, $inMaintenance, $runner);
             } catch (\RuntimeException $e) {
-                error_log("wpmanager: maintenance mode of {$production['domain']} not set again after the push: " . $e->getMessage());
+                error_log("wpstation: maintenance mode of {$production['domain']} not set again after the push: " . $e->getMessage());
             }
         }
 
@@ -89,7 +89,7 @@ final class SiteSync
     /** A staging and its own production site, on one node, with two databases. */
     public static function assertPair(array $staging, array $production): void
     {
-        if ((int)($staging['staging_of'] ?? 0) === 0 || (int)$staging['staging_of'] !== (int)$production['wpm_site_id']) {
+        if ((int)($staging['staging_of'] ?? 0) === 0 || (int)$staging['staging_of'] !== (int)$production['wpstation_site_id']) {
             throw new \RuntimeException("{$staging['domain']} is not the staging of {$production['domain']}");
         }
         foreach ([$staging, $production] as $site) {
@@ -140,7 +140,7 @@ final class SiteSync
         $siteUrl = SiteCloner::safeUrl(trim($runner->mustRun($target->optionGet('siteurl'))), (string)$to['domain']);
 
         // Unpacked beside the site first: a copy that breaks halfway leaves the site as it was.
-        $incoming = $this->guard->assertInside(rtrim((string)$to['document_root'], '/') . '/tmp') . '/wpmanager-sync';
+        $incoming = $this->guard->assertInside(rtrim((string)$to['document_root'], '/') . '/tmp') . '/wpstation-sync';
         try {
             $runner->mustRun(new Command(['rm', '-rf', '--', $incoming], $toUser));
             $runner->mustRun(new Command(['mkdir', '-m', '0700', '--', $incoming], $toUser));

@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Any node can open a transfer request, and a node that was broken into could ask for any site of another
@@ -29,7 +29,7 @@ final class TransferAuthorization
         if ($new === null) {
             return 'the request of the panel cannot be read';
         }
-        if ((int)($new['wpm_site_id'] ?? 0) !== $targetSiteId
+        if ((int)($new['wpstation_site_id'] ?? 0) !== $targetSiteId
             || (int)($new['clone_of'] ?? 0) !== $sourceSiteId
             || (int)($new['server_id'] ?? 0) !== $targetServerId) {
             return 'the panel asked for another clone';

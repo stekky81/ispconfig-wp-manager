@@ -3,13 +3,13 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\WpDebug;
+use WPStation\Config;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\WpDebug;
 
 final class WpDebugTest extends TestCase
 {
@@ -17,7 +17,7 @@ final class WpDebugTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-debug-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-debug-' . bin2hex(random_bytes(4));
         mkdir($base . '/client1/web7/web', 0o755, true);
         mkdir($base . '/client1/web7/private', 0o755, true);
         $this->root = (string)realpath($base);

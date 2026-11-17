@@ -29,7 +29,7 @@ MASTER=ispc-master
 SLAVE=ispc-slave
 SNAPSHOT=clean
 PROJECT_DIR=$(cd "$(dirname "$0")/.." && pwd)
-APP_DIR=/opt/ispconfig-wp-manager
+APP_DIR=/opt/ispconfig-wpstation
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
@@ -77,8 +77,8 @@ ip=$(hostname -I | awk '{print $1}')
     # cloud-init (manage_etc_hosts) rebuilds /etc/hosts at every boot from this template.
     tmpl=/etc/cloud/templates/hosts.debian.tmpl
     if [[ -f $tmpl ]]; then
-        grep -v '# ispconfig-wp-manager$' "$tmpl" > "$tmpl.new"
-        echo "$ip $fqdn $name # ispconfig-wp-manager" >> "$tmpl.new"
+        grep -v '# ispconfig-wpstation$' "$tmpl" > "$tmpl.new"
+        echo "$ip $fqdn $name # ispconfig-wpstation" >> "$tmpl.new"
         cat "$tmpl.new" > "$tmpl" && rm -f "$tmpl.new"
     fi
 }
@@ -160,23 +160,23 @@ verify_ispconfig() {
 # Copy the project instead: closer to a real install anyway. config.php in the VM is kept.
 sync_project() {
     local name=$1 archive
-    archive="${TMPDIR:-/tmp}/wpm-sync-$$.tgz"
+    archive="${TMPDIR:-/tmp}/wpstation-sync-$$.tgz"
     info "Copying the project to $name:$APP_DIR"
     COPYFILE_DISABLE=1 tar -czf "$archive" -C "$PROJECT_DIR" \
         --exclude ./.git --exclude ./vendor --exclude ./dev/logs --exclude ./config.php .
-    multipass transfer "$archive" "$name:/tmp/wpm-sync.tgz"
+    multipass transfer "$archive" "$name:/tmp/wpstation-sync.tgz"
     rm -f "$archive"
     multipass exec "$name" -- sudo bash -s -- "$APP_DIR" <<'EOS'
 set -euo pipefail
 dst=$1 new="$1.new"
 rm -rf "$new" && mkdir -p "$new"
-tar -xzf /tmp/wpm-sync.tgz -C "$new" --no-same-owner --warning=no-unknown-keyword
+tar -xzf /tmp/wpstation-sync.tgz -C "$new" --no-same-owner --warning=no-unknown-keyword
 chown -R root:root "$new"
 if [[ -f $dst/config.php ]]; then cp -p "$dst/config.php" "$new/config.php"; fi
 rm -rf "$dst.old"
 if [[ -d $dst ]]; then mv "$dst" "$dst.old"; fi
 mv "$new" "$dst"
-rm -rf "$dst.old" /tmp/wpm-sync.tgz
+rm -rf "$dst.old" /tmp/wpstation-sync.tgz
 EOS
     keep_clock "$name"
 }
@@ -189,7 +189,7 @@ keep_clock() {
     timeout 60 multipass exec "$name" -- sudo bash -s <<'EOS'
 set -euo pipefail
 systemctl cat ntpsec >/dev/null 2>&1 || exit 0
-dropin=/etc/systemd/system/ntpsec.service.d/90-wpm-test.conf
+dropin=/etc/systemd/system/ntpsec.service.d/90-wpstation-test.conf
 if [[ ! -f $dropin ]]; then
     mkdir -p "${dropin%/*}"
     printf '[Service]\nRestart=always\nRestartSec=30\n' > "$dropin"

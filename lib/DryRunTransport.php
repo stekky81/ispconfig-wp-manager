@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Fake Remote API used in dry-run mode and in tests: answers like ISPConfig, changes nothing.

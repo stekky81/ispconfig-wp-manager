@@ -3,17 +3,17 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\Crypto;
-use WpManager\DryRunTransport;
-use WpManager\IspconfigApi;
-use WpManager\ProvisioningException;
-use WpManager\SiteProvisioner;
-use WpManager\SiteRequest;
-use WpManager\ValidationException;
+use WPStation\Config;
+use WPStation\Crypto;
+use WPStation\DryRunTransport;
+use WPStation\IspconfigApi;
+use WPStation\ProvisioningException;
+use WPStation\SiteProvisioner;
+use WPStation\SiteRequest;
+use WPStation\ValidationException;
 
 final class SiteProvisionerTest extends TestCase
 {
@@ -253,7 +253,7 @@ final class SiteProvisionerTest extends TestCase
     public function testAStagingWebsiteGetsItsOwnSettings(): void
     {
         $api = new IspconfigApi('https://panel.test/remote/json.php', 'u', 'p', new DryRunTransport());
-        (new SiteProvisioner($api, Config::fromArray([]), $this->crypto))->provision($this->request(), \WpManager\SiteStaging::WEBSITE);
+        (new SiteProvisioner($api, Config::fromArray([]), $this->crypto))->provision($this->request(), \WPStation\SiteStaging::WEBSITE);
 
         $add = array_values(array_filter($api->calls(), fn($c) => $c['method'] === 'sites_web_domain_add'))[0];
         self::assertSame('sendmail_path = /bin/true', $add['params']['params']['custom_php_ini']);

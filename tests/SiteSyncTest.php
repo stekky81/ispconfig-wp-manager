@@ -3,15 +3,15 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\HealthCheck;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteBackups;
-use WpManager\SiteSync;
+use WPStation\Config;
+use WPStation\HealthCheck;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteBackups;
+use WPStation\SiteSync;
 
 final class SiteSyncTest extends TestCase
 {
@@ -21,7 +21,7 @@ final class SiteSyncTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-sync-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-sync-' . bin2hex(random_bytes(4));
         foreach (['web7', 'web8'] as $site) {
             mkdir("{$base}/client1/{$site}/web", 0o755, true);
             mkdir("{$base}/client1/{$site}/tmp", 0o755, true);
@@ -37,7 +37,7 @@ final class SiteSyncTest extends TestCase
     private function production(): array
     {
         return [
-            'wpm_site_id' => 7, 'staging_of' => 0, 'status' => 'installed', 'server_id' => 1, 'domain' => 'shop.test',
+            'wpstation_site_id' => 7, 'staging_of' => 0, 'status' => 'installed', 'server_id' => 1, 'domain' => 'shop.test',
             'site_url' => 'http://shop.test', 'document_root' => $this->root . '/client1/web7', 'system_user' => 'web7',
         ];
     }
@@ -45,7 +45,7 @@ final class SiteSyncTest extends TestCase
     private function staging(): array
     {
         return [
-            'wpm_site_id' => 8, 'staging_of' => 7, 'status' => 'installed', 'server_id' => 1, 'domain' => 'staging.shop.test',
+            'wpstation_site_id' => 8, 'staging_of' => 7, 'status' => 'installed', 'server_id' => 1, 'domain' => 'staging.shop.test',
             'site_url' => 'http://staging.shop.test', 'document_root' => $this->root . '/client1/web8', 'system_user' => 'web8',
         ];
     }

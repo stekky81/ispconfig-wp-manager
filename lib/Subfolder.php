@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * A WordPress site in a folder of an existing website (example.com/blog), decided with the maintainer on 2026-11-17:

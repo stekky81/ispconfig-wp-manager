@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Where the pieces of a clone between two nodes wait: the master database, the only place both nodes reach.

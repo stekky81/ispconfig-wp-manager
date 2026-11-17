@@ -3,14 +3,14 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\HealthCheck;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteHardening;
+use WPStation\Config;
+use WPStation\HealthCheck;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteHardening;
 
 final class SiteHardeningTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class SiteHardeningTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-hard-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-hard-' . bin2hex(random_bytes(4));
         mkdir($base . '/client1/web7/web/wp-content', 0o755, true);
         $this->root = (string)realpath($base);
     }
@@ -44,7 +44,7 @@ final class SiteHardeningTest extends TestCase
     {
         $with = SiteHardening::withBlock(self::WORDPRESS, 'xmlrpc');
 
-        self::assertStringStartsWith("# BEGIN ispconfig-wp-manager xmlrpc\n<Files \"xmlrpc.php\">", $with);
+        self::assertStringStartsWith("# BEGIN ispconfig-wpstation xmlrpc\n<Files \"xmlrpc.php\">", $with);
         self::assertStringEndsWith(self::WORDPRESS, $with);
         self::assertSame($with, SiteHardening::withBlock($with, 'xmlrpc'), 'once only');
         self::assertSame(self::WORDPRESS, SiteHardening::withoutBlock($with, 'xmlrpc'));

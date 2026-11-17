@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Maintenance mode of a site, with the `.maintenance` file of WordPress. WordPress ignores that file
@@ -16,10 +16,10 @@ namespace WpManager;
  */
 final class MaintenanceMode
 {
-    public const MARKER = 'ispconfig-wp-manager maintenance mode';
+    public const MARKER = 'ispconfig-wpstation maintenance mode';
 
     /** The cookie HealthCheck sends to see the site behind the maintenance page. */
-    public const BYPASS_COOKIE = 'wordpress_logged_in_wpm_health_check';
+    public const BYPASS_COOKIE = 'wordpress_logged_in_wpstation_health_check';
 
     private const FILE = '.maintenance';
 
@@ -34,15 +34,15 @@ final class MaintenanceMode
     {
         return <<<'PHP'
             <?php
-            // ispconfig-wp-manager maintenance mode: turn it off in the panel, which removes this file.
+            // ispconfig-wpstation maintenance mode: turn it off in the panel, which removes this file.
             // Visitors get the maintenance page of WordPress (HTTP 503); the login page, and browsers with a
             // WordPress login cookie, see the site. WordPress itself checks that cookie.
             $upgrading = time();
             if (substr((string)($_SERVER['SCRIPT_NAME'] ?? ''), -13) === '/wp-login.php') {
                 $upgrading = 0;
             }
-            foreach (array_keys($_COOKIE) as $wpm_cookie) {
-                if (strpos((string)$wpm_cookie, 'wordpress_logged_in_') === 0) {
+            foreach (array_keys($_COOKIE) as $wpstation_cookie) {
+                if (strpos((string)$wpstation_cookie, 'wordpress_logged_in_') === 0) {
                     $upgrading = 0;
                 }
             }

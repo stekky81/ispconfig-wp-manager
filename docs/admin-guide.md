@@ -25,7 +25,7 @@ page reloads by itself every 15 seconds while it runs. One action at a time per 
 
 ## Before you turn off dry-run
 
-`dry_run` in `/opt/ispconfig-wp-manager/config.php` is on after installation. It stops every change, on the master
+`dry_run` in `/opt/ispconfig-wpstation/config.php` is on after installation. It stops every change, on the master
 (the form only lists what it would do) and on each node (its own `config.php`). It cannot be changed from the panel.
 
 Turning it off on a node starts the worker for real, including **automatic updates of every WordPress site on that
@@ -167,7 +167,7 @@ On the site page:
 
 ## Clients and resellers
 
-To give a client or a reseller the module, tick **wpmanager** among the modules of its panel user in ISPConfig.
+To give a client or a reseller the module, tick **wpstation** among the modules of its panel user in ISPConfig.
 
 They see and use the sites whose websites ISPConfig lets them see, with the same rights as in the Sites module: to read,
 to change, to delete. A website moved to another client in ISPConfig moves in the module too. They can create sites,
@@ -212,7 +212,7 @@ Where to look, in this order:
 1. The **details** of the status in the list, and the message of the last action on the site page. They say which step
    failed and the likely cause.
 2. **WordPress → Log**, for what was asked and what happened.
-3. On the node: `/var/log/ispconfig-wp-manager.log` (the worker) and `/var/log/ispconfig/` (ISPConfig).
+3. On the node: `/var/log/ispconfig-wpstation.log` (the worker) and `/var/log/ispconfig/` (ISPConfig).
 
 Common cases:
 

@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Full removal of a site: the website and everything ISPConfig attaches to it, like the Sites module of
@@ -158,7 +158,7 @@ final class SiteRemoval
         if (file_exists($folder) || is_link($folder)) {
             $commands[] = new Command(['rm', '-rf', '--', Subfolder::webRoot($site, $guard)], $user);
         }
-        $backupDir = "{$root}/tmp/wpmanager-backups/subfolder-{$name}";
+        $backupDir = "{$root}/tmp/wpstation-backups/subfolder-{$name}";
         if (is_dir($backupDir) && !is_link($backupDir) && $backups->directory($site) === $backupDir) {
             $commands[] = new Command(['rm', '-rf', '--', $backupDir], $user);
         }

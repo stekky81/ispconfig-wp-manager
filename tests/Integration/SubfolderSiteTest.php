@@ -3,15 +3,15 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests\Integration;
+namespace WPStation\Tests\Integration;
 
-use WpManager\Crypto;
-use WpManager\MaintenanceMode;
-use WpManager\Runner;
-use WpManager\SiteBackup;
-use WpManager\SitePermissions;
-use WpManager\SiteRemoval;
-use WpManager\WordPressInstaller;
+use WPStation\Crypto;
+use WPStation\MaintenanceMode;
+use WPStation\Runner;
+use WPStation\SiteBackup;
+use WPStation\SitePermissions;
+use WPStation\SiteRemoval;
+use WPStation\WordPressInstaller;
 
 /**
  * A second WordPress in web901/web/blog, next to the one in web901/web: what one does must never reach the other.
@@ -31,22 +31,22 @@ final class SubfolderSiteTest extends IntegrationTestCase
         return [
             'subfolder' => 'blog',
             'site_url' => 'http://it901.test/blog',
-            'db_name' => 'wpmit_blog901',
-            'db_user' => 'wpmit_blog901',
+            'db_name' => 'wpsit_blog901',
+            'db_user' => 'wpsit_blog901',
             'wp_title' => 'Blog',
             'wp_admin_user' => 'blogadmin',
             'wp_admin_email' => 'blog@example.com',
             'wp_locale' => 'en_US',
             'wp_plugins' => '',
             'wp_theme' => '',
-            'secret_db' => self::$crypto->encrypt((string)getenv('WPM_IT_DB_PASSWORD_BLOG')),
+            'secret_db' => self::$crypto->encrypt((string)getenv('WPSTATION_IT_DB_PASSWORD_BLOG')),
             'secret_wp' => self::$crypto->encrypt('BlogPw-' . bin2hex(random_bytes(6))),
         ] + self::site(901);
     }
 
     private static function blogWp(string ...$args): string
     {
-        return trim(self::as(901, array_merge([(string)getenv('WPM_IT_WP_CLI')], $args, ['--path=' . self::web(901) . '/blog', '--skip-plugins', '--skip-themes']))['stdout']);
+        return trim(self::as(901, array_merge([(string)getenv('WPSTATION_IT_WP_CLI')], $args, ['--path=' . self::web(901) . '/blog', '--skip-plugins', '--skip-themes']))['stdout']);
     }
 
     /** A fresh install in the folder, as the worker makes it. */
@@ -55,12 +55,12 @@ final class SubfolderSiteTest extends IntegrationTestCase
         exec('rm -rf -- ' . escapeshellarg(self::web(901) . '/blog'));
         // An empty database again, with the account of the blog, which may drop and create its own.
         $mysql = proc_open(
-            ['mysql', '--no-defaults', '-h', (string)getenv('WPM_IT_DB_HOST'), '-u', 'wpmit_blog901', '-e',
-                'DROP DATABASE IF EXISTS wpmit_blog901; CREATE DATABASE wpmit_blog901 CHARACTER SET utf8mb4'],
+            ['mysql', '--no-defaults', '-h', (string)getenv('WPSTATION_IT_DB_HOST'), '-u', 'wpsit_blog901', '-e',
+                'DROP DATABASE IF EXISTS wpsit_blog901; CREATE DATABASE wpsit_blog901 CHARACTER SET utf8mb4'],
             [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
             $pipes,
             null,
-            ['MYSQL_PWD' => (string)getenv('WPM_IT_DB_PASSWORD_BLOG'), 'PATH' => (string)getenv('PATH')],
+            ['MYSQL_PWD' => (string)getenv('WPSTATION_IT_DB_PASSWORD_BLOG'), 'PATH' => (string)getenv('PATH')],
         );
         $error = stream_get_contents($pipes[2]);
         self::assertSame(0, proc_close($mysql), (string)$error);
@@ -74,7 +74,7 @@ final class SubfolderSiteTest extends IntegrationTestCase
         self::install();
 
         self::assertSame('http://it901.test/blog', self::blogWp('option', 'get', 'home'));
-        self::assertSame('wpmit_blog901', self::blogWp('config', 'get', 'DB_NAME'));
+        self::assertSame('wpsit_blog901', self::blogWp('config', 'get', 'DB_NAME'));
         self::assertSame('http://it901.test', self::wp(901, 'option', 'get', 'home'), 'the site in web/ stays as it was');
         self::assertSame('web901', posix_getpwuid((int)fileowner(self::web(901) . '/blog'))['name']);
         self::assertFalse((new WordPressInstaller(self::config(), self::$crypto, self::guard()))->isTargetEmpty(self::blog()));
@@ -105,7 +105,7 @@ final class SubfolderSiteTest extends IntegrationTestCase
 
         self::blogWp('option', 'update', 'blogname', 'Before');
         $id = $backups->create($blog);
-        self::assertStringEndsWith('/wpmanager-backups/subfolder-blog', $backups->directory($blog));
+        self::assertStringEndsWith('/wpstation-backups/subfolder-blog', $backups->directory($blog));
         self::blogWp('option', 'update', 'blogname', 'After');
         $backups->restore($blog, $id);
         self::assertSame('Before', self::blogWp('option', 'get', 'blogname'));

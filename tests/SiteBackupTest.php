@@ -3,13 +3,13 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteBackup;
+use WPStation\Config;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteBackup;
 
 final class SiteBackupTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class SiteBackupTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-bak-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-bak-' . bin2hex(random_bytes(4));
         mkdir($base);
         $this->root = (string)realpath($base);
         $this->site = $this->root . '/client1/web7';
@@ -43,7 +43,7 @@ final class SiteBackupTest extends TestCase
 
     private function fakeBackup(string $id, bool $complete = true): void
     {
-        $dir = "{$this->site}/tmp/wpmanager-backups/{$id}";
+        $dir = "{$this->site}/tmp/wpstation-backups/{$id}";
         mkdir($dir, 0o700, true);
         file_put_contents("{$dir}/files.tar.gz", str_repeat('x', 10));
         file_put_contents("{$dir}/db.sql.gz", str_repeat('y', 5));
@@ -84,7 +84,7 @@ final class SiteBackupTest extends TestCase
 
     public function testBackupsLiveWhereIspconfigLeavesThemAlone(): void
     {
-        self::assertSame("{$this->site}/tmp/wpmanager-backups", $this->backups()->directory($this->record()));
+        self::assertSame("{$this->site}/tmp/wpstation-backups", $this->backups()->directory($this->record()));
     }
 
     public function testListShowsCompleteBackupsNewestFirst(): void
@@ -102,7 +102,7 @@ final class SiteBackupTest extends TestCase
     public function testListIgnoresForeignEntriesAndLinks(): void
     {
         $this->fakeBackup('20260101-000000');
-        $dir = "{$this->site}/tmp/wpmanager-backups";
+        $dir = "{$this->site}/tmp/wpstation-backups";
         mkdir("{$dir}/not-a-backup");
         symlink('/etc', "{$dir}/20260102-000000");
 
@@ -179,7 +179,7 @@ final class SiteBackupTest extends TestCase
     public function testRestoreOfABackupWithoutUploadsLeavesThemAlone(): void
     {
         $this->fakeBackup('20260101-000000');
-        touch("{$this->site}/tmp/wpmanager-backups/20260101-000000/NO_UPLOADS");
+        touch("{$this->site}/tmp/wpstation-backups/20260101-000000/NO_UPLOADS");
         $runner = new Runner(true);
         $this->backups()->restore($this->record(), '20260101-000000', $runner);
 
@@ -200,7 +200,7 @@ final class SiteBackupTest extends TestCase
     {
         $this->fakeBackup('20260101-000000');
         $this->fakeBackup('20260102-000000');
-        touch("{$this->site}/tmp/wpmanager-backups/20260102-000000/NO_UPLOADS");
+        touch("{$this->site}/tmp/wpstation-backups/20260102-000000/NO_UPLOADS");
 
         $list = $this->backups()->list($this->record());
 
@@ -212,7 +212,7 @@ final class SiteBackupTest extends TestCase
     public function testARestoreCanRunAgainAfterAFailure(): void
     {
         $this->fakeBackup('20260101-000000');
-        touch("{$this->site}/tmp/wpmanager-backups/20260101-000000/db.sql");
+        touch("{$this->site}/tmp/wpstation-backups/20260101-000000/db.sql");
         $runner = new Runner(true);
         $this->backups()->restore($this->record(), '20260101-000000', $runner);
 
@@ -222,7 +222,7 @@ final class SiteBackupTest extends TestCase
     public function testAFailedVerificationLeavesTheBackupAlone(): void
     {
         $this->fakeBackup('20260101-000000');
-        $dir = "{$this->site}/tmp/wpmanager-backups/20260101-000000";
+        $dir = "{$this->site}/tmp/wpstation-backups/20260101-000000";
         // Not a dry run: gzip -t fails on the fake archive, before the site is touched.
         $backups = new SiteBackup(Config::fromArray([]), new PathGuard($this->root));
         try {

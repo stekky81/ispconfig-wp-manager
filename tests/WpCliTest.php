@@ -3,13 +3,13 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Command;
-use WpManager\Runner;
-use WpManager\ValidationException;
-use WpManager\WpCli;
+use WPStation\Command;
+use WPStation\Runner;
+use WPStation\ValidationException;
+use WPStation\WpCli;
 
 final class WpCliTest extends TestCase
 {
@@ -112,7 +112,7 @@ final class WpCliTest extends TestCase
     public function testDryRunExecutesNothingAndMasksSecrets(): void
     {
         $runner = new Runner(true, ['S3cr3t!']);
-        $marker = sys_get_temp_dir() . '/wpm-dry-run-' . bin2hex(random_bytes(4));
+        $marker = sys_get_temp_dir() . '/wpstation-dry-run-' . bin2hex(random_bytes(4));
         $runner->run(new Command(['touch', $marker]));
         $runner->run(new Command(['echo', 'S3cr3t!']));
         self::assertFileDoesNotExist($marker);

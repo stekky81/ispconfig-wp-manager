@@ -3,9 +3,9 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
-use WpManager\TransferStore;
+use WPStation\TransferStore;
 
 /** The master database, in memory. */
 final class MemoryTransferStore implements TransferStore

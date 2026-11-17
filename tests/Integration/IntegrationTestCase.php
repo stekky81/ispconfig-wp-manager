@@ -3,25 +3,25 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests\Integration;
+namespace WPStation\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Command;
-use WpManager\Config;
-use WpManager\HealthCheck;
-use WpManager\PathGuard;
-use WpManager\Runner;
+use WPStation\Command;
+use WPStation\Config;
+use WPStation\HealthCheck;
+use WPStation\PathGuard;
+use WPStation\Runner;
 
 /**
  * Real users, folders, MariaDB and WordPress, prepared by dev/integration.sh, without ISPConfig. Run as root, with the
- * variables of /etc/wpm-it.env; skipped otherwise. Site 901 has WordPress, site 902 is the empty target of a clone.
+ * variables of /etc/wpstation-it.env; skipped otherwise. Site 901 has WordPress, site 902 is the empty target of a clone.
  */
 abstract class IntegrationTestCase extends TestCase
 {
     protected function setUp(): void
     {
-        if ((string)getenv('WPM_IT_BASE') === '' || posix_geteuid() !== 0) {
-            self::markTestSkipped('No integration environment: run dev/integration.sh setup, then the tests as root with /etc/wpm-it.env');
+        if ((string)getenv('WPSTATION_IT_BASE') === '' || posix_geteuid() !== 0) {
+            self::markTestSkipped('No integration environment: run dev/integration.sh setup, then the tests as root with /etc/wpstation-it.env');
         }
     }
 
@@ -29,30 +29,30 @@ abstract class IntegrationTestCase extends TestCase
     {
         return Config::fromArray([
             'dry_run' => false,
-            'web_root_base' => (string)getenv('WPM_IT_BASE'),
-            'wp_cli' => (string)getenv('WPM_IT_WP_CLI'),
-            'php_cli' => (string)getenv('WPM_IT_PHP'),
+            'web_root_base' => (string)getenv('WPSTATION_IT_BASE'),
+            'wp_cli' => (string)getenv('WPSTATION_IT_WP_CLI'),
+            'php_cli' => (string)getenv('WPSTATION_IT_PHP'),
         ]);
     }
 
     protected static function guard(): PathGuard
     {
-        return new PathGuard((string)getenv('WPM_IT_BASE'));
+        return new PathGuard((string)getenv('WPSTATION_IT_BASE'));
     }
 
     protected static function site(int $n): array
     {
         return [
-            'wpm_site_id' => $n,
+            'wpstation_site_id' => $n,
             'server_id' => 1,
             'status' => 'installed',
             'domain' => "it{$n}.test",
             'site_url' => "http://it{$n}.test",
-            'document_root' => getenv('WPM_IT_BASE') . "/client901/web{$n}",
+            'document_root' => getenv('WPSTATION_IT_BASE') . "/client901/web{$n}",
             'system_user' => "web{$n}",
-            'db_name' => "wpmit_web{$n}",
-            'db_user' => "wpmit_web{$n}",
-            'db_host' => (string)getenv('WPM_IT_DB_HOST'),
+            'db_name' => "wpsit_web{$n}",
+            'db_user' => "wpsit_web{$n}",
+            'db_host' => (string)getenv('WPSTATION_IT_DB_HOST'),
         ];
     }
 
@@ -65,7 +65,7 @@ abstract class IntegrationTestCase extends TestCase
     protected static function wp(int $n, string ...$args): string
     {
         $command = new Command(
-            array_merge([(string)getenv('WPM_IT_WP_CLI')], $args, ['--path=' . self::web($n), '--skip-plugins', '--skip-themes']),
+            array_merge([(string)getenv('WPSTATION_IT_WP_CLI')], $args, ['--path=' . self::web($n), '--skip-plugins', '--skip-themes']),
             "web{$n}",
             '/tmp',
         );
@@ -82,7 +82,7 @@ abstract class IntegrationTestCase extends TestCase
     protected static function health(): HealthCheck
     {
         $fetch = static fn(string $url): array => [
-            'code' => preg_match('#/(xmlrpc\.php|wp-config\.php\.wpm-hardening-check|wp-content/uploads/wpm-hardening-check\.php)$#', $url) ? 403 : 200,
+            'code' => preg_match('#/(xmlrpc\.php|wp-config\.php\.wpstation-hardening-check|wp-content/uploads/wpstation-hardening-check\.php)$#', $url) ? 403 : 200,
             'body' => '',
         ];
         return new HealthCheck($fetch, '127.0.0.1', 0);

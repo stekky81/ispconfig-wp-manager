@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * One-time view of the generated passwords. The caller clears the secrets right after reveal().

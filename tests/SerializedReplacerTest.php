@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\SearchReplacePlan;
-use WpManager\SerializedReplacer;
+use WPStation\SearchReplacePlan;
+use WPStation\SerializedReplacer;
 
 final class SerializedReplacerTest extends TestCase
 {

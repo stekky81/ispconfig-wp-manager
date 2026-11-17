@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
+use WPStation\Config;
 
 final class ConfigTest extends TestCase
 {
@@ -14,7 +14,7 @@ final class ConfigTest extends TestCase
     // meant running code as root within a minute.
     public function testRootOnlyLoadsAFileOwnedByTheExpectedUser(): void
     {
-        $file = tempnam(sys_get_temp_dir(), 'wpm-cfg');
+        $file = tempnam(sys_get_temp_dir(), 'wpstation-cfg');
         file_put_contents($file, '<?php return [];');
         chmod($file, 0o640);
 
@@ -30,7 +30,7 @@ final class ConfigTest extends TestCase
 
     public function testRootRefusesAConfigOthersCanWrite(): void
     {
-        $file = tempnam(sys_get_temp_dir(), 'wpm-cfg');
+        $file = tempnam(sys_get_temp_dir(), 'wpstation-cfg');
         file_put_contents($file, '<?php return [];');
         chmod($file, 0o660);
 

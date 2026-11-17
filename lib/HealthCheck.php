@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Tells whether a site answers. Results are compared before and after a change: a login page
@@ -129,7 +129,7 @@ final class HealthCheck
             CURLOPT_TIMEOUT => 30,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_USERAGENT => 'ispconfig-wp-manager health check',
+            CURLOPT_USERAGENT => 'ispconfig-wpstation health check',
             // Looks behind the maintenance mode of this module. WordPress finds no valid login in it, and
             // page caches skip a request with a login cookie: the check sees what PHP makes now.
             CURLOPT_COOKIE => MaintenanceMode::BYPASS_COOKIE . '=1',

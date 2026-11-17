@@ -67,9 +67,9 @@ jobs:
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PWD: root
-          WPM_IT_DB_HOST: 127.0.0.1
+          WPSTATION_IT_DB_HOST: 127.0.0.1
       - name: Integration tests, as root
-        run: sudo bash -c 'set -a; . /etc/wpm-it.env; set +a; php vendor/bin/phpunit --testsuite integration --log-junit /tmp/integration.xml'
+        run: sudo bash -c 'set -a; . /etc/wpstation-it.env; set +a; php vendor/bin/phpunit --testsuite integration --log-junit /tmp/integration.xml'
       # Annotations can be read without logging in to GitHub, the log of a job cannot.
       - name: Failed tests as annotations
         if: failure()

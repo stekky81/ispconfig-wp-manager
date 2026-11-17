@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Updates a site with a way back: check, backup, update, check again, restore if it broke.

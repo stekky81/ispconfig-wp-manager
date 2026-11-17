@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Activates, deactivates and removes plugins and themes, with a way back like the updates: the site is

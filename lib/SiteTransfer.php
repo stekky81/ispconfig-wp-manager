@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * One end of a clone between two nodes, through the master database (see docs/architecture.md, Clone).

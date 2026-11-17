@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Copies a site into a new, empty website of the same node. The source is only read, as its
@@ -24,7 +24,7 @@ final class SiteCloner
 
     /**
      * @param bool $resume an earlier attempt of the same job wrote into the web root of the clone: every
-     *                     step runs again over those files (see wpm-worker.php)
+     *                     step runs again over those files (see wpstation-worker.php)
      * @param SiteTransfer|null $remote the source is on another node, which sends it through this transfer
      * @return list<string> executed commands and what the search-replace found
      */
@@ -258,7 +258,7 @@ final class SiteCloner
 
     private function assertCloneable(array $target, array $source, bool $remote = false): void
     {
-        if ((int)$source['wpm_site_id'] === (int)$target['wpm_site_id']) {
+        if ((int)$source['wpstation_site_id'] === (int)$target['wpstation_site_id']) {
             throw new \RuntimeException('A site cannot be cloned onto itself');
         }
         if (($source['status'] ?? '') !== 'installed') {

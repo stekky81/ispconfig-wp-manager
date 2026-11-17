@@ -3,12 +3,12 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\ObjectReplacer;
-use WpManager\SearchReplacePlan;
-use WpManager\SiteCaches;
+use WPStation\ObjectReplacer;
+use WPStation\SearchReplacePlan;
+use WPStation\SiteCaches;
 
 final class ObjectReplacerTest extends TestCase
 {

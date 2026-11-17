@@ -3,16 +3,16 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\Crypto;
-use WpManager\DryRunReport;
-use WpManager\DryRunTransport;
-use WpManager\IspconfigApi;
-use WpManager\SiteProvisioner;
-use WpManager\SiteRequest;
+use WPStation\Config;
+use WPStation\Crypto;
+use WPStation\DryRunReport;
+use WPStation\DryRunTransport;
+use WPStation\IspconfigApi;
+use WPStation\SiteProvisioner;
+use WPStation\SiteRequest;
 
 final class DryRunReportTest extends TestCase
 {

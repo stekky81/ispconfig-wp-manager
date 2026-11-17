@@ -3,12 +3,12 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Backups of a site, taken before it is changed. Runs on the web node, always as the site user.
  *
- * They live in <site>/tmp/wpmanager-backups: the site user can write there, they count towards
+ * They live in <site>/tmp/wpstation-backups: the site user can write there, they count towards
  * the quota and ISPConfig leaves them alone. Its own backups exclude ./tmp, its cleanup of tmp
  * only removes sess_* files, and <site>/backup would not do: it is emptied after 3 days.
  */
@@ -31,7 +31,7 @@ final class SiteBackup implements SiteBackups
     public function directory(array $site): string
     {
         $name = Subfolder::of($site);
-        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/tmp') . '/wpmanager-backups'
+        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/tmp') . '/wpstation-backups'
             . ($name === '' ? '' : '/subfolder-' . $name);
     }
 
@@ -131,7 +131,7 @@ final class SiteBackup implements SiteBackups
             try {
                 $maintenance->set($site, $wasInMaintenance, $runner);
             } catch (\RuntimeException $e) {
-                error_log("wpmanager: maintenance mode of {$site['domain']} not set again after the restore: " . $e->getMessage());
+                error_log("wpstation: maintenance mode of {$site['domain']} not set again after the restore: " . $e->getMessage());
             }
         }
     }

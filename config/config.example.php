@@ -1,7 +1,7 @@
 <?php
 // SPDX-License-Identifier: BSD-3-Clause
 //
-// Copy to /opt/ispconfig-wp-manager/config.php (chmod 600, owner root) and edit.
+// Copy to /opt/ispconfig-wpstation/config.php (chmod 600, owner root) and edit.
 // Only the keys you set here override the built-in defaults in lib/Config.php.
 
 return [
@@ -11,7 +11,7 @@ return [
 
     'remote_api' => [
         'url' => 'https://panel.example.com:8080/remote/json.php',
-        'user' => 'wpmanager',
+        'user' => 'wpstation',
         'password' => 'change-me',
         'verify_tls' => true,
     ],

@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Installs WordPress into a freshly created ISPConfig website. Runs on the web node.
@@ -24,9 +24,9 @@ final class WordPressInstaller
     }
 
     /**
-     * @param array $site the wpm_site record (with encrypted secrets)
+     * @param array $site the wpstation_site record (with encrypted secrets)
      * @param bool $resume an earlier attempt of the same job wrote into the web root, which is not empty
-     *                     because of it: every step runs again over those files (see wpm-worker.php)
+     *                     because of it: every step runs again over those files (see wpstation-worker.php)
      * @return list<string> warnings first, then the executed commands, secrets masked
      */
     public function install(array $site, ?Runner $runner = null, bool $resume = false): array

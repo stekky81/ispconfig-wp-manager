@@ -3,13 +3,13 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\MysqlTransferStore;
+use WPStation\MysqlTransferStore;
 
 /**
- * Needs a MariaDB database with the tables of install/sql/wpmanager.sql: set WPM_TEST_DB_HOST, _USER, _PASSWORD
+ * Needs a MariaDB database with the tables of install/sql/wpstation.sql: set WPSTATION_TEST_DB_HOST, _USER, _PASSWORD
  * and _NAME. Skipped otherwise (run it in the test VM).
  */
 final class MysqlTransferStoreTest extends TestCase
@@ -18,11 +18,11 @@ final class MysqlTransferStoreTest extends TestCase
 
     protected function setUp(): void
     {
-        $host = getenv('WPM_TEST_DB_HOST');
+        $host = getenv('WPSTATION_TEST_DB_HOST');
         if ($host === false || $host === '') {
-            self::markTestSkipped('No test database (WPM_TEST_DB_HOST)');
+            self::markTestSkipped('No test database (WPSTATION_TEST_DB_HOST)');
         }
-        $this->store = new MysqlTransferStore($host, (string)getenv('WPM_TEST_DB_USER'), (string)getenv('WPM_TEST_DB_PASSWORD'), (string)getenv('WPM_TEST_DB_NAME'));
+        $this->store = new MysqlTransferStore($host, (string)getenv('WPSTATION_TEST_DB_USER'), (string)getenv('WPSTATION_TEST_DB_PASSWORD'), (string)getenv('WPSTATION_TEST_DB_NAME'));
     }
 
     // Regression (VM): the claim was counted on the connection, which says 0 for a prepared statement, so the

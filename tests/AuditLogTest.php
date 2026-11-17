@@ -3,26 +3,26 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\AuditLog;
-use WpManager\SiteActions;
+use WPStation\AuditLog;
+use WPStation\SiteActions;
 
 final class AuditLogTest extends TestCase
 {
     public function testARowKeepsWhatWasAskedAndNothingDangerous(): void
     {
-        $row = AuditLog::row("admin\n", '192.168.1.7', ['wpm_site_id' => '4', 'domain' => 'a.test'], 'plugin_delete', "evil\x1b[31m", str_repeat('x', 2000));
+        $row = AuditLog::row("admin\n", '192.168.1.7', ['wpstation_site_id' => '4', 'domain' => 'a.test'], 'plugin_delete', "evil\x1b[31m", str_repeat('x', 2000));
 
         self::assertSame('admin ', $row['username']);
         self::assertSame('192.168.1.7', $row['ip']);
-        self::assertSame(4, $row['wpm_site_id']);
+        self::assertSame(4, $row['wpstation_site_id']);
         self::assertSame('a.test', $row['domain']);
         self::assertSame('evil [31m', $row['param']);
         self::assertSame(1000, mb_strlen($row['detail']));
         self::assertSame('', AuditLog::row('admin', 'not an address', null, 'settings')['ip']);
-        self::assertSame(0, AuditLog::row('admin', '::1', null, 'settings')['wpm_site_id']);
+        self::assertSame(0, AuditLog::row('admin', '::1', null, 'settings')['wpstation_site_id']);
     }
 
     public function testEveryRequestThatTheWorkerRunsFindsItsOutcome(): void

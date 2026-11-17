@@ -1,0 +1,376 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<div class='page-header'>
+    <h1>{tmpl_var name='domain'}</h1>
+</div>
+
+<div class="panel" style="padding:20px;">
+    <p>
+        <tmpl_if name="is_installed">
+        <a class="btn btn-default formbutton-default" href="{tmpl_var name='site_url'}/" target="_blank" rel="noopener">{tmpl_var name='open_site_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="{tmpl_var name='site_url'}/wp-admin/" target="_blank" rel="noopener">{tmpl_var name='open_admin_txt'}</a>
+        </tmpl_if>
+        <tmpl_if name="can_clone"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_clone.php?id={tmpl_var name='id'}">{tmpl_var name='clone_txt'}</button></tmpl_if>
+        <tmpl_if name="can_stage"><button class="btn btn-default formbutton-default" type="button" id="create_staging" data-load-content="wpstation/wpstation_site_clone.php?id={tmpl_var name='id'}&amp;staging=1">{tmpl_var name='create_staging_txt'}</button></tmpl_if>
+        <a class="btn btn-default formbutton-default" href="#" onclick="ISPConfig.capp('sites', '{tmpl_var name='website_redirect'}'); return false;">{tmpl_var name='open_website_txt'}</a>
+        <tmpl_if name="can_remove"><button class="btn btn-default formbutton-danger" type="button" id="remove_site" data-load-content="wpstation/wpstation_site_remove.php?id={tmpl_var name='id'}">{tmpl_var name='remove_site_txt'}</button></tmpl_if>
+    </p>
+
+    <table class="table">
+        <tbody>
+            <tr><th>{tmpl_var name='status_txt'}</th><td id="site_status">{tmpl_var name='status'}</td></tr>
+            <tr><th>{tmpl_var name='origin_txt'}</th><td>{tmpl_var name='origin'}</td></tr>
+            <tmpl_if name="staging_id">
+            <tr><th>{tmpl_var name='staging_txt'}</th><td id="staging_link"><a href="#" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='staging_id'}">{tmpl_var name='staging_domain'}</a></td></tr>
+            </tmpl_if>
+            <tmpl_if name="production_id">
+            <tr><th>{tmpl_var name='staging_of_txt'}</th><td id="production_link"><a href="#" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='production_id'}">{tmpl_var name='production_domain'}</a></td></tr>
+            </tmpl_if>
+            <tr><th>{tmpl_var name='wp_version_txt'}</th><td>{tmpl_var name='wp_version'}</td></tr>
+            <tmpl_if name="access_user">
+            <tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td>{tmpl_var name='wp_admin_user'}</td></tr>
+            <tr><th>{tmpl_var name='access_txt'}</th><td>{tmpl_var name='access_type'}: {tmpl_var name='access_user'}</td></tr>
+            <tr><th>{tmpl_var name='database_txt'}</th><td>{tmpl_var name='db_name'} ({tmpl_var name='db_user'})</td></tr>
+            <tmpl_else>
+            <tmpl_if name="subfolder">
+            <tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td>{tmpl_var name='wp_admin_user'}</td></tr>
+            <tr><th>{tmpl_var name='website_users_txt'}</th><td id="website_users">{tmpl_var name='website_users'}</td></tr>
+            <tr><th>{tmpl_var name='database_txt'}</th><td>{tmpl_var name='db_name'} ({tmpl_var name='db_user'})</td></tr>
+            </tmpl_if>
+            </tmpl_if>
+            <tr><th>{tmpl_var name='path_txt'}</th><td>{tmpl_var name='document_root'} ({tmpl_var name='system_user'})</td></tr>
+        </tbody>
+    </table>
+
+    <tmpl_if name="action_message"><div class="alert alert-info" id="action_message">{tmpl_var name='action_message'}</div></tmpl_if>
+    <tmpl_if name="action_busy">
+    <div class="alert alert-info" id="action_busy" data-site="{tmpl_var name='id'}">{tmpl_var name='action_busy_txt'} ({tmpl_var name='action_status'})</div>
+    <script>
+        // The worker runs every minute: look again, unless another page is open by then.
+        setTimeout(function () {
+            var busy = document.getElementById('action_busy');
+            if (busy && busy.getAttribute('data-site') === '{tmpl_var name='id'}') {
+                ISPConfig.loadContent('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}');
+            }
+        }, 15000);
+    </script>
+    </tmpl_if>
+
+    <tmpl_if name="login_ready">
+    <div class="alert alert-success" id="login_ready">
+        <p>{tmpl_var name='login_ready_txt'}</p>
+        <p><button class="btn btn-default formbutton-success" type="button" id="login_go"
+            data-url="{tmpl_var name='site_url'}/wp-login.php" data-admin="{tmpl_var name='site_url'}/wp-admin/"
+            data-user="{tmpl_var name='result_user'}" data-password="{tmpl_var name='result_password'}"
+            onclick="var b = this, f = document.createElement('form'); f.method = 'post'; f.action = b.getAttribute('data-url'); f.target = '_blank'; f.rel = 'noopener noreferrer'; [['log', b.getAttribute('data-user')], ['pwd', b.getAttribute('data-password')], ['redirect_to', b.getAttribute('data-admin')]].forEach(function (p) { var i = document.createElement('input'); i.type = 'hidden'; i.name = p[0]; i.value = p[1]; f.appendChild(i); }); document.body.appendChild(f); f.submit(); document.body.removeChild(f);">{tmpl_var name='login_go_txt'}</button></p>
+        <p>{tmpl_var name='login_manual_txt'} <code id="login_user">{tmpl_var name='result_user'}</code> <code id="login_password">{tmpl_var name='result_password'}</code></p>
+        <tmpl_if name="site_is_http"><p id="login_http">{tmpl_var name='login_http_txt'}</p></tmpl_if>
+    </div>
+    </tmpl_if>
+    <tmpl_if name="password_ready">
+    <div class="alert alert-warning" id="password_ready">
+        {tmpl_var name='password_ready_txt'} <code id="reset_user">{tmpl_var name='result_user'}</code> <code id="reset_password">{tmpl_var name='result_password'}</code>
+    </div>
+    </tmpl_if>
+
+    <tmpl_if name="is_installed">
+    <h2>{tmpl_var name='updates_txt'}</h2>
+    <tmpl_if name="check_requested"><div class="alert alert-success" id="check_requested">{tmpl_var name='check_requested_txt'}</div></tmpl_if>
+    <tmpl_if name="update_error"><div class="alert alert-danger" id="update_error">{tmpl_var name='update_error'}</div></tmpl_if>
+    <tmpl_if name="has_updates">
+        <table class="table" id="site_updates">
+            <tbody>
+                <tmpl_loop name="updates">
+                <tr><td>{tmpl_var name='type'}</td><td>{tmpl_var name='name'}</td><td>{tmpl_var name='version'} → {tmpl_var name='update'}</td></tr>
+                </tmpl_loop>
+            </tbody>
+        </table>
+    <tmpl_else>
+        <p id="no_updates">{tmpl_var name='no_updates_txt'}</p>
+    </tmpl_if>
+    <tmpl_if name="has_updates"><tmpl_unless name="action_busy">
+    <p class="fieldDescription">{tmpl_var name='update_desc_txt'}</p>
+    <p id="update_buttons">
+        <a class="btn btn-default formbutton-success" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=update&scope=all&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_all_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=update&scope=core&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_core_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=update&scope=plugins&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_plugins_txt'}</a>
+        <a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=update&scope=themes&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='update_confirm_txt'}');">{tmpl_var name='update_themes_txt'}</a>
+    </p>
+    </tmpl_unless></tmpl_if>
+    <tmpl_if name="major_update"><tmpl_unless name="action_busy">
+    <div class="alert alert-info" id="major_update">
+        {tmpl_var name='major_available_txt'} {tmpl_var name='major_update'}.
+        <a class="btn btn-default formbutton-success" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=update&scope=major&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='major_confirm_txt'}');">{tmpl_var name='major_update_txt'} {tmpl_var name='major_update'}</a>
+    </div>
+    </tmpl_unless></tmpl_if>
+    <p id="auto_update">
+        <tmpl_if name="auto_update_on">
+            {tmpl_var name='auto_on_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&auto=n&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_off_txt'}</button>
+        <tmpl_else>
+            {tmpl_var name='auto_off_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&auto=y&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='auto_turn_on_txt'}</button>
+        </tmpl_if>
+    </p>
+    <p>{tmpl_var name='last_check_txt'}: {tmpl_var name='last_check'}
+        <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&check=1&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='check_now_txt'}</button>
+    </p>
+    </tmpl_if>
+
+    <tmpl_if name="production_id"><tmpl_if name="is_installed">
+    <h2>{tmpl_var name='staging_txt'}</h2>
+    <p class="fieldDescription">{tmpl_var name='staging_desc_txt'}</p>
+    <p id="staging_actions"><tmpl_unless name="action_busy">
+        <button class="btn btn-default formbutton-default" type="button" id="staging_refresh" data-load-content="wpstation/wpstation_site_sync.php?id={tmpl_var name='id'}&amp;direction=refresh">{tmpl_var name='staging_refresh_txt'}</button>
+        <button class="btn btn-default formbutton-danger" type="button" id="staging_push" data-load-content="wpstation/wpstation_site_sync.php?id={tmpl_var name='id'}&amp;direction=push">{tmpl_var name='staging_push_txt'}</button>
+    </tmpl_unless></p>
+    </tmpl_if></tmpl_if>
+
+    <tmpl_if name="is_installed">
+    <h2>{tmpl_var name='cron_txt'}</h2>
+    <p id="wp_cron_mode">
+        <tmpl_if name="real_cron_on">
+            {tmpl_var name='cron_real_txt'}
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=wpcron&mode=wp&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='cron_to_wp_txt'}</button></tmpl_unless>
+        <tmpl_else>
+            {tmpl_var name='cron_wp_txt'}
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=wpcron&mode=real&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='cron_to_real_txt'}</button></tmpl_unless>
+        </tmpl_if>
+    </p>
+
+    <h2>{tmpl_var name='maintenance_txt'}</h2>
+    <p id="maintenance_mode">
+        <tmpl_if name="maintenance_on">
+            <strong>{tmpl_var name='maintenance_on_txt'}</strong>
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=maintenance&param=off&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='maintenance_turn_off_txt'}</button></tmpl_unless>
+        <tmpl_else>
+            {tmpl_var name='maintenance_off_txt'}
+            <tmpl_unless name="action_busy"><a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=maintenance&param=on&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='maintenance_confirm_txt'}');">{tmpl_var name='maintenance_turn_on_txt'}</a></tmpl_unless>
+        </tmpl_if>
+    </p>
+    <p id="one_click_login">
+        {tmpl_var name='login_desc_txt'}
+        <tmpl_if name="login_active"><br />{tmpl_var name='login_active_txt'} {tmpl_var name='login_active'}.</tmpl_if>
+        <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-success" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=login&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='login_txt'}</button></tmpl_unless>
+    </p>
+    <h3>{tmpl_var name='admins_txt'}</h3>
+    <table class="table" id="site_admins">
+        <tbody>
+            <tmpl_loop name="admins">
+            <tr>
+                <td>{tmpl_var name='admin_login'}</td>
+                <td class="text-right"><tmpl_unless name="action_busy"><a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=password&param={tmpl_var name='admin_id'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='password_confirm_txt'}');">{tmpl_var name='password_reset_txt'}</a></tmpl_unless></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+    <h3>{tmpl_var name='debug_txt'}</h3>
+    <p id="debug_mode">
+        <tmpl_if name="debug_until">
+            <strong>{tmpl_var name='debug_on_txt'} {tmpl_var name='debug_until'}.</strong> {tmpl_var name='debug_log_txt'} <code>{tmpl_var name='debug_log_path'}</code>
+            <tmpl_unless name="action_busy">
+                <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=debuglog&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='debug_read_txt'}</button>
+                <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=debug&param=off&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='debug_turn_off_txt'}</button>
+            </tmpl_unless>
+        <tmpl_else>
+            <tmpl_if name="debug_elsewhere">{tmpl_var name='debug_elsewhere_txt'}<tmpl_else>{tmpl_var name='debug_off_txt'}</tmpl_if>
+            <tmpl_unless name="action_busy"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=debug&param=on&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='debug_turn_on_txt'}</button></tmpl_unless>
+        </tmpl_if>
+    </p>
+    <tmpl_if name="debug_tail"><pre id="debug_tail" style="max-height:400px; overflow:auto;">{tmpl_var name='debug_tail'}</pre></tmpl_if>
+
+    <h2>{tmpl_var name='security_txt'}</h2>
+    <h3>{tmpl_var name='vulns_txt'}</h3>
+    <tmpl_if name="vuln_feed">
+        <tmpl_if name="has_vulns">
+        <table class="table" id="site_vulns">
+            <tbody>
+                <tmpl_loop name="vulns">
+                <tr>
+                    <td>{tmpl_var name='vuln_software'}</td>
+                    <td><tmpl_if name="vuln_link"><a href="{tmpl_var name='vuln_link'}" target="_blank" rel="noopener noreferrer">{tmpl_var name='vuln_title'}</a><tmpl_else>{tmpl_var name='vuln_title'}</tmpl_if></td>
+                    <td>{tmpl_var name='vuln_score'}</td>
+                    <td><tmpl_if name="vuln_fixed">{tmpl_var name='vuln_fixed_txt'} {tmpl_var name='vuln_fixed'}<tmpl_else><strong>{tmpl_var name='vuln_nofix_txt'}</strong></tmpl_if></td>
+                </tr>
+                </tmpl_loop>
+            </tbody>
+        </table>
+        <tmpl_else>
+        <p id="no_vulns">{tmpl_var name='no_vulns_txt'}</p>
+        </tmpl_if>
+        <p class="fieldDescription" id="vuln_attribution">{tmpl_var name='vuln_source_txt'} {tmpl_var name='vuln_feed'}.
+            <tmpl_loop name="copyrights"><br />{tmpl_var name='notice'} {tmpl_var name='license'} <tmpl_if name="license_url"><a href="{tmpl_var name='license_url'}" target="_blank" rel="noopener noreferrer">{tmpl_var name='license_url'}</a></tmpl_if></tmpl_loop>
+        </p>
+    <tmpl_else>
+        <p id="vulns_off">{tmpl_var name='vulns_off_txt'}</p>
+    </tmpl_if>
+
+    <h3>{tmpl_var name='permissions_txt'}</h3>
+    <tmpl_if name="perm_checked">
+    <p id="site_permissions">
+        {tmpl_var name='perm_writable_txt'}: {tmpl_var name='perm_writable'} · {tmpl_var name='perm_foreign_txt'}: {tmpl_var name='perm_foreign'} · wp-config.php: {tmpl_var name='perm_config'}<tmpl_if name="perm_config_open"> <strong>{tmpl_var name='perm_config_open_txt'}</strong></tmpl_if>
+    </p>
+    <tmpl_if name="has_perm_examples"><ul id="perm_examples"><tmpl_loop name="perm_examples"><li><code>{tmpl_var name='line'}</code></li></tmpl_loop></ul></tmpl_if>
+    <tmpl_if name="perm_can_fix"><tmpl_unless name="action_busy">
+        <a class="btn btn-default formbutton-default" id="fix_permissions" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=fix_permissions&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='perm_fix_confirm_txt'}');">{tmpl_var name='perm_fix_txt'}</a>
+    </tmpl_unless></tmpl_if>
+    <tmpl_else>
+    <p>{tmpl_var name='perm_not_checked_txt'}</p>
+    </tmpl_if>
+
+    <h3>{tmpl_var name='hardening_txt'}</h3>
+    <table class="table" id="site_hardening">
+        <tbody>
+            <tmpl_loop name="hardening">
+            <tr>
+                <td>{tmpl_var name='measure_label'}<br /><small>{tmpl_var name='measure_desc'}</small></td>
+                <td><tmpl_if name="measure_on"><strong>{tmpl_var name='on_txt'}</strong><tmpl_else>{tmpl_var name='off_txt'}</tmpl_if></td>
+                <td class="text-right"><tmpl_if name="measure_known"><tmpl_unless name="action_busy">
+                    <tmpl_if name="measure_on">
+                    <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=harden&param={tmpl_var name='measure'}:off&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='turn_off_txt'}</button>
+                    <tmpl_else>
+                    <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=harden&param={tmpl_var name='measure'}:on&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='turn_on_txt'}</button>
+                    </tmpl_if>
+                </tmpl_unless></tmpl_if></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+
+    <h2>{tmpl_var name='plugins_txt'}</h2>
+    <table class="table" id="site_plugins">
+        <tbody>
+            <tmpl_loop name="plugins">
+            <tr>
+                <td>{tmpl_var name='ext_name'}</td><td>{tmpl_var name='ext_version'}</td><td>{tmpl_var name='ext_status'}</td>
+                <td class="text-right"><tmpl_unless name="action_busy">
+                    <tmpl_if name="can_activate"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=plugin_activate&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='activate_txt'}</button></tmpl_if>
+                    <tmpl_if name="can_deactivate"><button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=plugin_deactivate&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='deactivate_txt'}</button></tmpl_if>
+                    <tmpl_if name="can_delete"><a class="btn btn-default formbutton-danger" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=plugin_delete&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='delete_plugin_confirm_txt'}');">{tmpl_var name='delete_txt'}</a></tmpl_if>
+                </tmpl_unless></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+    <h2>{tmpl_var name='themes_txt'}</h2>
+    <table class="table" id="site_themes">
+        <tbody>
+            <tmpl_loop name="themes">
+            <tr>
+                <td>{tmpl_var name='ext_name'}</td><td>{tmpl_var name='ext_version'}</td><td>{tmpl_var name='ext_status'}</td>
+                <td class="text-right"><tmpl_unless name="action_busy">
+                    <tmpl_if name="can_activate"><a class="btn btn-default formbutton-default" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=theme_activate&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='activate_theme_confirm_txt'}');">{tmpl_var name='activate_txt'}</a></tmpl_if>
+                    <tmpl_if name="can_delete"><a class="btn btn-default formbutton-danger" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=theme_delete&param={tmpl_var name='ext_param'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='delete_theme_confirm_txt'}');">{tmpl_var name='delete_txt'}</a></tmpl_if>
+                </tmpl_unless></td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+
+    <h2>{tmpl_var name='backups_txt'}</h2>
+    <p class="fieldDescription">{tmpl_var name='backups_desc_txt'}</p>
+    <tmpl_if name="has_backups">
+        <table class="table" id="site_backups">
+            <tbody>
+                <tmpl_loop name="backups">
+                <tr>
+                    <td>{tmpl_var name='backup_id'}</td>
+                    <td>{tmpl_var name='backup_size'} MB<tmpl_if name="backup_no_uploads"> · {tmpl_var name='no_uploads_txt'}</tmpl_if></td>
+                    <td class="text-right"><tmpl_unless name="action_busy"><a class="btn btn-default formbutton-danger" href="javascript: ISPConfig.confirm_action('wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=restore&backup={tmpl_var name='backup_id'}&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}','{tmpl_var name='restore_confirm_txt'}');">{tmpl_var name='restore_txt'}</a></tmpl_unless></td>
+                </tr>
+                </tmpl_loop>
+            </tbody>
+        </table>
+    </tmpl_if>
+    <p id="backup_uploads">
+        <tmpl_if name="backup_uploads_on">
+            {tmpl_var name='uploads_on_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&backup_uploads=n&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='uploads_turn_off_txt'}</button>
+        <tmpl_else>
+            {tmpl_var name='uploads_off_txt'}
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&backup_uploads=y&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='uploads_turn_on_txt'}</button>
+        </tmpl_if>
+    </p>
+    <tmpl_unless name="action_busy">
+        <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_view.php?id={tmpl_var name='id'}&action=backup&_csrf_id={tmpl_var name='check_csrf_id'}&_csrf_key={tmpl_var name='check_csrf_key'}">{tmpl_var name='backup_now_txt'}</button>
+    </tmpl_unless>
+    </tmpl_if>
+
+    <tmpl_if name="has_shell_user">
+    <h2>{tmpl_var name='ssh_txt'}</h2>
+    <tmpl_if name="ssh_saved"><div class="alert alert-success" id="ssh_saved">{tmpl_var name='ssh_saved_txt'}</div></tmpl_if>
+    <tmpl_if name="ssh_error"><div class="alert alert-danger" id="ssh_error">{tmpl_var name='ssh_error'}</div></tmpl_if>
+    <tmpl_if name="has_ssh_keys">
+    <table class="table" id="site_ssh_keys">
+        <tbody>
+            <tmpl_loop name="ssh_keys"><tr><td>{tmpl_var name='ssh_type'}</td><td><code>{tmpl_var name='ssh_fingerprint'}</code></td><td>{tmpl_var name='ssh_comment'}</td></tr></tmpl_loop>
+        </tbody>
+    </table>
+    <tmpl_else>
+    <p id="no_ssh_keys">{tmpl_var name='ssh_none_txt'}</p>
+    </tmpl_if>
+    <tmpl_if name="ssh_other"><p>{tmpl_var name='ssh_other_txt'}</p></tmpl_if>
+    <p class="fieldDescription">{tmpl_var name='ssh_desc_txt'}</p>
+    <textarea name="ssh_keys" id="ssh_keys" rows="3" class="form-control">{tmpl_var name='ssh_keys_text'}</textarea>
+    <p style="margin-top:8px;"><button class="btn btn-default formbutton-default" type="button" id="save_ssh_keys" onclick="document.getElementById('form_action').value = 'ssh_keys';" data-submit-form="pageForm" data-form-action="wpstation/wpstation_site_view.php">{tmpl_var name='ssh_save_txt'}</button></p>
+    </tmpl_if>
+
+    <h2>{tmpl_var name='credentials_txt'}</h2>
+    <tmpl_if name="revealed">
+        <div class="alert alert-warning">{tmpl_var name='credentials_once_txt'}</div>
+        <table class="table">
+            <tbody>
+                <tmpl_if name="wp_password"><tr><th>{tmpl_var name='wp_admin_user_txt'}</th><td><code id="wp_admin_user">{tmpl_var name='wp_admin_user'}</code></td></tr></tmpl_if>
+                <tmpl_if name="wp_password"><tr><th>{tmpl_var name='wp_password_txt'}</th><td><code id="wp_password">{tmpl_var name='wp_password'}</code></td></tr></tmpl_if>
+                <tmpl_if name="access_password">
+                <tr><th>{tmpl_var name='access_txt'}</th><td><code id="access_user">{tmpl_var name='access_user'}</code></td></tr>
+                <tr><th>{tmpl_var name='access_password_txt'}</th><td><code id="access_password">{tmpl_var name='access_password'}</code></td></tr>
+                </tmpl_if>
+            </tbody>
+        </table>
+    <tmpl_else>
+        <tmpl_if name="can_reveal">
+            <p>{tmpl_var name='credentials_available_txt'}</p>
+            <input type="hidden" name="reveal" value="1" />
+            <button class="btn btn-default formbutton-success" type="button" data-submit-form="pageForm" data-form-action="wpstation/wpstation_site_view.php">{tmpl_var name='reveal_txt'}</button>
+        <tmpl_else>
+            <tmpl_if name="credentials_expired">
+            <p id="credentials_gone">{tmpl_var name='credentials_expired_txt'}</p>
+            <tmpl_else>
+            <p id="credentials_gone">{tmpl_var name='credentials_unavailable_txt'}</p>
+            </tmpl_if>
+        </tmpl_if>
+    </tmpl_if>
+
+    <h2>{tmpl_var name='audit_txt'}</h2>
+    <tmpl_if name="has_audit">
+    <table class="table" id="site_audit">
+        <tbody>
+            <tmpl_loop name="audit">
+            <tr>
+                <td>{tmpl_var name='created'}</td>
+                <td><tmpl_if name="username">{tmpl_var name='username'}<tmpl_else><em>{tmpl_var name='automatic_txt'}</em></tmpl_if></td>
+                <td>{tmpl_var name='action_label'}<tmpl_if name="param"> <code>{tmpl_var name='param'}</code></tmpl_if></td>
+                <td>{tmpl_var name='outcome'}</td>
+            </tr>
+            </tmpl_loop>
+        </tbody>
+    </table>
+    </tmpl_if>
+    <p><button class="btn btn-default formbutton-default" type="button" id="site_audit_all" data-load-content="wpstation/wpstation_audit.php?site={tmpl_var name='domain'}">{tmpl_var name='audit_all_txt'}</button></p>
+
+    <tmpl_if name="status_message">
+        <h2>{tmpl_var name='log_txt'}</h2>
+        <pre>{tmpl_var name='status_message'}</pre>
+    </tmpl_if>
+
+    <input type="hidden" name="id" value="{tmpl_var name='id'}" />
+    <input type="hidden" name="form_action" id="form_action" value="" />
+    <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
+    <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />
+
+    <div class="clear">
+        <div class="right">
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpstation/wpstation_site_list.php">{tmpl_var name='back_txt'}</button>
+        </div>
+    </div>
+</div>

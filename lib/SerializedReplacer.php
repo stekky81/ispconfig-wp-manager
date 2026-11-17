@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Replaces text inside a PHP serialized value without unserializing it, so no object is created

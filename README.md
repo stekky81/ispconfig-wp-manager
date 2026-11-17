@@ -1,4 +1,4 @@
-# ispconfig-wp-manager
+# WPStation for ISPConfig
 
 > [!WARNING]
 > **Pre-release software — use at your own risk.**
@@ -10,6 +10,9 @@
 
 An [ISPConfig 3](https://www.ispconfig.org) module to deploy, clone and keep WordPress sites updated
 across one or more ISPConfig nodes — a free, open source alternative to commercial "WordPress toolkits".
+
+WPStation is an independent project: it is not the official "WordPress Manager" extension of ISPConfig.
+Until November 2026 it was called `ispconfig-wp-manager`.
 
 ## Features
 
@@ -66,12 +69,12 @@ flowchart LR
     subgraph panel["ISPConfig panel (master)"]
         form["Form: New WordPress site"]
         api["Remote API:<br/>website, DB, DB user, SFTP/FTP user"]
-        rec["wpm_site record"]
+        rec["wpstation_site record"]
         form --> api --> rec
     end
     subgraph webnode["Each web node"]
-        plugin["wpmanager_module and plugin<br/>(server.sh): queue the job"]
-        worker["wpm-worker.php (cron, 1 min):<br/>waits for the vhost,<br/>runs WP-CLI as the site user"]
+        plugin["wpstation_module and plugin<br/>(server.sh): queue the job"]
+        worker["wpstation-worker.php (cron, 1 min):<br/>waits for the vhost,<br/>runs WP-CLI as the site user"]
         plugin --> worker
     end
     rec -- sys_datalog --> plugin

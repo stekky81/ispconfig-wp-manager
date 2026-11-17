@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Email notices of the module: what to send, to whom and when. Sending is left to the worker,
@@ -22,7 +22,7 @@ final class Notifications
     private const MAX_RECIPIENTS = 10;
     /** A summary is sent from this hour on, in the time of the master database. */
     private const SUMMARY_HOUR = 6;
-    private const PREFIX = '[WordPress Manager] ';
+    private const PREFIX = '[WPStation] ';
 
     /**
      * The addresses of the setting, or the email of the ISPConfig admin when it is empty.

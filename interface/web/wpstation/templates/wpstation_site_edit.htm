@@ -1,0 +1,67 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<p><tmpl_var name="dry_run_notice_txt"></p>
+<p><a href="#" data-load-content="wpstation/wpstation_site_folder.php" id="folder_link">{tmpl_var name='folder_link_txt'}</a></p>
+
+<div class="form-group">
+    <label for="server_id" class="col-sm-3 control-label">{tmpl_var name='server_id_txt'}</label>
+    <div class="col-sm-9"><select name="server_id" id="server_id" class="form-control">{tmpl_var name='server_id'}</select></div>
+</div>
+<div class="form-group">
+    <label for="client_id" class="col-sm-3 control-label">{tmpl_var name='client_id_txt'}</label>
+    <div class="col-sm-9"><select name="client_id" id="client_id" class="form-control">{tmpl_var name='client_id'}</select></div>
+</div>
+<div class="form-group">
+    <label for="domain" class="col-sm-3 control-label">{tmpl_var name='domain_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="domain" id="domain" value="{tmpl_var name='domain'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="wp_title" class="col-sm-3 control-label">{tmpl_var name='wp_title_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_title" id="wp_title" value="{tmpl_var name='wp_title'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="wp_admin_user" class="col-sm-3 control-label">{tmpl_var name='wp_admin_user_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_admin_user" id="wp_admin_user" value="{tmpl_var name='wp_admin_user'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="wp_admin_email" class="col-sm-3 control-label">{tmpl_var name='wp_admin_email_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_admin_email" id="wp_admin_email" value="{tmpl_var name='wp_admin_email'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="access_type" class="col-sm-3 control-label">{tmpl_var name='access_type_txt'}</label>
+    <div class="col-sm-9"><select name="access_type" id="access_type" class="form-control">{tmpl_var name='access_type'}</select></div>
+</div>
+<tmpl_if name="quota_field">
+<div class="form-group">
+    <label for="hd_quota" class="col-sm-3 control-label">{tmpl_var name='hd_quota_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="hd_quota" id="hd_quota" value="{tmpl_var name='hd_quota'}" class="form-control" /><p class="help-block">{tmpl_var name='hd_quota_help_txt'} <tmpl_if name="quota_problems"><strong id="quota_problems">{tmpl_var name='quota_problems'}</strong></tmpl_if></p></div>
+</div>
+</tmpl_if>
+<div class="form-group">
+    <label for="ssh_keys" class="col-sm-3 control-label">{tmpl_var name='ssh_keys_txt'}</label>
+    <div class="col-sm-9"><textarea name="ssh_keys" id="ssh_keys" rows="3" class="form-control" placeholder="ssh-ed25519 AAAA... name@laptop"></textarea><p class="help-block">{tmpl_var name='ssh_keys_help_txt'}</p></div>
+</div>
+<div class="form-group">
+    <label for="server_php_id" class="col-sm-3 control-label">{tmpl_var name='server_php_id_txt'}</label>
+    <div class="col-sm-9"><select name="server_php_id" id="server_php_id" class="form-control">{tmpl_var name='server_php_id'}</select></div>
+</div>
+<div class="form-group">
+    <label for="wp_locale" class="col-sm-3 control-label">{tmpl_var name='wp_locale_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_locale" id="wp_locale" value="{tmpl_var name='wp_locale'}" class="form-control" /></div>
+</div>
+<div class="form-group">
+    <label for="wp_plugins" class="col-sm-3 control-label">{tmpl_var name='wp_plugins_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_plugins" id="wp_plugins" value="{tmpl_var name='wp_plugins'}" class="form-control" /><p class="help-block">{tmpl_var name='wp_plugins_help_txt'}</p></div>
+</div>
+<div class="form-group">
+    <label for="wp_theme" class="col-sm-3 control-label">{tmpl_var name='wp_theme_txt'}</label>
+    <div class="col-sm-9"><input type="text" name="wp_theme" id="wp_theme" value="{tmpl_var name='wp_theme'}" class="form-control" /><p class="help-block">{tmpl_var name='wp_theme_help_txt'}</p></div>
+</div>
+
+<input type="hidden" name="id" value="{tmpl_var name='id'}">
+
+<div class="clear">
+    <div class="right">
+        <button class="btn btn-default formbutton-success" type="button" value="{tmpl_var name='btn_save_txt'}" data-submit-form="pageForm" data-form-action="wpstation/wpstation_site_edit.php">{tmpl_var name='btn_save_txt'}</button>
+        <button class="btn btn-default formbutton-default" type="button" value="{tmpl_var name='btn_cancel_txt'}" data-load-content="wpstation/wpstation_site_list.php">{tmpl_var name='btn_cancel_txt'}</button>
+    </div>
+</div>

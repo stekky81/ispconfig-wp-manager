@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * The actions on an existing site that the panel asks for and the worker of its node runs, once.

@@ -3,14 +3,14 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Command;
-use WpManager\Config;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteDatabase;
+use WPStation\Command;
+use WPStation\Config;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteDatabase;
 
 final class SiteDatabaseTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class SiteDatabaseTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-db-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-db-' . bin2hex(random_bytes(4));
         mkdir($base . '/client1/web7/web', 0o755, true);
         $this->root = (string)realpath($base);
     }
@@ -144,7 +144,7 @@ final class SiteDatabaseTest extends TestCase
 
     public function testTheCommandGetsItsEnvironment(): void
     {
-        $command = new Command(['sh', '-c', 'printf %s "$WPM_TEST"'], null, null, null, ['WPM_TEST' => 'value']);
+        $command = new Command(['sh', '-c', 'printf %s "$WPSTATION_TEST"'], null, null, null, ['WPSTATION_TEST' => 'value']);
 
         self::assertSame('value', (new Runner(false))->mustRun($command));
     }

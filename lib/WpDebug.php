@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * The debug mode of WordPress, with the log outside the web root: `wp-content/debug.log`, the default,

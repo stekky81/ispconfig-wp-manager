@@ -3,15 +3,15 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
- * Reads the update reports stored in wpm_site for the panel. Plain text: escape it for HTML.
+ * Reads the update reports stored in wpstation_site for the panel. Plain text: escape it for HTML.
  */
 final class UpdateOverview
 {
     /**
-     * @param list<array> $rows wpm_site rows with server_name
+     * @param list<array> $rows wpstation_site rows with server_name
      * @return list<array{server_name:string, sites:int, with_updates:int, core:int, plugins:int, themes:int}>
      */
     public static function byServer(array $rows): array

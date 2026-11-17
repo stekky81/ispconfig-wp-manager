@@ -2,6 +2,9 @@
 
 ## Unreleased (0.1.0-dev)
 
+- Renamed from `ispconfig-wp-manager` to WPStation: module `wpstation`, tables `wpstation_*`, namespace
+  `WPStation\`, paths `/opt/ispconfig-wpstation` and `/etc/ispconfig-wpstation`, worker `wpstation-worker.php`.
+  Nothing ran on production under the old name, so there is no migration
 - New sites from the panel, with SFTP or FTP access and per-site PHP version, language, plugins and theme
 - Dry-run report on the form, settings page for the defaults, one-time view of the generated passwords
 - Detection of existing WordPress installs
@@ -18,7 +21,7 @@
 - The worker writes its PHP errors with date and time
 - Install and clone run WP-CLI in the PHP sandbox too; a clone copies the database with `mysqldump` and `mysql`
   between the two site users
-- Multiserver review: nodes can update only the status columns of `wpm_site`, and the worker refuses a row that does
+- Multiserver review: nodes can update only the status columns of `wpstation_site`, and the worker refuses a row that does
   not match its website in ISPConfig
 - Clone to another node: files and database travel encrypted through the master database, only for a clone the panel
   asked for
@@ -36,7 +39,7 @@
 - After a timeout, a command that ignores SIGTERM is killed with what it started, and can no longer keep the lock
   of the worker
 - A clone to another client stays admin only, also once clients can use the module
-- Fixes from the first run on ISPConfig 3.3.2: server module for `wpm_site`, `standard_index.html`, http URL
+- Fixes from the first run on ISPConfig 3.3.2: server module for `wpstation_site`, `standard_index.html`, http URL
   without a certificate, list filter and sorting, spaced retries, unique names for long domains
 - `dev/regression.sh` checks that existing sites did not change
 - Project skeleton: ISPConfig interface module, server plugin, node worker, installer

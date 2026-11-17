@@ -3,16 +3,16 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\SiteRemoval;
+use WPStation\SiteRemoval;
 
 final class SiteRemovalTest extends TestCase
 {
     private static function site(array $changes = []): array
     {
-        return $changes + ['wpm_site_id' => 4, 'domain_id' => 12, 'domain' => 'a.test', 'status' => 'installed', 'action_request' => '', 'db_name' => 'c1_a'];
+        return $changes + ['wpstation_site_id' => 4, 'domain_id' => 12, 'domain' => 'a.test', 'status' => 'installed', 'action_request' => '', 'db_name' => 'c1_a'];
     }
 
     private static function web(): array

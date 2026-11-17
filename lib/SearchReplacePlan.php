@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * What must change in the database of a clone. The rules run through `wp search-replace --regex`,

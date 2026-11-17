@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Permissions of the files of a site: what anyone can write, what belongs to another user, and a wp-config.php that

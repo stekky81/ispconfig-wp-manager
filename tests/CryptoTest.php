@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Crypto;
+use WPStation\Crypto;
 
 final class CryptoTest extends TestCase
 {
@@ -51,7 +51,7 @@ final class CryptoTest extends TestCase
 
     public function testKeyFileMustBePrivate(): void
     {
-        $file = tempnam(sys_get_temp_dir(), 'wpmkey');
+        $file = tempnam(sys_get_temp_dir(), 'wpstationkey');
         file_put_contents($file, Crypto::generateKey());
         chmod($file, 0o644);
         try {

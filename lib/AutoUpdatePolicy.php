@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Decides whether a site gets its automatic update: plugins, themes and minor core releases,

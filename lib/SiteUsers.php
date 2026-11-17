@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Administrators of a site: password reset and the temporary user of the one-click login.
@@ -16,7 +16,7 @@ namespace WpManager;
  */
 final class SiteUsers
 {
-    public const LOGIN_PREFIX = 'wpm-login-';
+    public const LOGIN_PREFIX = 'wpstation-login-';
     public const UNUSED_MINUTES = 15;
     public const USED_MINUTES = 120;
     private const MAX_ADMINS = 50;

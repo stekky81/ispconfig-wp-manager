@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Turns the output of a failed command into a sentence for the admin: the likely cause and what to do,

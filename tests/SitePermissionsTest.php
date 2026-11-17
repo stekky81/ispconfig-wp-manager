@@ -3,14 +3,14 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\HealthCheck;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SitePermissions;
+use WPStation\Config;
+use WPStation\HealthCheck;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SitePermissions;
 
 final class SitePermissionsTest extends TestCase
 {
@@ -39,7 +39,7 @@ final class SitePermissionsTest extends TestCase
 
     public function testTheFixRunsAsTheSiteUserOnItsOwnFiles(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-perm-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-perm-' . bin2hex(random_bytes(4));
         mkdir($base . '/client1/web7/web', 0o755, true);
         $root = (string)realpath($base);
         try {

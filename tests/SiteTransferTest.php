@@ -3,13 +3,13 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Command;
-use WpManager\Crypto;
-use WpManager\Runner;
-use WpManager\SiteTransfer;
+use WPStation\Command;
+use WPStation\Crypto;
+use WPStation\Runner;
+use WPStation\SiteTransfer;
 
 final class SiteTransferTest extends TestCase
 {
@@ -21,7 +21,7 @@ final class SiteTransferTest extends TestCase
     {
         $this->store = new MemoryTransferStore();
         $this->crypto = new Crypto(base64_decode(Crypto::generateKey()));
-        $this->out = (string)tempnam(sys_get_temp_dir(), 'wpm-transfer');
+        $this->out = (string)tempnam(sys_get_temp_dir(), 'wpstation-transfer');
     }
 
     protected function tearDown(): void

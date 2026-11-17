@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Finds the WordPress installs of this node, so that sites not created by this module
@@ -57,7 +57,7 @@ final class SiteScanner
 
     /**
      * @param array $domain the web_domain record of the site
-     * @return array<string, mixed> the wpm_site record: no secrets, this module did not create them
+     * @return array<string, mixed> the wpstation_site record: no secrets, this module did not create them
      */
     public static function recordFor(array $domain, int $clientId, string $wpVersion, string $subfolder = ''): array
     {

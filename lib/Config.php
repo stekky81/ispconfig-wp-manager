@@ -3,19 +3,19 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
- * Global configuration: built-in defaults, overridden by /opt/ispconfig-wp-manager/config.php.
+ * Global configuration: built-in defaults, overridden by /opt/ispconfig-wpstation/config.php.
  */
 final class Config
 {
-    public const DEFAULT_PATH = '/opt/ispconfig-wp-manager/config.php';
+    public const DEFAULT_PATH = '/opt/ispconfig-wpstation/config.php';
 
     private const BUILTIN = [
         'dry_run' => true,
-        'key_file' => '/etc/ispconfig-wp-manager/secret.key',
-        'spool_dir' => '/var/spool/ispconfig-wp-manager',
+        'key_file' => '/etc/ispconfig-wpstation/secret.key',
+        'spool_dir' => '/var/spool/ispconfig-wpstation',
         'web_root_base' => '/var/www/clients',
         'wp_cli' => '/usr/local/bin/wp',
         'php_cli' => '/usr/bin/php',

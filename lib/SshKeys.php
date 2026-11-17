@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Public SSH keys for the SFTP user of a site. ISPConfig writes them in authorized_keys of the jailed user

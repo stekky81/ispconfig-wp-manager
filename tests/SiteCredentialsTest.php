@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Crypto;
-use WpManager\SiteCredentials;
+use WPStation\Crypto;
+use WPStation\SiteCredentials;
 
 final class SiteCredentialsTest extends TestCase
 {

@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Who asked for what in the panel, and when: every request that changes something, and every view of a password.
- * The panel writes `wpm_audit`; the worker writes the outcome in `wpm_event`, and the page of the log shows the two
+ * The panel writes `wpstation_audit`; the worker writes the outcome in `wpstation_event`, and the page of the log shows the two
  * together. Changes the worker makes by itself (automatic updates, the end of a debug mode or of a temporary login)
  * are events of AUTOMATIC kinds, shown in the log as done by nobody. Never a password, in any row.
  */
@@ -26,14 +26,14 @@ final class AuditLog
     /**
      * The row to insert. What a user typed or a site holds is cut and stripped of control characters.
      *
-     * @return array{username:string, ip:string, wpm_site_id:int, domain:string, action:string, param:string, detail:string}
+     * @return array{username:string, ip:string, wpstation_site_id:int, domain:string, action:string, param:string, detail:string}
      */
     public static function row(string $username, string $ip, ?array $site, string $action, string $param = '', string $detail = ''): array
     {
         return [
             'username' => self::clean($username, 64),
             'ip' => filter_var($ip, FILTER_VALIDATE_IP) !== false ? $ip : '',
-            'wpm_site_id' => (int)($site['wpm_site_id'] ?? 0),
+            'wpstation_site_id' => (int)($site['wpstation_site_id'] ?? 0),
             'domain' => self::clean(Subfolder::label($site ?? []), 255),
             'action' => self::clean($action, 32),
             'param' => self::clean($param, 255),

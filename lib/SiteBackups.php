@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /** What an update needs from the backups of a site. */
 interface SiteBackups

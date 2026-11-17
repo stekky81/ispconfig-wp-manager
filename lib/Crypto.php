@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Encrypts job secrets (DB password, WP admin password) before they enter sys_datalog,

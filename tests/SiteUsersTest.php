@@ -3,14 +3,14 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteUsers;
-use WpManager\ValidationException;
+use WPStation\Config;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteUsers;
+use WPStation\ValidationException;
 
 final class SiteUsersTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class SiteUsersTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-users-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-users-' . bin2hex(random_bytes(4));
         mkdir($base . '/client1/web7/web', 0o755, true);
         $this->root = (string)realpath($base);
     }
@@ -42,7 +42,7 @@ final class SiteUsersTest extends TestCase
     {
         $output = "PHP Notice: something\n" . json_encode([
             ['ID' => 1, 'user_login' => 'madmin', 'roles' => 'administrator'],
-            ['ID' => '7', 'user_login' => 'wpm-login-0a1b2c3d'],
+            ['ID' => '7', 'user_login' => 'wpstation-login-0a1b2c3d'],
             ['ID' => 9, 'user_login' => 'mario@example.com'],
             ['ID' => 0, 'user_login' => 'nobody'],
             ['ID' => 4, 'user_login' => ['not', 'a', 'string']],
@@ -55,10 +55,10 @@ final class SiteUsersTest extends TestCase
 
     public function testOnlyTheNamesOfThisModuleAreTemporary(): void
     {
-        self::assertTrue(SiteUsers::isTemporary('wpm-login-0a1b2c3d'));
-        self::assertFalse(SiteUsers::isTemporary('wpm-login-admin'));
+        self::assertTrue(SiteUsers::isTemporary('wpstation-login-0a1b2c3d'));
+        self::assertFalse(SiteUsers::isTemporary('wpstation-login-admin'));
         self::assertFalse(SiteUsers::isTemporary('madmin'));
-        self::assertFalse(SiteUsers::isTemporary('wpm-login-0a1b2c3d '));
+        self::assertFalse(SiteUsers::isTemporary('wpstation-login-0a1b2c3d '));
     }
 
     public function testATemporaryLoginIsAnAdministratorWithThePasswordOnStdin(): void
@@ -79,11 +79,11 @@ final class SiteUsersTest extends TestCase
     public function testANewLoginReplacesThePreviousOne(): void
     {
         $runner = new Runner(true);
-        $this->users()->createLogin($this->site(), 'wpm-login-0a1b2c3d', $runner);
+        $this->users()->createLogin($this->site(), 'wpstation-login-0a1b2c3d', $runner);
         $log = $runner->log();
 
         // In a dry run there is no other administrator: removed by taking its role away.
-        $previous = array_keys(array_filter($log, static fn(string $l): bool => str_contains($l, "'wpm-login-0a1b2c3d'")));
+        $previous = array_keys(array_filter($log, static fn(string $l): bool => str_contains($l, "'wpstation-login-0a1b2c3d'")));
         $create = array_keys(array_filter($log, static fn(string $l): bool => str_contains($l, "'user' 'create'")));
         self::assertNotEmpty($previous);
         self::assertCount(1, $create);
@@ -108,13 +108,13 @@ final class SiteUsersTest extends TestCase
     {
         // In a dry run the list of administrators is empty.
         $runner = new Runner(true);
-        $done = $this->users()->removeLogin($this->site(), 'wpm-login-0a1b2c3d', $runner);
+        $done = $this->users()->removeLogin($this->site(), 'wpstation-login-0a1b2c3d', $runner);
         $log = implode("\n", $runner->log());
 
         self::assertStringContainsString('subscriber', $done);
         self::assertStringNotContainsString("'user' 'delete'", $log);
-        self::assertStringContainsString("'user' 'set-role' 'wpm-login-0a1b2c3d' 'subscriber'", $log);
-        self::assertStringContainsString("'user' 'session' 'destroy' 'wpm-login-0a1b2c3d' '--all'", $log);
+        self::assertStringContainsString("'user' 'set-role' 'wpstation-login-0a1b2c3d' 'subscriber'", $log);
+        self::assertStringContainsString("'user' 'session' 'destroy' 'wpstation-login-0a1b2c3d' '--all'", $log);
     }
 
     public function testAResetClosesEverySessionOfTheUser(): void

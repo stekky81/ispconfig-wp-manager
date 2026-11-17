@@ -3,15 +3,15 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\Crypto;
-use WpManager\JobQueue;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\WordPressInstaller;
+use WPStation\Config;
+use WPStation\Crypto;
+use WPStation\JobQueue;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\WordPressInstaller;
 
 final class WordPressInstallerTest extends TestCase
 {
@@ -20,7 +20,7 @@ final class WordPressInstallerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/wpm-inst-' . bin2hex(random_bytes(4));
+        $this->root = sys_get_temp_dir() . '/wpstation-inst-' . bin2hex(random_bytes(4));
         mkdir($this->root . '/client3/web7/web', 0o755, true);
         touch($this->root . '/client3/web7/web/index.html');
         $this->crypto = new Crypto(base64_decode(Crypto::generateKey()));

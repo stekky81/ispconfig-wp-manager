@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * The limits of an ISPConfig client, and of its reseller, for what a new site takes. The Remote API does not check

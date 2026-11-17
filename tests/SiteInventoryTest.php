@@ -3,13 +3,13 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteInventory;
+use WPStation\Config;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteInventory;
 
 final class SiteInventoryTest extends TestCase
 {
@@ -95,7 +95,7 @@ final class SiteInventoryTest extends TestCase
 
     public function testDryRunRunsNothingAndReportsNothing(): void
     {
-        $root = sys_get_temp_dir() . '/wpm-inv-' . bin2hex(random_bytes(4));
+        $root = sys_get_temp_dir() . '/wpstation-inv-' . bin2hex(random_bytes(4));
         mkdir($root . '/client1/web1/web', 0o755, true);
         $inventory = new SiteInventory(Config::fromArray([]), new PathGuard($root));
         $runner = new Runner(true);

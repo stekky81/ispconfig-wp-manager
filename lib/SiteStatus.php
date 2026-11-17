@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Short explanation of a site status for the panel. The result is plain text: escape it for HTML.

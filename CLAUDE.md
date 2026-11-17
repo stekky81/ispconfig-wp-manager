@@ -1,4 +1,4 @@
-# CLAUDE.md — ispconfig-wp-manager
+# CLAUDE.md — WPStation (ispconfig-wpstation)
 
 Notes for Claude Code working in this repository. Talk to the maintainer (Stefano) in **Italian**;
 write code, comments, docs and commit messages in **English**.
@@ -8,6 +8,8 @@ write code, comments, docs and commit messages in **English**.
 An ISPConfig 3 module to create, clone and keep WordPress sites updated across ISPConfig nodes
 (an open source "WP Toolkit" for ISPConfig). **Pre-release**: nothing here has run on production.
 Read `README.md` and `docs/architecture.md` first.
+Renamed from `ispconfig-wp-manager` / `wpmanager` on 2026-11-17; the folder on the Mac keeps the old name.
+The prefix `wpm1:` of encrypted values (`lib/Crypto.php`) is a data format tag: it stays.
 
 ## Hard rules
 
@@ -29,10 +31,10 @@ Read `README.md` and `docs/architecture.md` first.
 | Path | Runs on | Notes |
 |------|---------|-------|
 | `lib/` | master + nodes | framework-free, unit tested (`tests/`) |
-| `interface/web/wpmanager/` | panel | ISPConfig module, **copied** into `/usr/local/ispconfig/interface/web/` by the installer |
-| `server/mods-available/wpmanager_module.inc.php` | nodes | copied into ISPConfig, turns `wpm_site` datalog records into events |
-| `server/plugins-available/wpmanager_plugin.inc.php` | nodes | copied into ISPConfig, queues jobs |
-| `server/bin/wpm-worker.php` | nodes | cron, runs WP-CLI |
+| `interface/web/wpstation/` | panel | ISPConfig module, **copied** into `/usr/local/ispconfig/interface/web/` by the installer |
+| `server/mods-available/wpstation_module.inc.php` | nodes | copied into ISPConfig, turns `wpstation_site` datalog records into events |
+| `server/plugins-available/wpstation_plugin.inc.php` | nodes | copied into ISPConfig, queues jobs |
+| `server/bin/wpstation-worker.php` | nodes | cron, runs WP-CLI |
 | `install/install.sh` | master + nodes | idempotent; `--role=master`, `--role=node`, `--uninstall` |
 | `dev/test-env.sh` | Mac | Multipass test environment |
 | `dev/regression.sh` | VM | checks that existing sites did not change |
@@ -46,8 +48,8 @@ shellcheck install/install.sh dev/test-env.sh dev/regression.sh dev/integration.
 ```
 
 Integration tests (`tests/Integration`) run in the CI. To run them in the VM: copy the repository with `vendor/` to
-`/root/wpm-it` (`COPYFILE_DISABLE=1 tar czf - --exclude=.git . | multipass exec ispc-master -- sudo tar xzf - -C /root/wpm-it`,
-or tar adds `._*` files), then `dev/integration.sh setup`, the tests as root with `/etc/wpm-it.env`, and `teardown`.
+`/root/wpstation-it` (`COPYFILE_DISABLE=1 tar czf - --exclude=.git . | multipass exec ispc-master -- sudo tar xzf - -C /root/wpstation-it`,
+or tar adds `._*` files), then `dev/integration.sh setup`, the tests as root with `/etc/wpstation-it.env`, and `teardown`.
 
 `shellcheck` is not on the Mac: run it in the VM after `sync`, with `sudo` (`dev/` is 0700 there).
 The `php` of Homebrew on the Mac can point to another version (7.4 on 2026-11-16, chosen outside this project: do not
@@ -59,7 +61,7 @@ Multipass **1.17.0 or later** is required (1.16.x ships a qemu-img that segfault
 
 ```bash
 ./dev/test-env.sh info      # VM IP and panel URL (https://<ip>:8080, user admin)
-./dev/test-env.sh sync      # copy this folder into the VM at /opt/ispconfig-wp-manager (run after every change)
+./dev/test-env.sh sync      # copy this folder into the VM at /opt/ispconfig-wpstation (run after every change)
 ./dev/test-env.sh reset     # restore the VM to the clean snapshot, then sync
 ./dev/test-env.sh shell     # root-capable shell in the VM
 multipass exec ispc-master -- sudo <command>   # run anything in the VM
@@ -71,7 +73,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - The ISPConfig admin password is in the VM: `sudo grep -a "admin password" /root/ispconfig-install.log`.
   Never write passwords into the repository.
 - Install our module in the VM:
-  `multipass exec ispc-master -- sudo /opt/ispconfig-wp-manager/install/install.sh --role=master --role=node`
+  `multipass exec ispc-master -- sudo /opt/ispconfig-wpstation/install/install.sh --role=master --role=node`
 - Panel PHP errors: `multipass exec ispc-master -- sudo tail -50 /var/log/apache2/error.log`
 - VM `ispc-slave` (192.168.252.6, FQDN `ispc-slave.ispc.test`): ISPConfig node joined to the master as server 2, no
   panel; snapshot `clean` = joined, our module NOT installed. Both VMs map each other in `/etc/hosts` and in the
@@ -89,11 +91,11 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 - On the home connection the update check of WordPress (a POST to `api.wordpress.org/plugins/update-check/`) is reset
   even when plain requests pass: WordPress then sees no update at all. Use the hotspot to test real updates.
 - On the hotspot DNS through the Mac is unreliable and WP-CLI times out at 10 seconds: the VM uses public DNS,
-  from `/etc/systemd/resolved.conf.d/90-wpm-test.conf` (`DNS=1.1.1.1 8.8.8.8`, `Domains=~.`).
+  from `/etc/systemd/resolved.conf.d/90-wpstation-test.conf` (`DNS=1.1.1.1 8.8.8.8`, `Domains=~.`).
 - A test that attacks something must first check that the deploy worked: one ran on old code and damaged
   `config.php`. Sessions also expire, so a blank answer from the panel proves nothing.
 - `pgrep -f pattern` inside `bash -c '...'` finds that shell itself: write the pattern as `[p]attern`.
-- A manual `wpm-worker.php` exits silently while the cron worker holds the lock: to test it, wait for cron.
+- A manual `wpstation-worker.php` exits silently while the cron worker holds the lock: to test it, wait for cron.
 - `multipass exec` sometimes never returns although the command finished in the VM, so wrap it in `timeout`.
   The cause is unknown: passing the `sync` script as an argument instead of on stdin did not help.
 - Do not change the VM clock from `multipass exec` with `date -s`: the client can hang. Kill it if it does.
@@ -105,9 +107,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 ## Lessons learned on the real ISPConfig (do not regress)
 
 1. The `ispconfig` DB user cannot CREATE tables: the installer uses the admin account from
-   `server/lib/mysql_clientdb.conf` and grants DML on `wpm_site` to the panel user.
+   `server/lib/mysql_clientdb.conf` and grants DML on `wpstation_site` to the panel user.
 2. Top menu titles are looked up in ISPConfig's global language file: use plain titles.
-3. The panel runs as `ispconfig`: `/etc/ispconfig-wp-manager` must be `0710 root:ispconfig`.
+3. The panel runs as `ispconfig`: `/etc/ispconfig-wpstation` must be `0710 root:ispconfig`.
 4. Modules must be **copied**, not symlinked (relative `../../lib/` includes break).
 5. `/usr/local/ispconfig` is root-only: check it with `sudo`.
 6. The autoinstaller removes snapd (no `multipass mount`), needs a TTY, and an FQDN that survives
@@ -161,7 +163,7 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings
   before a read-only look at a real node.
-- The VM has a remote user `wpmanager`, a client `testclient` and the test sites `sito28`, `big1` (30,000 posts, no
+- The VM has a remote user `wpstation`, a client `testclient` and the test sites `sito28`, `big1` (30,000 posts, no
   large files) and `remote2` on the master, `nodo2a`, `nodo2e`, `remote1`, `remote3` on the slave; the older ones were
   deleted on 2026-11-16 (the master disk of 19 GB was full: every site takes about 400 MB, the jail included). Its
   `config.php` has `dry_run => false`, password login in sshd and public DNS. `./dev/test-env.sh reset` drops all of this.
@@ -170,5 +172,5 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
 
 ## Known open issues / roadmap
 
-- Clients and resellers: through their permissions on the website in ISPConfig (`lib/wpm_scope.inc.php`).
+- Clients and resellers: through their permissions on the website in ISPConfig (`lib/wpstation_scope.inc.php`).
 - Planned work, by milestone: see [ROADMAP.md](ROADMAP.md).

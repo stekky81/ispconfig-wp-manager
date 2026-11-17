@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-SNAPSHOT=/root/.wpm-regression
+SNAPSHOT=/root/.wpstation-regression
 
 # One "<checksum> <name>" line for each web root, client database and vhost.
 state() {

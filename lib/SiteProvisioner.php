@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Creates the ISPConfig objects for a new WordPress site through the Remote API:
@@ -27,7 +27,7 @@ final class SiteProvisioner
     }
 
     /**
-     * @return array<string, mixed> the values to store in the wpm_site record
+     * @return array<string, mixed> the values to store in the wpstation_site record
      */
     /** Website settings a caller may add, on top of the defaults: see SiteStaging::WEBSITE. */
     private const WEBSITE_EXTRAS = ['custom_php_ini', 'apache_directives'];
@@ -158,7 +158,7 @@ final class SiteProvisioner
      * its users and its PHP version stay as they are; the folder is created by the node.
      *
      * @param array $website the web_domain row of the website, read by the panel
-     * @return array<string, mixed> the values to store in the wpm_site record
+     * @return array<string, mixed> the values to store in the wpstation_site record
      */
     public function provisionInFolder(SiteRequest $req, array $website): array
     {

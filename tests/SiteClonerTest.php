@@ -3,16 +3,16 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\Crypto;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SearchReplacePlan;
-use WpManager\SiteTransfer;
-use WpManager\SiteCloner;
+use WPStation\Config;
+use WPStation\Crypto;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SearchReplacePlan;
+use WPStation\SiteTransfer;
+use WPStation\SiteCloner;
 
 final class SiteClonerTest extends TestCase
 {
@@ -21,7 +21,7 @@ final class SiteClonerTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-clone-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-clone-' . bin2hex(random_bytes(4));
         mkdir($base . '/client1/web7/web', 0o755, true);
         mkdir($base . '/client2/web9/web', 0o755, true);
         $this->root = (string)realpath($base);
@@ -38,7 +38,7 @@ final class SiteClonerTest extends TestCase
     private function source(array $over = []): array
     {
         return $over + [
-            'wpm_site_id' => 7, 'domain' => 'old.com', 'status' => 'installed', 'server_id' => 1,
+            'wpstation_site_id' => 7, 'domain' => 'old.com', 'status' => 'installed', 'server_id' => 1,
             'document_root' => $this->root . '/client1/web7', 'system_user' => 'web7', 'db_name' => 'c1_old',
         ];
     }
@@ -46,7 +46,7 @@ final class SiteClonerTest extends TestCase
     private function target(array $over = []): array
     {
         return $over + [
-            'wpm_site_id' => 9, 'domain' => 'new.test', 'server_id' => 1, 'clone_of' => 7,
+            'wpstation_site_id' => 9, 'domain' => 'new.test', 'server_id' => 1, 'clone_of' => 7,
             'site_url' => 'http://new.test', 'document_root' => $this->root . '/client2/web9', 'system_user' => 'web9',
             'db_name' => 'c2_new', 'db_user' => 'c2_newu', 'db_host' => 'localhost',
             'secret_db' => $this->crypto->encrypt('DbPw123'),
@@ -83,7 +83,7 @@ final class SiteClonerTest extends TestCase
     {
         $store = new MemoryTransferStore();
         $id = $store->open(7, 9, 1, 2);
-        $crypto = new \WpManager\Crypto(base64_decode(\WpManager\Crypto::generateKey()));
+        $crypto = new \WPStation\Crypto(base64_decode(\WPStation\Crypto::generateKey()));
         (new SiteTransfer($store, $crypto, $id, 0, static function (): void {
         }))->sendMeta(['home' => 'http://old.com', 'prefix' => 'xy_']);
         // The cloner decrypts the database password with its own Crypto: only the transfer uses this one.
@@ -123,7 +123,7 @@ final class SiteClonerTest extends TestCase
         $store = new MemoryTransferStore();
         $id = $store->open(7, 9, 1, 2);
         $runner = new Runner(true);
-        $out = new SiteTransfer($store, new \WpManager\Crypto(base64_decode(\WpManager\Crypto::generateKey())), $id, 0, static function (): void {
+        $out = new SiteTransfer($store, new \WPStation\Crypto(base64_decode(\WPStation\Crypto::generateKey())), $id, 0, static function (): void {
         });
         try {
             $this->cloner()->export($this->source(), $out, $runner);
@@ -268,7 +268,7 @@ final class SiteClonerTest extends TestCase
         return [
             'not installed' => [['status' => 'error'], 'not installed'],
             'other node' => [['server_id' => 2], 'another node'],
-            'same site' => [['wpm_site_id' => 9], 'itself'],
+            'same site' => [['wpstation_site_id' => 9], 'itself'],
             'same database' => [['db_name' => 'c2_new'], 'same database'],
         ];
     }

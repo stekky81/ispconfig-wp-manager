@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# Installer for ispconfig-wp-manager. Idempotent: run it again after every ISPConfig update.
+# Installer for ispconfig-wpstation. Idempotent: run it again after every ISPConfig update.
 #
 #   ./install/install.sh --role=master     # panel: interface module, tables, shared key
 #   ./install/install.sh --role=node       # web node: server module and plugin, worker cron, tables
@@ -10,12 +10,12 @@
 
 set -euo pipefail
 
-APP_DIR=/opt/ispconfig-wp-manager
+APP_DIR=/opt/ispconfig-wpstation
 ISP_DIR=/usr/local/ispconfig
-KEY_DIR=/etc/ispconfig-wp-manager
+KEY_DIR=/etc/ispconfig-wpstation
 KEY_FILE=$KEY_DIR/secret.key
-SPOOL_DIR=/var/spool/ispconfig-wp-manager
-CRON_FILE=/etc/cron.d/ispconfig-wp-manager
+SPOOL_DIR=/var/spool/ispconfig-wpstation
+CRON_FILE=/etc/cron.d/ispconfig-wpstation
 
 MASTER=0
 NODE=0
@@ -40,11 +40,11 @@ info() { echo "==> $*"; }
 if [[ $UNINSTALL -eq 1 ]]; then
     info "Removing the module and cron"
     # Our own module folder only (a copy, or a symlink from older versions).
-    rm -rf "${ISP_DIR:?}/interface/web/wpmanager"
-    rm -f "$ISP_DIR/server/mods-enabled/wpmanager_module.inc.php"
-    rm -f "$ISP_DIR/server/mods-available/wpmanager_module.inc.php"
-    rm -f "$ISP_DIR/server/plugins-enabled/wpmanager_plugin.inc.php"
-    rm -f "$ISP_DIR/server/plugins-available/wpmanager_plugin.inc.php"
+    rm -rf "${ISP_DIR:?}/interface/web/wpstation"
+    rm -f "$ISP_DIR/server/mods-enabled/wpstation_module.inc.php"
+    rm -f "$ISP_DIR/server/mods-available/wpstation_module.inc.php"
+    rm -f "$ISP_DIR/server/plugins-enabled/wpstation_plugin.inc.php"
+    rm -f "$ISP_DIR/server/plugins-available/wpstation_plugin.inc.php"
     rm -f "$CRON_FILE"
     info "Done. Tables, spool and key were kept; websites were not touched."
     exit 0
@@ -97,11 +97,11 @@ create_tables() {
     [[ ${#db[@]} -eq 5 && -n ${db[1]} && -n ${db[3]} ]] || die "cannot read the ISPConfig database settings"
     local host=${db[0]} admin=${db[1]} pass=${db[2]} name=${db[3]} panel_user=${db[4]}
 
-    MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" "$name" < "$APP_DIR/install/sql/wpmanager.sql"
+    MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" "$name" < "$APP_DIR/install/sql/wpstation.sql"
 
     # The panel and server.sh access dbispconfig as $panel_user: make sure it can use our tables.
     local table
-    for table in wpm_site wpm_setting wpm_event wpm_audit wpm_notice wpm_transfer wpm_transfer_piece wpm_vulnerability wpm_vulnerability_feed; do
+    for table in wpstation_site wpstation_setting wpstation_event wpstation_audit wpstation_notice wpstation_transfer wpstation_transfer_piece wpstation_vulnerability wpstation_vulnerability_feed; do
         if ! MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
             "GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`$table\` TO '$panel_user'@'localhost'"; then
             echo "WARNING: could not grant access on $table to '$panel_user'@'localhost'; check the grants manually" >&2
@@ -110,7 +110,7 @@ create_tables() {
 }
 
 # Nodes of a multiserver setup reach the master database as ispcsrvN users, with grants per table.
-# The worker of a node reads and writes wpm_site, reads the settings, records events, claims summaries and
+# The worker of a node reads and writes wpstation_site, reads the settings, records events, claims summaries and
 # moves clones between nodes.
 # Run again after adding a node.
 grant_nodes() {
@@ -134,20 +134,20 @@ grant_nodes() {
         # Earlier versions granted UPDATE on the whole table; a grant per column has parentheses.
         revoke=''
         if MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -N -B -e "SHOW GRANTS FOR '$user'@'$from'" 2>/dev/null \
-            | grep -qE "GRANT [A-Z, ]*UPDATE[A-Z, ]* ON \`$name\`\.\`wpm_site\`"; then
-            revoke="REVOKE UPDATE ON \`$name\`.\`wpm_site\` FROM '$user'@'$from';"
+            | grep -qE "GRANT [A-Z, ]*UPDATE[A-Z, ]* ON \`$name\`\.\`wpstation_site\`"; then
+            revoke="REVOKE UPDATE ON \`$name\`.\`wpstation_site\` FROM '$user'@'$from';"
         fi
         info "Granting the module tables to node account $user@$from"
         MYSQL_PWD="$pass" mysql -h "$host" -u "$admin" -e \
             "$revoke
-             GRANT SELECT, INSERT, UPDATE ($node_columns) ON \`$name\`.\`wpm_site\` TO '$user'@'$from';
-             GRANT SELECT ON \`$name\`.\`wpm_setting\` TO '$user'@'$from';
-             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_event\` TO '$user'@'$from';
-             GRANT INSERT ON \`$name\`.\`wpm_notice\` TO '$user'@'$from';
-             GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`wpm_transfer\` TO '$user'@'$from';
-             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_transfer_piece\` TO '$user'@'$from';
-             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_vulnerability\` TO '$user'@'$from';
-             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpm_vulnerability_feed\` TO '$user'@'$from'" \
+             GRANT SELECT, INSERT, UPDATE ($node_columns) ON \`$name\`.\`wpstation_site\` TO '$user'@'$from';
+             GRANT SELECT ON \`$name\`.\`wpstation_setting\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpstation_event\` TO '$user'@'$from';
+             GRANT INSERT ON \`$name\`.\`wpstation_notice\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, UPDATE, DELETE ON \`$name\`.\`wpstation_transfer\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpstation_transfer_piece\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpstation_vulnerability\` TO '$user'@'$from';
+             GRANT SELECT, INSERT, DELETE ON \`$name\`.\`wpstation_vulnerability_feed\` TO '$user'@'$from'" \
             || echo "WARNING: could not grant the module tables to '$user'@'$from'" >&2
     done
 }
@@ -168,7 +168,7 @@ if [[ $MASTER -eq 1 ]]; then
     info "Installing interface module"
     # A copy, not a symlink: ISPConfig modules use relative paths (../../lib/...) that
     # PHP would resolve from the symlink target. Ownership follows the stock "sites" module.
-    copy_tree "$APP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/wpmanager" "$ISP_DIR/interface/web/sites"
+    copy_tree "$APP_DIR/interface/web/wpstation" "$ISP_DIR/interface/web/wpstation" "$ISP_DIR/interface/web/sites"
 
     create_tables
     grant_nodes
@@ -182,7 +182,7 @@ if [[ $MASTER -eq 1 ]]; then
     fi
     if [[ ! -f $KEY_FILE ]]; then
         info "Generating shared key $KEY_FILE"
-        (umask 077; APP_DIR="$APP_DIR" php -r 'require getenv("APP_DIR") . "/lib/bootstrap.php"; echo WpManager\Crypto::generateKey(), "\n";' > "$KEY_FILE")
+        (umask 077; APP_DIR="$APP_DIR" php -r 'require getenv("APP_DIR") . "/lib/bootstrap.php"; echo WPStation\Crypto::generateKey(), "\n";' > "$KEY_FILE")
     fi
     chmod 0600 "$KEY_FILE"
     # The panel runs as the ispconfig user and must read the key.
@@ -198,7 +198,7 @@ if [[ $MASTER -eq 1 ]]; then
         chmod 0600 "$APP_DIR/config.php"
     fi
     info "Copy $KEY_FILE to the same path on every node (mode 0600, owner root)."
-    info "Enable the module: System → CP Users → edit user → Modules → wpmanager"
+    info "Enable the module: System → CP Users → edit user → Modules → wpstation"
 fi
 
 if [[ $NODE -eq 1 ]]; then
@@ -206,8 +206,8 @@ if [[ $NODE -eq 1 ]]; then
     [[ -f $KEY_FILE ]] || echo "WARNING: $KEY_FILE missing: copy it from the master"
 
     info "Installing server module and plugin"
-    install_server_file mods wpmanager_module.inc.php
-    install_server_file plugins wpmanager_plugin.inc.php
+    install_server_file mods wpstation_module.inc.php
+    install_server_file plugins wpstation_plugin.inc.php
 
     # On a slave node the replicated tables live in the local dbispconfig as well.
     if [[ $MASTER -eq 0 ]]; then
@@ -218,13 +218,13 @@ if [[ $NODE -eq 1 ]]; then
     fi
 
     install -d -m 0700 "$SPOOL_DIR"
-    touch /var/log/ispconfig-wp-manager.log
-    chmod 0640 /var/log/ispconfig-wp-manager.log
+    touch /var/log/ispconfig-wpstation.log
+    chmod 0640 /var/log/ispconfig-wpstation.log
 
     info "Installing worker cron"
     cat > "$CRON_FILE" <<EOF
-# ispconfig-wp-manager worker
-* * * * * root /usr/bin/php $APP_DIR/server/bin/wpm-worker.php >> /var/log/ispconfig-wp-manager.log 2>&1
+# ispconfig-wpstation worker
+* * * * * root /usr/bin/php $APP_DIR/server/bin/wpstation-worker.php >> /var/log/ispconfig-wpstation.log 2>&1
 EOF
     chmod 0644 "$CRON_FILE"
 fi

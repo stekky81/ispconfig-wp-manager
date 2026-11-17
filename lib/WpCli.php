@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Builds WP-CLI commands for one site. It only builds them; Runner executes them.
@@ -51,7 +51,7 @@ final class WpCli
         return new self($wpBinary, $webRoot ?? $siteRoot . '/web', $systemUser, $phpBinary, $arguments);
     }
 
-    /** The sandboxed WP-CLI of a record of wpm_site, in web/ or in its subfolder. */
+    /** The sandboxed WP-CLI of a record of wpstation_site, in web/ or in its subfolder. */
     public static function forSite(Config $config, PathGuard $guard, array $site): self
     {
         return self::sandboxed(
@@ -204,7 +204,7 @@ final class WpCli
     {
         return $this->cmd([
             'user', 'create', self::userRef($login), Validator::email($email),
-            '--role=administrator', '--display_name=WordPress Manager', '--porcelain', '--prompt=user_pass',
+            '--role=administrator', '--display_name=WPStation', '--porcelain', '--prompt=user_pass',
             '--skip-plugins', '--skip-themes',
         ], $password . "\n");
     }

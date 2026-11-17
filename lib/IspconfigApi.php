@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Minimal client for the ISPConfig REST Remote API (remote/json.php).

@@ -1,5 +1,5 @@
 {
-    "name": "stekky81/ispconfig-wp-manager",
+    "name": "stekky81/ispconfig-wpstation",
     "description": "ISPConfig module to deploy, clone and keep WordPress sites updated across multiple nodes",
     "type": "project",
     "license": "BSD-3-Clause",
@@ -13,10 +13,10 @@
         "phpunit/phpunit": "^10.5"
     },
     "autoload": {
-        "psr-4": { "WpManager\\": "lib/" }
+        "psr-4": { "WPStation\\": "lib/" }
     },
     "autoload-dev": {
-        "psr-4": { "WpManager\\Tests\\": "tests/" }
+        "psr-4": { "WPStation\\Tests\\": "tests/" }
     },
     "scripts": {
         "lint": "find lib interface server tests config -name '*.php' -print0 | xargs -0 -n1 php -l",

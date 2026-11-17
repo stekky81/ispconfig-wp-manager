@@ -18,23 +18,23 @@ Restrict "Remote access" to the master's own IP.
 ## 2. On the master
 
 ```bash
-git clone https://github.com/stekky81/ispconfig-wp-manager /opt/ispconfig-wp-manager
-cd /opt/ispconfig-wp-manager
+git clone https://github.com/stekky81/ispconfig-wpstation /opt/ispconfig-wpstation
+cd /opt/ispconfig-wpstation
 sudo ./install/install.sh --role=master          # add --role=node too on a single-server setup
-sudo nano /opt/ispconfig-wp-manager/config.php   # remote user, defaults; keep dry_run = true at first
+sudo nano /opt/ispconfig-wpstation/config.php   # remote user, defaults; keep dry_run = true at first
 ```
 
 The installer creates `config.php` from `config/config.example.php` only if it does not exist yet.
 
 The installer prints the shared key path. Copy that key file to every node (same path, root only).
 
-Enable the module for your admin user: **System → CP Users → edit → Modules → wpmanager**.
+Enable the module for your admin user: **System → CP Users → edit → Modules → wpstation**.
 
 ## 3. On every web node (including the master, if it hosts sites)
 
 ```bash
-git clone https://github.com/stekky81/ispconfig-wp-manager /opt/ispconfig-wp-manager
-cd /opt/ispconfig-wp-manager
+git clone https://github.com/stekky81/ispconfig-wpstation /opt/ispconfig-wpstation
+cd /opt/ispconfig-wpstation
 sudo ./install/install.sh --role=node
 ```
 
@@ -42,7 +42,7 @@ This installs the server module and plugin and the worker cron. WP-CLI must be i
 
 On a node that is not the master:
 
-- copy the shared key from the master first: `/etc/ispconfig-wp-manager/secret.key`, folder `0700`, file `0600`,
+- copy the shared key from the master first: `/etc/ispconfig-wpstation/secret.key`, folder `0700`, file `0600`,
   owner root;
 - the installer creates the node's own `config.php` (`0600 root:root`) with `dry_run = true`: each node decides for
   itself, so set `dry_run` there too. The Remote API account is only needed on the master;
@@ -77,7 +77,7 @@ Its [terms](https://www.wordfence.com/wordfence-intelligence-terms-and-condition
 installation needs the API key of its own wordfence.com account, which must not be shared:
 
 1. Create a free account on wordfence.com, then Account → Integrations → create an API key. It is shown once.
-2. Put it in `/opt/ispconfig-wp-manager/config.php` of one node or more:
+2. Put it in `/opt/ispconfig-wpstation/config.php` of one node or more:
    `'vulnerabilities' => ['wordfence_key' => '...', 'feed' => 'production'],`
 3. Within 6 hours a node downloads the feed (about 90 MB or more) and stores it in the master database; then once a
    day. Wordfence limits the requests of a key without publishing the limits (on 2026-11-16 a second request a few

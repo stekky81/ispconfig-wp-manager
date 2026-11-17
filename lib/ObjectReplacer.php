@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * After `wp search-replace`: the serialized values that still mention the old site, mostly

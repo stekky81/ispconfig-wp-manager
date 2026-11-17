@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\TransferAuthorization;
+use WPStation\TransferAuthorization;
 
 final class TransferAuthorizationTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class TransferAuthorizationTest extends TestCase
 
     public function testAClonePanelAskedForIsSent(): void
     {
-        self::assertSame('', TransferAuthorization::refusal(self::datalog(['wpm_site_id' => 52, 'clone_of' => 43, 'server_id' => 2]), 43, 52, 2));
+        self::assertSame('', TransferAuthorization::refusal(self::datalog(['wpstation_site_id' => 52, 'clone_of' => 43, 'server_id' => 2]), 43, 52, 2));
     }
 
     /** @return array<string, array{?string}> */
@@ -29,10 +29,10 @@ final class TransferAuthorizationTest extends TestCase
             'no record of the panel' => [null],
             'empty' => [''],
             'not serialized' => ['{"new":{"clone_of":43}}'],
-            'another source' => [self::datalog(['wpm_site_id' => 52, 'clone_of' => 44, 'server_id' => 2])],
-            'another target' => [self::datalog(['wpm_site_id' => 53, 'clone_of' => 43, 'server_id' => 2])],
-            'another node' => [self::datalog(['wpm_site_id' => 52, 'clone_of' => 43, 'server_id' => 3])],
-            'not a clone' => [self::datalog(['wpm_site_id' => 52, 'server_id' => 2])],
+            'another source' => [self::datalog(['wpstation_site_id' => 52, 'clone_of' => 44, 'server_id' => 2])],
+            'another target' => [self::datalog(['wpstation_site_id' => 53, 'clone_of' => 43, 'server_id' => 2])],
+            'another node' => [self::datalog(['wpstation_site_id' => 52, 'clone_of' => 43, 'server_id' => 3])],
+            'not a clone' => [self::datalog(['wpstation_site_id' => 52, 'server_id' => 2])],
             'an object' => ['O:8:"stdClass":1:{s:3:"new";a:0:{}}'],
         ];
     }

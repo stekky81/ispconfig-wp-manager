@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Notifications;
-use WpManager\ValidationException;
+use WPStation\Notifications;
+use WPStation\ValidationException;
 
 final class NotificationsTest extends TestCase
 {
@@ -31,7 +31,7 @@ final class NotificationsTest extends TestCase
     {
         $mail = Notifications::installed(self::SITE + ['secret_wp' => 'enc:SECRET', 'wp_admin_password' => 'Pw123'], 'installed', '');
 
-        self::assertSame('[WordPress Manager] shop.example.com is ready', $mail['subject']);
+        self::assertSame('[WPStation] shop.example.com is ready', $mail['subject']);
         self::assertStringContainsString('https://shop.example.com', $mail['body']);
         self::assertStringNotContainsString('SECRET', $mail['body']);
         self::assertStringNotContainsString('Pw123', $mail['body']);
@@ -41,11 +41,11 @@ final class NotificationsTest extends TestCase
     public function testWarningsAndErrorsOfAnInstallAreSaid(): void
     {
         $warning = Notifications::installed(self::SITE, 'warning', 'Warning: Installation of the plugin x failed');
-        self::assertSame('[WordPress Manager] shop.example.com is ready, with warnings', $warning['subject']);
+        self::assertSame('[WPStation] shop.example.com is ready, with warnings', $warning['subject']);
         self::assertStringContainsString('plugin x failed', $warning['body']);
 
         $error = Notifications::installed(['clone_of' => 4] + self::SITE, 'error', 'Copy of the files failed');
-        self::assertSame('[WordPress Manager] The new clone shop.example.com was not installed', $error['subject']);
+        self::assertSame('[WPStation] The new clone shop.example.com was not installed', $error['subject']);
         self::assertStringContainsString('Copy of the files failed', $error['body']);
     }
 
@@ -62,11 +62,11 @@ final class NotificationsTest extends TestCase
     public function testAnAlertSaysWhatHappened(): void
     {
         $mail = Notifications::alert(self::SITE, 'auto_update', 'rolled_back', 'Broken after the update: home (HTTP 500).');
-        self::assertSame('[WordPress Manager] Automatic update of shop.example.com was rolled back', $mail['subject']);
+        self::assertSame('[WPStation] Automatic update of shop.example.com was rolled back', $mail['subject']);
         self::assertStringContainsString('home (HTTP 500)', $mail['body']);
 
         $urgent = Notifications::alert(self::SITE, 'push', 'rollback_failed', 'x');
-        self::assertStringStartsWith('[WordPress Manager] URGENT: Push of the staging to production of shop.example.com', $urgent['subject']);
+        self::assertStringStartsWith('[WPStation] URGENT: Push of the staging to production of shop.example.com', $urgent['subject']);
     }
 
     // Text of a site reaches the email: no control characters, no endless output.
@@ -116,7 +116,7 @@ final class NotificationsTest extends TestCase
         $mail = Notifications::summary('daily', $sites, $events);
 
         self::assertNotNull($mail);
-        self::assertSame('[WordPress Manager] Daily summary: 3 to look at, 1 with updates', $mail['subject']);
+        self::assertSame('[WPStation] Daily summary: 3 to look at, 1 with updates', $mail['subject']);
         // The latest problem of the period, on one line.
         self::assertStringContainsString('a.example.com: automatic update, rolled back. Broken after the update', $mail['body']);
         self::assertStringNotContainsString('first', $mail['body']);

@@ -3,30 +3,30 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\Crypto;
-use WpManager\DryRunTransport;
-use WpManager\IspconfigApi;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteBackup;
-use WpManager\SiteCloner;
-use WpManager\SiteCredentials;
-use WpManager\SitePermissions;
-use WpManager\SiteProvisioner;
-use WpManager\SiteRecord;
-use WpManager\SiteRemoval;
-use WpManager\SiteRequest;
-use WpManager\SiteScanner;
-use WpManager\Subfolder;
-use WpManager\ValidationException;
-use WpManager\WordPressInstaller;
-use WpManager\WpCli;
-use WpManager\WpDebug;
-use WpManager\HealthCheck;
+use WPStation\Config;
+use WPStation\Crypto;
+use WPStation\DryRunTransport;
+use WPStation\IspconfigApi;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteBackup;
+use WPStation\SiteCloner;
+use WPStation\SiteCredentials;
+use WPStation\SitePermissions;
+use WPStation\SiteProvisioner;
+use WPStation\SiteRecord;
+use WPStation\SiteRemoval;
+use WPStation\SiteRequest;
+use WPStation\SiteScanner;
+use WPStation\Subfolder;
+use WPStation\ValidationException;
+use WPStation\WordPressInstaller;
+use WPStation\WpCli;
+use WPStation\WpDebug;
+use WPStation\HealthCheck;
 
 /** Sites in a folder of an existing website (example.com/blog), and what they change for the site in web/. */
 final class SubfolderTest extends TestCase
@@ -36,7 +36,7 @@ final class SubfolderTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-sub-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-sub-' . bin2hex(random_bytes(4));
         mkdir($base);
         $this->root = (string)realpath($base);
         $this->site = $this->root . '/client1/web7';
@@ -53,7 +53,7 @@ final class SubfolderTest extends TestCase
     private function record(string $subfolder = ''): array
     {
         return [
-            'wpm_site_id' => 5,
+            'wpstation_site_id' => 5,
             'domain' => 'example.com',
             'subfolder' => $subfolder,
             'document_root' => $this->site,
@@ -139,9 +139,9 @@ final class SubfolderTest extends TestCase
     public function testBackupsOfTheSiteInWebLeaveTheNestedSitesOut(): void
     {
         $this->wordpressIn('blog');
-        mkdir("{$this->site}/tmp/wpmanager-backups/20260101-000000", 0o700, true);
+        mkdir("{$this->site}/tmp/wpstation-backups/20260101-000000", 0o700, true);
         foreach (['files.tar.gz', 'db.sql.gz', 'COMPLETE'] as $file) {
-            touch("{$this->site}/tmp/wpmanager-backups/20260101-000000/{$file}");
+            touch("{$this->site}/tmp/wpstation-backups/20260101-000000/{$file}");
         }
         $backups = new SiteBackup(Config::fromArray([]), $this->guard());
         $runner = new Runner(true);
@@ -156,15 +156,15 @@ final class SubfolderTest extends TestCase
     public function testASiteInAFolderHasItsOwnBackupsAndDebugLog(): void
     {
         $backups = new SiteBackup(Config::fromArray([]), $this->guard());
-        self::assertSame("{$this->site}/tmp/wpmanager-backups/subfolder-blog", $backups->directory($this->record('blog')));
-        self::assertSame("{$this->site}/tmp/wpmanager-backups", $backups->directory($this->record()));
+        self::assertSame("{$this->site}/tmp/wpstation-backups/subfolder-blog", $backups->directory($this->record('blog')));
+        self::assertSame("{$this->site}/tmp/wpstation-backups", $backups->directory($this->record()));
         self::assertSame('private/wp-debug-blog.log', WpDebug::log($this->record('blog')));
         self::assertSame(WpDebug::LOG, WpDebug::log($this->record()));
     }
 
     public function testThePruneOfTheSiteInWebKeepsTheBackupsOfTheFolders(): void
     {
-        mkdir("{$this->site}/tmp/wpmanager-backups/subfolder-blog/20250101-000000", 0o700, true);
+        mkdir("{$this->site}/tmp/wpstation-backups/subfolder-blog/20250101-000000", 0o700, true);
         $runner = new Runner(true);
         (new SiteBackup(Config::fromArray([]), $this->guard()))->prune($this->record(), $runner);
 
@@ -363,13 +363,13 @@ final class SubfolderTest extends TestCase
     public function testTheNodeDeletesTheFolderItsBackupsAndItsLogAsTheSiteUser(): void
     {
         $this->wordpressIn('blog');
-        mkdir("{$this->site}/tmp/wpmanager-backups/subfolder-blog", 0o700, true);
+        mkdir("{$this->site}/tmp/wpstation-backups/subfolder-blog", 0o700, true);
         $commands = SiteRemoval::folderCommands($this->record('blog'), $this->guard(), new SiteBackup(Config::fromArray([]), $this->guard()));
 
         self::assertSame(
             [
                 ['rm', '-rf', '--', "{$this->site}/web/blog"],
-                ['rm', '-rf', '--', "{$this->site}/tmp/wpmanager-backups/subfolder-blog"],
+                ['rm', '-rf', '--', "{$this->site}/tmp/wpstation-backups/subfolder-blog"],
                 ['rm', '-f', '--', "{$this->site}/private/wp-debug-blog.log"],
             ],
             array_map(static fn($c): array => $c->args, $commands),
@@ -405,7 +405,7 @@ final class SubfolderTest extends TestCase
         $crypto = new Crypto(base64_decode(Crypto::generateKey()));
         $cloner = new SiteCloner(Config::fromArray([]), $crypto, $this->guard());
         $source = $this->record('blog') + ['status' => 'installed', 'db_name' => 'a'];
-        $target = ['wpm_site_id' => 6, 'server_id' => 1, 'db_name' => 'b', 'secret_db' => $crypto->encrypt('x'), 'document_root' => $this->site, 'system_user' => 'web7'];
+        $target = ['wpstation_site_id' => 6, 'server_id' => 1, 'db_name' => 'b', 'secret_db' => $crypto->encrypt('x'), 'document_root' => $this->site, 'system_user' => 'web7'];
 
         $this->expectExceptionMessage('cannot be cloned yet');
         $cloner->clone($target, $source, new Runner(true));

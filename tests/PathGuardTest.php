@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\PathGuard;
+use WPStation\PathGuard;
 
 final class PathGuardTest extends TestCase
 {
@@ -14,7 +14,7 @@ final class PathGuardTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/wpm-clients-' . bin2hex(random_bytes(4));
+        $this->root = sys_get_temp_dir() . '/wpstation-clients-' . bin2hex(random_bytes(4));
         mkdir($this->root . '/client1/web1/web', 0o755, true);
     }
 

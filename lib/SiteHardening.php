@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Hardening of a site, one switch per measure, each reversible:
@@ -24,7 +24,7 @@ final class SiteHardening
     /** For new sites, unless the settings say otherwise. */
     public const DEFAULTS = ['file_edit', 'uploads_php', 'sensitive_files'];
 
-    private const MARK = 'ispconfig-wp-manager';
+    private const MARK = 'ispconfig-wpstation';
 
     private const BLOCKS = [
         'uploads_php' => [
@@ -47,8 +47,8 @@ final class SiteHardening
 
     /** What must answer 403 once the measure is on. */
     private const PROBES = [
-        'uploads_php' => '/wp-content/uploads/wpm-hardening-check.php',
-        'sensitive_files' => '/wp-config.php.wpm-hardening-check',
+        'uploads_php' => '/wp-content/uploads/wpstation-hardening-check.php',
+        'sensitive_files' => '/wp-config.php.wpstation-hardening-check',
         'xmlrpc' => '/xmlrpc.php',
     ];
 

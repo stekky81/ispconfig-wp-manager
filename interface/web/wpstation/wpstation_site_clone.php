@@ -1,0 +1,167 @@
+<?php
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Clones a site into a new website of the same node. The ISPConfig objects are created like
+// for a new site; the worker then copies the files and the database instead of installing.
+// With staging=1 the clone becomes the staging site of its source: same client, no PHP mail.
+
+require_once '../../lib/config.inc.php';
+require_once '../../lib/app.inc.php';
+require_once '/opt/ispconfig-wpstation/lib/bootstrap.php';
+require_once 'lib/wpstation_config.inc.php';
+require_once 'lib/wpstation_audit.inc.php';
+require_once 'lib/wpstation_scope.inc.php';
+
+$app->auth->check_module_permissions('wpstation');
+
+$app->uses('tpl');
+$app->tpl->newTemplate('form.tpl.htm');
+$app->tpl->setInclude('content_tpl', 'templates/wpstation_site_clone.htm');
+
+$lng_file = 'lib/lang/' . $app->functions->check_language($_SESSION['s']['language']) . '_wpstation_site_clone.lng';
+include $lng_file;
+$app->tpl->setVar($wb);
+
+$escape = static fn($value): string => $app->functions->htmlentities((string)$value);
+
+$id = $app->functions->intval($_REQUEST['id'] ?? 0);
+// Clients and resellers clone only sites they may change, and only for the client that owns the website.
+$source = wpstation_site($app, $id, 'u');
+if (!is_array($source) || $source['status'] !== 'installed') {
+    $app->error($wb['source_not_found_txt']);
+}
+// Not yet for a site in a folder (decided on 2026-11-17): the worker would refuse it after the website was created.
+if ((string)($source['subfolder'] ?? '') !== '') {
+    $app->error($wb['source_not_found_txt']);
+}
+$owner = $app->db->queryOneRecord('SELECT g.client_id FROM web_domain d INNER JOIN sys_group g ON g.groupid = d.sys_groupid WHERE d.domain_id = ?', $source['domain_id']);
+if (!wpstation_is_admin()) {
+    $_POST['client_id'] = (int)($owner['client_id'] ?? -1);
+}
+
+$config = wpstation_config($app);
+
+$staging = !empty($_REQUEST['staging']);
+if ($staging) {
+    try {
+        $current = $app->db->queryOneRecord('SELECT domain FROM wpstation_site WHERE staging_of = ?', $id);
+        \WPStation\SiteStaging::assertCanCreate($source, is_array($current) ? $current : null);
+    } catch (\RuntimeException $e) {
+        $app->error($escape($e->getMessage()));
+    }
+    // A staging belongs to the client of its production site.
+    $_POST['client_id'] = wpstation_is_admin() ? (int)$source['client_id'] : (int)($owner['client_id'] ?? -1);
+}
+
+if (isset($_POST['domain'])) {
+    $app->auth->csrf_token_check();
+    try {
+        $domain = \WPStation\Validator::domain((string)$_POST['domain']);
+        if ($app->db->queryOneRecord('SELECT wpstation_site_id FROM wpstation_site WHERE domain = ?', $domain)) {
+            throw new \WPStation\ValidationException($wb['domain_taken_txt']);
+        }
+        // Stays when the module opens to clients and the check at the top of this page goes.
+        if (!\WPStation\SiteCloner::mayCloneToClient((string)$_SESSION['s']['user']['typ'], (int)$source['client_id'], (int)$_POST['client_id'])) {
+            throw new \WPStation\ValidationException($wb['client_denied_txt']);
+        }
+        // The code of the source will run in the account of the other client.
+        if ((int)$_POST['client_id'] !== (int)$source['client_id'] && empty($_POST['confirm_client'])) {
+            throw new \WPStation\ValidationException($wb['confirm_client_error_txt']);
+        }
+        // A staging stays on the node of its site; a clone can go to any web node.
+        $serverId = $staging ? (int)$source['server_id'] : (int)($_POST['server_id'] ?? $source['server_id']);
+        if (!is_array($app->db->queryOneRecord('SELECT server_id FROM server WHERE server_id = ? AND web_server = 1 AND mirror_server_id = 0', $serverId))) {
+            throw new \WPStation\ValidationException($wb['server_invalid_txt']);
+        }
+        $quota = (int)$config->get('site_defaults.hd_quota');
+        if (!wpstation_is_admin()) {
+            $client = $app->db->queryOneRecord('SELECT * FROM client WHERE client_id = ?', (int)$_POST['client_id']);
+            $servers = is_array($client) ? \WPStation\ClientLimits::webServers($client) : [];
+            if (!is_array($client) || ($servers !== [] && !in_array($serverId, $servers, true))) {
+                throw new \WPStation\ValidationException($wb['server_invalid_txt']);
+            }
+            $fit = wpstation_limits_for_new_site($app, (int)$_POST['client_id'], (string)($_POST['access_type'] ?? 'sftp'), $quota);
+            if ($fit['problems'] !== []) {
+                throw new \WPStation\ValidationException(implode('. ', $fit['problems']) . '.');
+            }
+            $quota = $fit['quota'];
+        }
+        $website = $app->db->queryOneRecord('SELECT server_php_id FROM web_domain WHERE domain_id = ?', $source['domain_id']);
+        // PHP versions belong to their server: on another node the clone gets the default one.
+        $phpId = $serverId === (int)$source['server_id'] ? (int)($website['server_php_id'] ?? 0) : 0;
+        // Title and admin belong to the source: its database replaces them.
+        $request = new \WPStation\SiteRequest(
+            $domain,
+            (string)$_POST['client_id'],
+            (string)$serverId,
+            'Clone of ' . $source['domain'],
+            'clone-admin',
+            'noreply@' . $domain,
+            (string)($_POST['access_type'] ?? ''),
+            null,
+            '',
+            '',
+            (string)$phpId,
+            '',
+            $quota,
+        );
+        $transport = $config->isDryRun() ? new \WPStation\DryRunTransport() : null;
+        $api = \WPStation\IspconfigApi::fromConfig($config, $transport);
+        $provisioner = new \WPStation\SiteProvisioner($api, $config, \WPStation\Crypto::fromFile($config->get('key_file')));
+        $record = $provisioner->provision($request, $staging ? \WPStation\SiteStaging::WEBSITE : []);
+        $api->logout();
+
+        if ($config->isDryRun()) {
+            $lines = array_map($escape, \WPStation\DryRunReport::lines($api->calls()));
+            $app->tpl->setVar('error_msg', 'Dry-run: nothing was created.<br />' . implode('<br />', $lines));
+        } else {
+            unset($record['secret_wp']);
+            $record['wp_admin_user'] = '';
+            $record['wp_title'] = '';
+            $record['clone_of'] = (int)$source['wpstation_site_id'];
+            $record['staging_of'] = $staging ? (int)$source['wpstation_site_id'] : 0;
+            $record = wpstation_owner($app, (int)$record['domain_id']) + $record;
+            $record['sys_perm_user'] = 'riud';
+            $record['sys_perm_group'] = 'riud';
+            $record['sys_perm_other'] = '';
+            $newId = $app->db->datalogInsert('wpstation_site', $record, 'wpstation_site_id');
+            wpstation_audit($app, ['wpstation_site_id' => $newId, 'domain' => $record['domain']], $staging ? 'staging' : 'clone', (string)$source['domain'], "server {$record['server_id']}, client {$record['client_id']}");
+            header('Location: ' . ($staging ? 'wpstation_site_view.php?id=' . $id : 'wpstation_site_list.php'));
+            exit;
+        }
+    } catch (\Throwable $e) {
+        $app->tpl->setVar('error_msg', $escape($e->getMessage()));
+    }
+}
+
+$clients = '';
+$clientFilter = wpstation_is_admin() ? '' : ' WHERE client_id = ' . (int)($owner['client_id'] ?? -1);
+foreach ($app->db->queryAllRecords("SELECT client_id, CONCAT(IF(company_name != '', CONCAT(company_name, ' :: '), ''), contact_name, ' (', username, ')') AS name FROM client{$clientFilter} ORDER BY company_name, contact_name") as $client) {
+    $selected = (int)$client['client_id'] === (int)$source['client_id'] ? ' selected="selected"' : '';
+    $clients .= '<option value="' . (int)$client['client_id'] . '"' . $selected . '>' . $escape($client['name']) . '</option>';
+}
+
+$servers = '';
+$chosen = (int)($_POST['server_id'] ?? $source['server_id']);
+$ownerRow = wpstation_is_admin() ? null : $app->db->queryOneRecord('SELECT * FROM client WHERE client_id = ?', (int)($owner['client_id'] ?? -1));
+$allowedServers = is_array($ownerRow) ? \WPStation\ClientLimits::webServers($ownerRow) : [];
+foreach ($app->db->queryAllRecords('SELECT server_id, server_name FROM server WHERE web_server = 1 AND mirror_server_id = 0 ORDER BY server_name') as $server) {
+    if ($allowedServers !== [] && !in_array((int)$server['server_id'], $allowedServers, true)) {
+        continue;
+    }
+    $selected = (int)$server['server_id'] === $chosen ? ' selected="selected"' : '';
+    $servers .= '<option value="' . (int)$server['server_id'] . '"' . $selected . '>' . $escape($server['server_name']) . '</option>';
+}
+$app->tpl->setVar('server_options', $servers);
+$app->tpl->setVar('id', $id);
+$app->tpl->setVar('source_domain', $escape($source['domain']));
+$app->tpl->setVar('domain', $escape($_POST['domain'] ?? ($staging ? \WPStation\SiteStaging::defaultDomain((string)$source['domain']) : '')));
+$app->tpl->setVar('staging', $staging ? 1 : 0);
+$app->tpl->setVar('client_options', $clients);
+
+$csrf_token = $app->auth->csrf_token_get('wpstation_site_clone');
+$app->tpl->setVar('_csrf_id', $csrf_token['csrf_id']);
+$app->tpl->setVar('_csrf_key', $csrf_token['csrf_key']);
+
+$app->tpl_defaults();
+$app->tpl->pparse();

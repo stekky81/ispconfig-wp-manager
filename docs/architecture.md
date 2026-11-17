@@ -4,14 +4,14 @@
 
 | Path | Runs on | Role |
 |------|---------|------|
-| `interface/web/wpmanager/` | master (panel) | ISPConfig module: menu, forms, lists |
+| `interface/web/wpstation/` | master (panel) | ISPConfig module: menu, forms, lists |
 | `lib/` | master and nodes | Shared, framework-free classes (unit tested) |
-| `server/mods-available/wpmanager_module.inc.php` | every node | Registers the `wpm_site` table with `server.sh`, raises `wpm_site_*` events |
-| `server/plugins-available/wpmanager_plugin.inc.php` | every node | Receives the `wpm_site_*` events, queues jobs |
-| `server/bin/wpm-worker.php` | every node (cron) | Executes queued jobs with WP-CLI |
+| `server/mods-available/wpstation_module.inc.php` | every node | Registers the `wpstation_site` table with `server.sh`, raises `wpstation_site_*` events |
+| `server/plugins-available/wpstation_plugin.inc.php` | every node | Receives the `wpstation_site_*` events, queues jobs |
+| `server/bin/wpstation-worker.php` | every node (cron) | Executes queued jobs with WP-CLI |
 | `install/` | master and nodes | Installer, SQL schema, cron file |
 
-The project lives in `/opt/ispconfig-wp-manager`. The installer **copies** the interface module and the
+The project lives in `/opt/ispconfig-wpstation`. The installer **copies** the interface module and the
 server module and plugin into the ISPConfig tree (a symlink does not work: ISPConfig modules use relative paths
 that PHP resolves from the symlink target). The shared library stays in `/opt` and is loaded by
 absolute path. Re-run the installer after every ISPConfig update and after updating this project.
@@ -23,11 +23,11 @@ absolute path. Re-run the installer after every ISPConfig update and after updat
    website → database user → database (linked to the website via `parent_domain_id`) → SFTP or FTP user,
    as chosen in the form. Password login only for now.
    A failure stops the sequence and the already-created objects are listed for cleanup.
-3. The `wpm_site` record is saved through the datalog with `status = queued` and the job secrets
+3. The `wpstation_site` record is saved through the datalog with `status = queued` and the job secrets
    (DB password, WP admin password) **encrypted** with the shared key (`Crypto`, libsodium).
-4. On the target node `server.sh` passes the record to `wpmanager_module`, which raises `wpm_site_insert`;
+4. On the target node `server.sh` passes the record to `wpstation_module`, which raises `wpstation_site_insert`;
    the plugin writes a job file to the spool.
-5. `wpm-worker.php` (cron, every minute) picks the job when the vhost directory exists, checks
+5. `wpstation-worker.php` (cron, every minute) picks the job when the vhost directory exists, checks
    that `web/` is empty, runs WP-CLI as the site user, then reports `installed` or `error`
    back to the master and clears the secrets.
 
@@ -39,11 +39,11 @@ command inside `server.sh` would block every other change on the node.
 Once a day, three sites per run, the worker reads core, plugin and theme versions and available updates with
 WP-CLI, as the site user and with `--skip-plugins --skip-themes` (must-use plugins still load). It updates nothing: no file changes, and in the
 site database WordPress only refreshes its own update transients. The output is under the control of the site
-owner, so it is limited on the node and escaped in the panel. The report is stored in `wpm_site.updates_json`.
+owner, so it is limited on the node and escaped in the panel. The report is stored in `wpstation_site.updates_json`.
 
 ## Backups
 
-Backups are taken by the worker as the site user, in `<site>/tmp/wpmanager-backups/<id>/`: database dump and files,
+Backups are taken by the worker as the site user, in `<site>/tmp/wpstation-backups/<id>/`: database dump and files,
 verified, then marked with a `COMPLETE` file. The last 3 are kept. They are meant for rollbacks, not as the backups
 of the server: the site user can change them (see [security.md](security.md)). The folder was chosen after reading ISPConfig 3.3.2:
 
@@ -112,12 +112,12 @@ A clone is public, with "Discourage search engines" turned on so that it does no
 Decided with the maintainer on 2026-11-16: a clone (not a staging, not a move) can go to any web node, and the data
 travels through the master database, the only place both nodes reach, so no new access between nodes is needed.
 
-1. The worker of the target node creates the website as usual, then adds a request to `wpm_transfer` and waits.
+1. The worker of the target node creates the website as usual, then adds a request to `wpstation_transfer` and waits.
 2. The worker of the source node claims it. It sends the site only if the panel asked for that clone: the insert of the
    target record in `sys_datalog`, which nodes cannot write, must name this source, this target and the target node
    (`TransferAuthorization`). The source record must also match its website.
 3. It sends a description (home address, table prefix, read in the sandbox), the files (`tar` as the site user) and the
-   dump (`mysqldump` as the site user), in pieces of 2 MB in `wpm_transfer_piece`. Each piece is encrypted with the
+   dump (`mysqldump` as the site user), in pieces of 2 MB in `wpstation_transfer_piece`. Each piece is encrypted with the
    shared key and carries the transfer, its number and its kind; the end of each stream is a piece of its own
    (`SiteTransfer`). At most 16 pieces wait in the master database: the source waits for the target to read them.
 4. The target decrypts and checks every piece, unpacks the files as the clone user, loads the dump with
@@ -172,7 +172,7 @@ page looks again every 15 seconds while an action runs.
   WordPress writes and removes its own `.maintenance` during an update: updates, restores and pushes from a staging
   put back the mode they found. The health check sends a login cookie that WordPress does not accept, so it sees
   the site behind the maintenance page, and past page caches.
-- **One-click login** (`SiteUsers`): the worker creates a temporary administrator, `wpm-login-` and 8 hex digits, with
+- **One-click login** (`SiteUsers`): the worker creates a temporary administrator, `wpstation-login-` and 8 hex digits, with
   a random password and an `.invalid` address; the page shows it once and its button posts it to `wp-login.php` in a
   new tab. The user is deleted 15 minutes later if nobody logged in, otherwise 2 hours after the login (the worker
   looks for its session every minute). What it wrote goes to the first administrator; without one it stays as a
@@ -194,7 +194,7 @@ page looks again every 15 seconds while an action runs.
   WordPress itself is deactivated without loading the other plugins, and its deactivation code does not run.
 
 Everything runs as the site user, in the PHP sandbox; user commands load no plugin or theme. Passwords for the page
-travel encrypted in `wpm_site.secret_result`, are cleared when shown and expire at `secret_until`.
+travel encrypted in `wpstation_site.secret_result`, are cleared when shown and expire at `secret_until`.
 
 ## Full removal
 
@@ -212,21 +212,21 @@ website stays, and the page says so. `SiteRemoval` decides what goes and in whic
 first, the website last.
 
 Refused while the site is being installed, while an action runs, while a clone of it is being installed, and while it
-has a staging site: the staging goes first. The removal is written to `wpm_event`, with the panel user. "Take off the
+has a staging site: the staging goes first. The removal is written to `wpstation_event`, with the panel user. "Take off the
 list", the icon of the list, still only drops the record of the module and deletes nothing.
 
 ## Audit log
 
-Decided with the maintainer on 2026-11-16. The panel writes a row in `wpm_audit` for every request it accepts: new
+Decided with the maintainer on 2026-11-16. The panel writes a row in `wpstation_audit` for every request it accepts: new
 site, clone, staging, every action of the site page, the switches of a site, update or push of a staging, removal,
 taking a site off the list, changes of the settings (which key, from what to what), and every view of a password
 (generated passwords, one-click login, password reset). Each row has the panel user, the address, the time, the site,
-the action and its parameter; never a password. The worker writes the outcome in `wpm_event` as before; the log page
+the action and its parameter; never a password. The worker writes the outcome in `wpstation_event` as before; the log page
 (WordPress → Log) shows next to each request the first event of its kind on its site within 24 hours, and also the
 changes the worker makes by itself (automatic updates, the end of a debug mode or of a temporary login), as done by
 nobody. Filters: site, user, action, period; 50 rows a page. The site page shows its last 10 rows.
 
-Rows and events are kept for a year. The panel deletes older rows of `wpm_audit` when it writes a new one, so the
+Rows and events are kept for a year. The panel deletes older rows of `wpstation_audit` when it writes a new one, so the
 nodes need no access to it; the worker deletes older events with the summary.
 
 ## Security checks
@@ -236,9 +236,9 @@ Decided with the maintainer on 2026-11-16.
 **Known vulnerabilities.** The data come from the Vulnerability Data Feed of Wordfence Intelligence, free also for
 commercial use, with the API key of the wordfence.com account of each installation (`vulnerabilities.wordfence_key`
 in `config.php`: the terms do not allow sharing a key, so none ships with the module). Once a day the first node with
-a key that claims a slot of 6 hours in `wpm_notice` (Wordfence does not publish its limits) downloads the feed (`production`, with the CVSS score, or the smaller
-`scanner`), keeps one row per affected software in `wpm_vulnerability` and the copyright notices in
-`wpm_vulnerability_feed`, and drops the previous download. Records that do not look as expected are left out. Every
+a key that claims a slot of 6 hours in `wpstation_notice` (Wordfence does not publish its limits) downloads the feed (`production`, with the CVSS score, or the smaller
+`scanner`), keeps one row per affected software in `wpstation_vulnerability` and the copyright notices in
+`wpstation_vulnerability_feed`, and drops the previous download. Records that do not look as expected are left out. Every
 node matches its sites against the rows after each daily check, and all its sites again when a new download appears
 (`VulnerabilityFeed::forSite`, version ranges as the Wordfence CLI reads them). The site page lists each vulnerability
 with its record on wordfence.com, its score and the fixed version, and the overview counts them. A new vulnerability
@@ -275,7 +275,7 @@ never reveals the passwords.
 
 Decided with the maintainer on 2026-11-16. The module is opened to a client or a reseller with the usual module
 checkbox of its panel user in ISPConfig. Who sees what follows the website in ISPConfig, never the record of the
-module (`lib/wpm_scope.inc.php`): a site is listed and opened only if `getAuthSQL('r')` of ISPConfig lets the user read
+module (`lib/wpstation_scope.inc.php`): a site is listed and opened only if `getAuthSQL('r')` of ISPConfig lets the user read
 its website, every action and every view of a password needs `u`, removal needs `d`, exactly as in the Sites module. A
 website moved to another client in ISPConfig moves in the module too. A reseller sees the sites of its clients through
 the groups ISPConfig gives it.
@@ -302,7 +302,7 @@ installs WordPress in `web/<folder>` of a website the user may change, such as `
   when the module knows one, otherwise https only when the website has a certificate: ISPConfig leaves `ssl` on when
   Let's Encrypt fails.
 - Everything else works as for any site: updates with rollback, backups, tools, security, emails, log. The backups of
-  a site in a folder are in `tmp/wpmanager-backups/subfolder-<folder>`, its debug log in `private/wp-debug-<folder>.log`,
+  a site in a folder are in `tmp/wpstation-backups/subfolder-<folder>`, its debug log in `private/wp-debug-<folder>.log`,
   so that each site keeps its own last three backups. No clone or staging of a site in a folder, and none into a folder,
   for now.
 - **The site in `web/` never touches the sites in its folders.** Backups, restores, clones and staging copies leave out
@@ -316,11 +316,11 @@ installs WordPress in `web/<folder>` of a website the user may change, such as `
   `web/` cannot be removed while sites in its folders exist: removing the website would take them too.
 - The hourly scan of the nodes also looks one level below `web/` (`SiteScanner::scanSubfolders`) and adds what it finds
   like any detected site, automatic updates included. Records of one website differ by folder: the check of the
-  worker counts the records of a website and folder (`SiteRecord`), and `wpm_site` is unique on domain and folder.
+  worker counts the records of a website and folder (`SiteRecord`), and `wpstation_site` is unique on domain and folder.
 
 ## Settings
 
-Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the
+Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpstation_setting` on the
 master, on top of `config.php`. The record of each site carries what the worker needs to install it, and the worker
 reads only the automatic updates switch and the email settings from that table. `dry_run`, the Remote API account and the key file can only be set in `config.php`.
 
@@ -335,20 +335,20 @@ the master (System → Main config → Mail: sender, SMTP server; the copy in th
   staging, push;
 - a summary, off, daily or weekly (default), only when there is something to report: the problems of the period and
   the sites that are still broken (failed install, failed rollback), what happened in the period, updates available.
-  An older warning stays on the page of its site, or every summary would repeat it. The workers record what they do in `wpm_event` on the master; the first
-  node that adds the name of the summary to `wpm_notice` sends it, so a multiserver setup gets one email. It is due
+  An older warning stays on the page of its site, or every summary would repeat it. The workers record what they do in `wpstation_event` on the master; the first
+  node that adds the name of the summary to `wpstation_notice` sends it, so a multiserver setup gets one email. It is due
   from 6:00, in the time of the master database. Events older than a year are deleted.
 
 Recipients are set in the settings page (up to 10, separated by commas); empty means the admin email of ISPConfig.
-Without a valid admin email the sender is `wpmanager@<node>`. `Notifications` builds the messages; a failed email is
+Without a valid admin email the sender is `wpstation@<node>`. `Notifications` builds the messages; a failed email is
 written to the log of the worker and stops nothing.
 
 ## Existing sites
 
-Once an hour the worker looks for `wp-config.php` in `/var/www/clients/client*/web*/web` and adds to `wpm_site`
+Once an hour the worker looks for `wp-config.php` in `/var/www/clients/client*/web*/web` and adds to `wpstation_site`
 the sites ISPConfig knows and the list does not have yet, with `origin = detected` and no secrets. It changes
 nothing in the sites: it only runs `wp core version` as the site user. Removing such a site from the list is
-therefore temporary. On a slave node this needs INSERT on `wpm_site`, see the multiserver note below.
+therefore temporary. On a slave node this needs INSERT on `wpstation_site`, see the multiserver note below.
 
 ## Safety rules (enforced in code)
 
@@ -368,10 +368,10 @@ therefore temporary. On a slave node this needs INSERT on `wpm_site`, see the mu
   (`FailureMessage`). A plugin or theme that cannot be installed gives a warning, not an error: WordPress works without it.
   If WP-CLI already wrote files, the job ends in `error` and needs a manual look — never an automatic cleanup.
 - **Passwords shown once**: the site detail page decrypts the WP admin and SFTP/FTP passwords on request,
-  after clearing them from `wpm_site`. Encrypted copies stay in `sys_datalog` until ISPConfig prunes it.
+  after clearing them from `wpstation_site`. Encrypted copies stay in `sys_datalog` until ISPConfig prunes it.
 - **Secrets out of `ps`**: passwords reach WP-CLI through stdin (`--prompt`), never as arguments.
 - **Only temporary users deleted**: the worker deletes a WordPress user only if its name has the form of the one-click
-  login, whatever `wpm_site.login_user` says.
+  login, whatever `wpstation_site.login_user` says.
 - **No shell interpolation**: commands are built as argument arrays and escaped one by one.
 
 Permissions, access levels and remaining risks are in [security.md](security.md).
@@ -379,8 +379,8 @@ Permissions, access levels and remaining risks are in [security.md](security.md)
 ## Open questions
 
 - **Multiserver grants**: slave nodes reach the master's dbispconfig as `ispcsrvN` users with per-table grants. The
-  worker on a node reads and writes `wpm_site` (INSERT for the sites it detects) and reads `wpm_setting`, so the
-  master installer grants SELECT, INSERT and UPDATE on `wpm_site` and SELECT on `wpm_setting` to every `ispcsrvN`
+  worker on a node reads and writes `wpstation_site` (INSERT for the sites it detects) and reads `wpstation_setting`, so the
+  master installer grants SELECT, INSERT and UPDATE on `wpstation_site` and SELECT on `wpstation_setting` to every `ispcsrvN`
   account it finds; it has to run again when a node is added. Times that the master writes (`secret_since`) are
   compared with the clock of the master database, not with the clock of the node.
 

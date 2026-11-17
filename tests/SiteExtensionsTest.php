@@ -3,16 +3,16 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\HealthCheck;
-use WpManager\PathGuard;
-use WpManager\Runner;
-use WpManager\SiteBackups;
-use WpManager\SiteExtensions;
-use WpManager\ValidationException;
+use WPStation\Config;
+use WPStation\HealthCheck;
+use WPStation\PathGuard;
+use WPStation\Runner;
+use WPStation\SiteBackups;
+use WPStation\SiteExtensions;
+use WPStation\ValidationException;
 
 final class SiteExtensionsTest extends TestCase
 {
@@ -22,7 +22,7 @@ final class SiteExtensionsTest extends TestCase
 
     protected function setUp(): void
     {
-        $base = sys_get_temp_dir() . '/wpm-ext-' . bin2hex(random_bytes(4));
+        $base = sys_get_temp_dir() . '/wpstation-ext-' . bin2hex(random_bytes(4));
         mkdir($base . '/client1/web7/web', 0o755, true);
         $this->root = (string)realpath($base);
     }

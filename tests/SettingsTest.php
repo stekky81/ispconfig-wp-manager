@@ -3,12 +3,12 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Config;
-use WpManager\Settings;
-use WpManager\ValidationException;
+use WPStation\Config;
+use WPStation\Settings;
+use WPStation\ValidationException;
 
 final class SettingsTest extends TestCase
 {

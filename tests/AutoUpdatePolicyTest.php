@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\AutoUpdatePolicy;
+use WPStation\AutoUpdatePolicy;
 
 final class AutoUpdatePolicyTest extends TestCase
 {

@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\FailureMessage;
+use WPStation\FailureMessage;
 
 final class FailureMessageTest extends TestCase
 {
@@ -22,13 +22,13 @@ final class FailureMessageTest extends TestCase
             'no route' => ['Error: cURL error 7: Failed to connect', 'The node cannot reach the internet: check its connection and DNS.'],
             // Seen in the VM: the plugin name was only in a warning, which was dropped.
             'missing plugin' => [
-                "Command failed (1): Error: No plugins installed.\nWarning: Couldn't find 'wpm-no-such-plugin-xyz' in the WordPress.org plugin directory.",
-                'The plugin wpm-no-such-plugin-xyz does not exist on wordpress.org: check its name.',
+                "Command failed (1): Error: No plugins installed.\nWarning: Couldn't find 'wpstation-no-such-plugin-xyz' in the WordPress.org plugin directory.",
+                'The plugin wpstation-no-such-plugin-xyz does not exist on wordpress.org: check its name.',
             ],
             // Seen in the VM, with WP-CLI 2.12.
             'plugin not found' => [
-                "Command failed (1): Error: No plugins installed.\nWarning: wpm-no-such-plugin-xyz: Plugin not found.\nWarning: The 'wpm-no-such-plugin-xyz' plugin could not be found.",
-                'The plugin wpm-no-such-plugin-xyz does not exist on wordpress.org: check its name.',
+                "Command failed (1): Error: No plugins installed.\nWarning: wpstation-no-such-plugin-xyz: Plugin not found.\nWarning: The 'wpstation-no-such-plugin-xyz' plugin could not be found.",
+                'The plugin wpstation-no-such-plugin-xyz does not exist on wordpress.org: check its name.',
             ],
             'select database' => [
                 'Command failed (1): Error: Can’t select database. We were able to connect to the database server.',

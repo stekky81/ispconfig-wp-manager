@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Readable list of the Remote API calls of a dry run, shown to the admin on the form.

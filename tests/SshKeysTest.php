@@ -3,12 +3,12 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\SiteRequest;
-use WpManager\SshKeys;
-use WpManager\ValidationException;
+use WPStation\SiteRequest;
+use WPStation\SshKeys;
+use WPStation\ValidationException;
 
 final class SshKeysTest extends TestCase
 {

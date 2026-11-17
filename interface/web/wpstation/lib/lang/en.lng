@@ -1,0 +1,8 @@
+<?php
+$wb['top_menu_wpstation'] = 'WordPress';
+$wb['WordPress'] = 'WordPress';
+$wb['WordPress sites'] = 'WordPress sites';
+$wb['New WordPress site'] = 'New WordPress site';
+$wb['Updates'] = 'Updates';
+$wb['Log'] = 'Log';
+$wb['Settings'] = 'Settings';

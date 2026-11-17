@@ -17,7 +17,7 @@ penetration test, and multiserver setups were not covered. Please report problem
 
 ## How it is protected
 
-- **Root runs nothing that others can change.** `/opt/ispconfig-wp-manager` belongs to root and `config.php` is
+- **Root runs nothing that others can change.** `/opt/ispconfig-wpstation` belongs to root and `config.php` is
   `0640 root:ispconfig`. The worker and the server plugin refuse a `config.php` owned by another user or writable by group
   or others. Re-run the installer to fix permissions.
 - **Root does not open site files.** Everything inside a site runs through `sudo -u webN`. Root only checks paths.
@@ -55,11 +55,11 @@ Known and accepted for now:
 - **A compromised panel** can read `secret.key`, so it can decrypt stored secrets, and it can use the Remote API account.
   It cannot become root through this module. To keep fewer secrets around, the generated passwords nobody looked at are
   deleted 7 days after the site is ready.
-- **Encrypted secrets stay in `sys_datalog`** after they are cleared from `wpm_site`: the record of each change keeps
+- **Encrypted secrets stay in `sys_datalog`** after they are cleared from `wpstation_site`: the record of each change keeps
   them, the reveal included. ISPConfig deletes datalog records older than 7 days once every node applied them
   (`server/lib/classes/cron.d/200-logfiles.inc.php` in 3.3.2), so they stay there about as long as the passwords that
   nobody looked at. Deleting them sooner would mean changing an internal table of ISPConfig that keeps the nodes in
-  sync, which is a larger risk than a few days. On a node of a multiserver setup the local copy of `wpm_site` also keeps
+  sync, which is a larger risk than a few days. On a node of a multiserver setup the local copy of `wpstation_site` also keeps
   them, but no panel runs there and the database of ISPConfig on a node is not open to site users.
 - **Backups** belong to the site user, who can read, change and delete them. A restore trusts their content as much as
   the site: a changed backup can bring back any file or row, but its dump cannot give commands to the `mysql` client.
@@ -75,7 +75,7 @@ Known and accepted for now:
 - **Full removal** deletes for good, with no backup of the module: the admin types the domain and ticks a box. Only
   admins can do it, as everything in the module for now.
 
-- **Audit log**: written by the panel only; nodes have no grant on `wpm_audit`. An admin with access to the database
+- **Audit log**: written by the panel only; nodes have no grant on `wpstation_audit`. An admin with access to the database
   of ISPConfig can still change it: it records what happened through the panel, it is not tamper-proof.
 
 - **Vulnerability data** come from Wordfence through a key in `config.php` (0640 root:ispconfig, like the rest of it).
@@ -98,7 +98,7 @@ Known and accepted for now:
 Reviewed on 2026-11-16, with a node joined to the master in the test environment.
 
 - **A node writes to the master database** as its `ispcsrvN` account, like ISPConfig itself. The master installer gives
-  it SELECT and INSERT on `wpm_site` (INSERT for the sites it detects) and UPDATE only on the columns a worker writes
+  it SELECT and INSERT on `wpstation_site` (INSERT for the sites it detects) and UPDATE only on the columns a worker writes
   (status, messages, versions, secrets it clears, action fields, check times), like ISPConfig does with its own
   tables. The folder, the user, the server, the domain and the automatic update switch of a site cannot be changed
   from a node.
@@ -112,7 +112,7 @@ Reviewed on 2026-11-16, with a node joined to the master in the test environment
   could open a request for any site of another node: the source node sends a site only for a clone that the panel
   created, which it checks in `sys_datalog`, where nodes cannot add records. With the shared key such a node can still
   read the pieces of a real clone that pass through the master database while it runs.
-- **Events and summaries**: a node can add and delete rows of `wpm_event`, and add rows to `wpm_notice`. At worst a node
+- **Events and summaries**: a node can add and delete rows of `wpstation_event`, and add rows to `wpstation_notice`. At worst a node
   that was broken into hides events from the summary or stops summaries; it cannot change a site.
 - **Not ours**: ISPConfig needs the master database to accept connections from the nodes. Limit it to their addresses
   with a firewall.
@@ -170,10 +170,10 @@ Fixed:
 | Low | The `home` option of the source reached WP-CLI as an argument, and stayed in the clone |
 | Low | The list and delete pages had no admin check |
 | Low | A failed restore could not run again and could leave the database dump behind |
-| Low | The database password stayed encrypted in `wpm_site` after a final install error |
-| Low | Generated passwords nobody looked at stayed encrypted in `wpm_site` for ever |
+| Low | The database password stayed encrypted in `wpstation_site` after a final install error |
+| Low | Generated passwords nobody looked at stayed encrypted in `wpstation_site` for ever |
 | Low | The worker log was readable by every user, and an unreadable backup folder could stop the worker |
-| Medium | A node could change every column of `wpm_site`, and the worker trusted the folder and the user of a row: a node that was broken into could send the worker of another node to another folder or user |
+| Medium | A node could change every column of `wpstation_site`, and the worker trusted the folder and the user of a row: a node that was broken into could send the worker of another node to another folder or user |
 | Medium | Install and clone ran WP-CLI outside the sandbox; a clone ran the code of the source there |
 | Medium | (design) Turning debug on with `WP_DEBUG` first would show errors to visitors if the next step failed: the display goes off and the log moves first |
 | Low | (design) A node could name a real administrator in `login_user` and have it deleted at expiry: only names of the one-click login are deleted, and the column is cleared |

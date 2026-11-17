@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\Command;
-use WpManager\Runner;
+use WPStation\Command;
+use WPStation\Runner;
 
 final class RunnerTest extends TestCase
 {
@@ -41,7 +41,7 @@ final class RunnerTest extends TestCase
 
     public function testPipeCarriesTheDataBetweenTwoCommands(): void
     {
-        $file = tempnam(sys_get_temp_dir(), 'wpm-pipe');
+        $file = tempnam(sys_get_temp_dir(), 'wpstation-pipe');
         $runner = new Runner(false);
         $runner->pipe(
             new Command(['/bin/sh', '-c', 'echo hello']),
@@ -54,7 +54,7 @@ final class RunnerTest extends TestCase
 
     public function testPipeCarriesMoreThanAPipeBuffer(): void
     {
-        $file = tempnam(sys_get_temp_dir(), 'wpm-pipe');
+        $file = tempnam(sys_get_temp_dir(), 'wpstation-pipe');
         (new Runner(false))->pipe(
             new Command(['/bin/sh', '-c', 'head -c 3000000 /dev/zero']),
             new Command(['/bin/sh', '-c', 'cat > ' . escapeshellarg($file)]),
@@ -171,7 +171,7 @@ final class RunnerTest extends TestCase
 
     public function testFeedGivesTheCommandEveryPiece(): void
     {
-        $file = tempnam(sys_get_temp_dir(), 'wpm-feed');
+        $file = tempnam(sys_get_temp_dir(), 'wpstation-feed');
         $pieces = ['abc', str_repeat('x', 200000), 'end'];
         (new Runner(false))->feed(new Command(['/bin/sh', '-c', 'cat > "$0"', $file]), static function () use (&$pieces): ?string {
             return array_shift($pieces);
@@ -220,7 +220,7 @@ final class RunnerTest extends TestCase
     // Found in the VM: a site can ignore SIGTERM, and the sudo waiting for it kept the lock of the worker.
     public function testACommandThatIgnoresSigtermIsKilledAfterTheTimeout(): void
     {
-        $pidFile = tempnam(sys_get_temp_dir(), 'wpm');
+        $pidFile = tempnam(sys_get_temp_dir(), 'wpstation');
         $start = microtime(true);
         try {
             (new Runner(false, [], 1, 100000, 1))->run(new Command(['/bin/sh', '-c', 'trap "" TERM; echo $$ > ' . $pidFile . '; while :; do sleep 1; done']));
@@ -240,7 +240,7 @@ final class RunnerTest extends TestCase
         if (!is_dir('/proc/self')) {
             self::markTestSkipped('needs /proc (Linux)');
         }
-        $pidFile = tempnam(sys_get_temp_dir(), 'wpm');
+        $pidFile = tempnam(sys_get_temp_dir(), 'wpstation');
         try {
             (new Runner(false, [], 1, 100000, 1))->run(new Command(['/bin/sh', '-c', 'trap "" TERM; sleep 30 & echo $! > ' . $pidFile . '; wait']));
             self::fail('No timeout');
@@ -256,7 +256,7 @@ final class RunnerTest extends TestCase
 
     public function testBothSidesOfAPipeAreKilledAfterTheTimeout(): void
     {
-        $pidFile = tempnam(sys_get_temp_dir(), 'wpm');
+        $pidFile = tempnam(sys_get_temp_dir(), 'wpstation');
         try {
             (new Runner(false, [], 1, 100000, 1))->pipe(
                 new Command(['/bin/sh', '-c', 'trap "" TERM; echo $$ > ' . $pidFile . '; while :; do sleep 1; done']),

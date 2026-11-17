@@ -3,17 +3,17 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests\Integration;
+namespace WPStation\Tests\Integration;
 
-use WpManager\MaintenanceMode;
-use WpManager\Runner;
-use WpManager\SiteBackup;
-use WpManager\SiteExtensions;
-use WpManager\SiteHardening;
-use WpManager\SiteInventory;
-use WpManager\SitePermissions;
-use WpManager\SiteUsers;
-use WpManager\WpDebug;
+use WPStation\MaintenanceMode;
+use WPStation\Runner;
+use WPStation\SiteBackup;
+use WPStation\SiteExtensions;
+use WPStation\SiteHardening;
+use WPStation\SiteInventory;
+use WPStation\SitePermissions;
+use WPStation\SiteUsers;
+use WPStation\WpDebug;
 
 /** The tools of the site page on a real WordPress, as the worker runs them. */
 final class SiteToolsTest extends IntegrationTestCase
@@ -24,7 +24,7 @@ final class SiteToolsTest extends IntegrationTestCase
 
         $start = time();
         try {
-            (new Runner(false, [], 2))->run(new \WpManager\Command(['sleep', '30'], 'web901', '/tmp'));
+            (new Runner(false, [], 2))->run(new \WPStation\Command(['sleep', '30'], 'web901', '/tmp'));
             self::fail('expected a timeout');
         } catch (\RuntimeException $e) {
             self::assertStringStartsWith('Timeout: ', $e->getMessage());
@@ -75,12 +75,12 @@ final class SiteToolsTest extends IntegrationTestCase
         $debug->set($site, true);
         self::assertSame('1', self::wp(901, 'config', 'get', 'WP_DEBUG'));
         self::assertSame($site['document_root'] . '/private/wp-debug.log', self::wp(901, 'config', 'get', 'WP_DEBUG_LOG'));
-        self::wp(901, 'eval', 'error_log("wpm integration line");');
-        self::assertStringContainsString('wpm integration line', $debug->tail($site));
+        self::wp(901, 'eval', 'error_log("wpstation integration line");');
+        self::assertStringContainsString('wpstation integration line', $debug->tail($site));
 
         $debug->set($site, false);
         self::assertSame('', self::wp(901, 'config', 'get', 'WP_DEBUG'));
-        self::assertNotSame(0, self::as(901, [(string)getenv('WPM_IT_WP_CLI'), 'config', 'has', 'WP_DEBUG_LOG', '--path=' . self::web(901)])['exit']);
+        self::assertNotSame(0, self::as(901, [(string)getenv('WPSTATION_IT_WP_CLI'), 'config', 'has', 'WP_DEBUG_LOG', '--path=' . self::web(901)])['exit']);
     }
 
     public function testHardeningLeavesTheRulesOfWordPressAsTheyWere(): void
@@ -110,7 +110,7 @@ final class SiteToolsTest extends IntegrationTestCase
     {
         $site = self::site(901);
         $permissions = new SitePermissions(self::config(), self::guard(), self::health());
-        $open = self::web(901) . '/wpm-open.txt';
+        $open = self::web(901) . '/wpstation-open.txt';
         self::as(901, ['touch', '--', $open]);
         self::as(901, ['chmod', '666', '--', $open]);
         self::as(901, ['chmod', '644', '--', self::web(901) . '/wp-config.php']);
@@ -134,12 +134,12 @@ final class SiteToolsTest extends IntegrationTestCase
         $login = $users->createLogin($site);
         $id = self::wp(901, 'user', 'get', $login['user'], '--field=ID');
         self::assertSame('administrator', self::wp(901, 'user', 'get', $login['user'], '--field=roles'));
-        self::assertSame(0, self::as(901, [(string)getenv('WPM_IT_WP_CLI'), 'user', 'check-password', $login['user'], $login['password'], '--path=' . self::web(901)])['exit']);
-        $post = self::wp(901, 'post', 'create', '--post_title=wpm', '--post_author=' . $id, '--porcelain');
+        self::assertSame(0, self::as(901, [(string)getenv('WPSTATION_IT_WP_CLI'), 'user', 'check-password', $login['user'], $login['password'], '--path=' . self::web(901)])['exit']);
+        $post = self::wp(901, 'post', 'create', '--post_title=wpstation', '--post_author=' . $id, '--porcelain');
         self::assertFalse($users->hasSession($site, $login['user']));
 
         $users->removeLogin($site, $login['user']);
-        self::assertNotSame(0, self::as(901, [(string)getenv('WPM_IT_WP_CLI'), 'user', 'get', $login['user'], '--path=' . self::web(901)])['exit']);
+        self::assertNotSame(0, self::as(901, [(string)getenv('WPSTATION_IT_WP_CLI'), 'user', 'get', $login['user'], '--path=' . self::web(901)])['exit']);
         self::assertSame('1', self::wp(901, 'post', 'get', $post, '--field=post_author'));
         self::wp(901, 'post', 'delete', $post, '--force');
     }
@@ -149,24 +149,24 @@ final class SiteToolsTest extends IntegrationTestCase
         $reset = (new SiteUsers(self::config(), self::guard()))->resetPassword(self::site(901), 1);
 
         self::assertSame('itadmin', $reset['user']);
-        self::assertSame(0, self::as(901, [(string)getenv('WPM_IT_WP_CLI'), 'user', 'check-password', 'itadmin', $reset['password'], '--path=' . self::web(901)])['exit']);
+        self::assertSame(0, self::as(901, [(string)getenv('WPSTATION_IT_WP_CLI'), 'user', 'check-password', 'itadmin', $reset['password'], '--path=' . self::web(901)])['exit']);
     }
 
     public function testAPluginIsActivatedDeactivatedAndRemoved(): void
     {
         $site = self::site(901);
-        $folder = self::web(901) . '/wp-content/plugins/wpm-it-plugin';
+        $folder = self::web(901) . '/wp-content/plugins/wpstation-it-plugin';
         self::as(901, ['mkdir', '-p', '--', $folder]);
-        self::as(901, ['tee', '--', $folder . '/wpm-it-plugin.php'], "<?php\n/* Plugin Name: WPM integration */\n");
+        self::as(901, ['tee', '--', $folder . '/wpstation-it-plugin.php'], "<?php\n/* Plugin Name: WPStation integration */\n");
         $extensions = new SiteExtensions(self::config(), self::guard(), new SiteBackup(self::config(), self::guard()), self::health());
 
-        self::assertSame('done', $extensions->run($site, 'plugin_activate', 'wpm-it-plugin')['outcome']);
-        self::assertSame('active', self::wp(901, 'plugin', 'get', 'wpm-it-plugin', '--field=status'));
-        self::assertSame('done', $extensions->run($site, 'plugin_deactivate', 'wpm-it-plugin')['outcome']);
-        self::assertSame('inactive', self::wp(901, 'plugin', 'get', 'wpm-it-plugin', '--field=status'));
-        self::assertSame('done', $extensions->run($site, 'plugin_delete', 'wpm-it-plugin')['outcome']);
+        self::assertSame('done', $extensions->run($site, 'plugin_activate', 'wpstation-it-plugin')['outcome']);
+        self::assertSame('active', self::wp(901, 'plugin', 'get', 'wpstation-it-plugin', '--field=status'));
+        self::assertSame('done', $extensions->run($site, 'plugin_deactivate', 'wpstation-it-plugin')['outcome']);
+        self::assertSame('inactive', self::wp(901, 'plugin', 'get', 'wpstation-it-plugin', '--field=status'));
+        self::assertSame('done', $extensions->run($site, 'plugin_delete', 'wpstation-it-plugin')['outcome']);
         self::assertDirectoryDoesNotExist($folder);
-        self::assertSame('refused', $extensions->run($site, 'plugin_delete', 'wpm-it-plugin')['outcome']);
+        self::assertSame('refused', $extensions->run($site, 'plugin_delete', 'wpstation-it-plugin')['outcome']);
     }
 
     public function testTheDailyCheckReadsTheSite(): void

@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
- * The tables wpm_transfer and wpm_transfer_piece in the master database, with a connection of its own:
+ * The tables wpstation_transfer and wpstation_transfer_piece in the master database, with a connection of its own:
  * prepared statements carry the binary pieces as they are.
  */
 final class MysqlTransferStore implements TransferStore
@@ -29,7 +29,7 @@ final class MysqlTransferStore implements TransferStore
     public function open(int $sourceSiteId, int $targetSiteId, int $sourceServerId, int $targetServerId): int
     {
         $this->run(
-            'INSERT INTO wpm_transfer (source_site_id, target_site_id, source_server_id, target_server_id, state) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO wpstation_transfer (source_site_id, target_site_id, source_server_id, target_server_id, state) VALUES (?, ?, ?, ?, ?)',
             'iiiis',
             [$sourceSiteId, $targetSiteId, $sourceServerId, $targetServerId, 'requested'],
         );
@@ -39,14 +39,14 @@ final class MysqlTransferStore implements TransferStore
     public function claim(int $sourceServerId): ?array
     {
         $rows = $this->rows(
-            "SELECT transfer_id, source_site_id, target_site_id FROM wpm_transfer WHERE source_server_id = ? AND state = 'requested' ORDER BY transfer_id",
+            "SELECT transfer_id, source_site_id, target_site_id FROM wpstation_transfer WHERE source_server_id = ? AND state = 'requested' ORDER BY transfer_id",
             'i',
             [$sourceServerId],
         );
         foreach ($rows as $row) {
             // Only one worker may send it.
             // Counted on the statement: the connection does not report it for prepared statements.
-            if ($this->run("UPDATE wpm_transfer SET state = 'sending' WHERE transfer_id = ? AND state = 'requested'", 'i', [(int)$row['transfer_id']]) === 1) {
+            if ($this->run("UPDATE wpstation_transfer SET state = 'sending' WHERE transfer_id = ? AND state = 'requested'", 'i', [(int)$row['transfer_id']]) === 1) {
                 return array_map('intval', $row);
             }
         }
@@ -55,7 +55,7 @@ final class MysqlTransferStore implements TransferStore
 
     public function state(int $transferId): ?array
     {
-        $rows = $this->rows('SELECT state, error FROM wpm_transfer WHERE transfer_id = ?', 'i', [$transferId]);
+        $rows = $this->rows('SELECT state, error FROM wpstation_transfer WHERE transfer_id = ?', 'i', [$transferId]);
         return $rows === [] ? null : ['state' => (string)$rows[0]['state'], 'error' => (string)$rows[0]['error']];
     }
 
@@ -64,38 +64,38 @@ final class MysqlTransferStore implements TransferStore
         if (!in_array($state, self::STATES, true)) {
             throw new \InvalidArgumentException("Unknown transfer state: {$state}");
         }
-        $this->run('UPDATE wpm_transfer SET state = ?, error = ? WHERE transfer_id = ?', 'ssi', [$state, mb_substr($error, 0, 1000), $transferId]);
+        $this->run('UPDATE wpstation_transfer SET state = ?, error = ? WHERE transfer_id = ?', 'ssi', [$state, mb_substr($error, 0, 1000), $transferId]);
     }
 
     public function put(int $transferId, int $seq, string $data): void
     {
-        $this->run('INSERT INTO wpm_transfer_piece (transfer_id, seq, data) VALUES (?, ?, ?)', 'iis', [$transferId, $seq, $data]);
+        $this->run('INSERT INTO wpstation_transfer_piece (transfer_id, seq, data) VALUES (?, ?, ?)', 'iis', [$transferId, $seq, $data]);
     }
 
     public function pending(int $transferId): int
     {
-        return (int)($this->rows('SELECT COUNT(*) AS n FROM wpm_transfer_piece WHERE transfer_id = ?', 'i', [$transferId])[0]['n'] ?? 0);
+        return (int)($this->rows('SELECT COUNT(*) AS n FROM wpstation_transfer_piece WHERE transfer_id = ?', 'i', [$transferId])[0]['n'] ?? 0);
     }
 
     public function take(int $transferId, int $seq): ?string
     {
-        $rows = $this->rows('SELECT data FROM wpm_transfer_piece WHERE transfer_id = ? AND seq = ?', 'ii', [$transferId, $seq]);
+        $rows = $this->rows('SELECT data FROM wpstation_transfer_piece WHERE transfer_id = ? AND seq = ?', 'ii', [$transferId, $seq]);
         if ($rows === []) {
             return null;
         }
-        $this->run('DELETE FROM wpm_transfer_piece WHERE transfer_id = ? AND seq = ?', 'ii', [$transferId, $seq]);
+        $this->run('DELETE FROM wpstation_transfer_piece WHERE transfer_id = ? AND seq = ?', 'ii', [$transferId, $seq]);
         return (string)$rows[0]['data'];
     }
 
     public function close(int $transferId): void
     {
-        $this->run('DELETE FROM wpm_transfer_piece WHERE transfer_id = ?', 'i', [$transferId]);
-        $this->run('DELETE FROM wpm_transfer WHERE transfer_id = ?', 'i', [$transferId]);
+        $this->run('DELETE FROM wpstation_transfer_piece WHERE transfer_id = ?', 'i', [$transferId]);
+        $this->run('DELETE FROM wpstation_transfer WHERE transfer_id = ?', 'i', [$transferId]);
     }
 
     public function prune(int $olderThan): void
     {
-        foreach ($this->rows('SELECT transfer_id FROM wpm_transfer WHERE created < NOW() - INTERVAL ? SECOND', 'i', [$olderThan]) as $row) {
+        foreach ($this->rows('SELECT transfer_id FROM wpstation_transfer WHERE created < NOW() - INTERVAL ? SECOND', 'i', [$olderThan]) as $row) {
             $this->close((int)$row['transfer_id']);
         }
     }

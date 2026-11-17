@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\SiteActions;
+use WPStation\SiteActions;
 
 final class SiteActionsTest extends TestCase
 {

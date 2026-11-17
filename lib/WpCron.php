@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-namespace WpManager;
+namespace WPStation;
 
 /**
  * Switches a site between WP-Cron, run by page visits, and a real cron job that ISPConfig

@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-namespace WpManager\Tests;
+namespace WPStation\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpManager\PathGuard;
-use WpManager\SiteScanner;
+use WPStation\PathGuard;
+use WPStation\SiteScanner;
 
 final class SiteScannerTest extends TestCase
 {
@@ -15,7 +15,7 @@ final class SiteScannerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/wpm-scan-' . bin2hex(random_bytes(4));
+        $this->root = sys_get_temp_dir() . '/wpstation-scan-' . bin2hex(random_bytes(4));
         mkdir($this->root);
         $this->root = (string)realpath($this->root);
     }
