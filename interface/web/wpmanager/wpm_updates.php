@@ -22,9 +22,9 @@ $app->tpl->setVar($wb);
 $escape = static fn($value): string => $app->functions->htmlentities((string)$value);
 
 $rows = $app->db->queryAllRecords(
-    "SELECT s.wpm_site_id, s.domain, s.wp_version, s.updates_count, s.updates_json, s.last_check, s.action_status, s.action_message, s.vulns_count, s.vulns_fixable, v.server_name
+    "SELECT s.wpm_site_id, s.domain, s.subfolder, s.wp_version, s.updates_count, s.updates_json, s.last_check, s.action_status, s.action_message, s.vulns_count, s.vulns_fixable, v.server_name
      FROM wpm_site s LEFT JOIN server v ON v.server_id = s.server_id
-     WHERE s.status = 'installed' AND " . wpm_site_scope($app, 's') . " ORDER BY s.vulns_count DESC, s.updates_count DESC, s.domain"
+     WHERE s.status = 'installed' AND " . wpm_site_scope($app, 's') . " ORDER BY s.vulns_count DESC, s.updates_count DESC, s.domain, s.subfolder"
 );
 
 $servers = [];
@@ -44,7 +44,7 @@ foreach ($rows as $row) {
     );
     $sites[] = [
         'id' => (int)$row['wpm_site_id'],
-        'domain' => $escape($row['domain']),
+        'domain' => $escape(\WpManager\Subfolder::label($row)),
         'server_name' => $escape($row['server_name']),
         'wp_version' => $escape($row['wp_version']),
         'updates_count' => (int)$row['updates_count'],

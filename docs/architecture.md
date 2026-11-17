@@ -288,6 +288,36 @@ gets a "Web space" field with the default of the settings, cut to what is left; 
 cron needs a cron job left. Admins are not limited, as in ISPConfig. Settings, the whole log, the record-only removal
 from the list and the detected sites of nobody stay with the admins.
 
+## Sites in subfolders
+
+Decided with the maintainer on 2026-11-17 (`Subfolder`). **New WordPress site → in a folder of an existing website**
+installs WordPress in `web/<folder>` of a website the user may change, such as `example.com/blog`:
+
+- The folder is one level below `web/`, a name of lowercase letters, digits and hyphens, and not one that ISPConfig,
+  Apache or WordPress use (`stats`, `error`, `cgi-bin`, `wp-admin`, `wp-content`, `wp-includes`, ...). It must be new
+  or empty: the node creates it as the site user, and refuses one with anything in it, or a link.
+- Only a database and its user are created, attached to the website. The site uses the SFTP or FTP users, the PHP
+  version and the web space of the website; for clients and resellers only the limits of databases and database users
+  are checked. The page of the site names the users of the website. Its address takes the scheme of the site in `web/`
+  when the module knows one, otherwise https only when the website has a certificate: ISPConfig leaves `ssl` on when
+  Let's Encrypt fails.
+- Everything else works as for any site: updates with rollback, backups, tools, security, emails, log. The backups of
+  a site in a folder are in `tmp/wpmanager-backups/subfolder-<folder>`, its debug log in `private/wp-debug-<folder>.log`,
+  so that each site keeps its own last three backups. No clone or staging of a site in a folder, and none into a folder,
+  for now.
+- **The site in `web/` never touches the sites in its folders.** Backups, restores, clones and staging copies leave out
+  every folder right below `web/` that holds a `wp-config.php` of its own (`Subfolder::nested`), and `rsync --delete`
+  excludes them too, so the restore of an older backup neither deletes nor rolls back a blog made after it. The
+  permission check of the site in `web/` skips them. The hardening of `web/` still applies below it, as Apache reads
+  `.htaccess` that way: "No XML-RPC" on the site in `web/` also closes `xmlrpc.php` of the blog.
+- **Removal** of a site in a folder deletes, through the datalog, its database, the database users no other database
+  uses and its cron job; the node then deletes the folder, its backups and its debug log as the site user, and marks the
+  record `removed`; the list drops such records when it loads. The website and everything else in it stay. The site in
+  `web/` cannot be removed while sites in its folders exist: removing the website would take them too.
+- The hourly scan of the nodes also looks one level below `web/` (`SiteScanner::scanSubfolders`) and adds what it finds
+  like any detected site, automatic updates included. Records of one website differ by folder: the check of the
+  worker counts the records of a website and folder (`SiteRecord`), and `wpm_site` is unique on domain and folder.
+
 ## Settings
 
 Global defaults for new sites are edited in the panel (WordPress → Settings) and stored in `wpm_setting` on the

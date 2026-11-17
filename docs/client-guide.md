@@ -30,6 +30,13 @@ by itself. Only one task at a time runs on each site.
 
 The site is ready within a few minutes. Its status then reads **installed**.
 
+### A site in a folder
+
+The page **New WordPress site** has a link to put WordPress in a folder of a website you already have, for example
+`yourdomain/blog`. Choose the website and the folder name: lowercase letters, digits and hyphens. The folder must be new
+or empty. The site uses the file access and the disk space of that website, so only the WordPress password is new. Your
+other site on the same website is never touched by the backups or restores of the blog, and the other way round.
+
 ### Your passwords
 
 Passwords are created for you. Open the page of the site and press **Show passwords**: they appear **only once**,

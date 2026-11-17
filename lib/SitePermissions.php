@@ -31,7 +31,7 @@ final class SitePermissions
         $user = (string)$site['system_user'];
         // Folders the site user cannot open make find say so on stderr: what it found is still right.
         $found = $runner->run(new Command([
-            'find', $web, '-xdev', '!', '-type', 'l',
+            ...$this->find($site, $web), '!', '-type', 'l',
             '(', '-perm', '-0002', '-printf', "W\t%p\n", '-o', '!', '-user', $user, '-printf', "O\t%u\t%p\n", ')',
         ], $user));
         $mode = $runner->run(new Command(['stat', '-c', '%a', '--', $web . '/wp-config.php'], $user));
@@ -80,7 +80,7 @@ final class SitePermissions
         $before = $this->health->run($site);
 
         // Only what the site user owns can change; the list is kept to put it back.
-        $listed = $runner->run(new Command(['find', $web, '-xdev', '!', '-type', 'l', '-perm', '-0002', '-user', $user, '-print0'], $user));
+        $listed = $runner->run(new Command([...$this->find($site, $web), '!', '-type', 'l', '-perm', '-0002', '-user', $user, '-print0'], $user));
         $changed = array_values(array_filter(explode("\0", $listed['stdout']), static fn(string $p): bool => $p !== '' && str_starts_with($p, $web)));
         $mode = trim($runner->run(new Command(['stat', '-c', '%a', '--', $web . '/wp-config.php'], $user))['stdout']);
         try {
@@ -128,8 +128,23 @@ final class SitePermissions
         return $path === $web ? '/' : (str_starts_with($path, $web . '/') ? substr($path, strlen($web)) : $path);
     }
 
+    /** find in the web root, without the folders of other WordPress sites below it: they have their own check. */
+    private function find(array $site, string $web): array
+    {
+        $args = ['find', $web, '-xdev'];
+        $nested = Subfolder::nested($site, $this->guard);
+        if ($nested !== []) {
+            $args[] = '(';
+            foreach ($nested as $i => $name) {
+                $args = array_merge($args, $i === 0 ? [] : ['-o'], ['-path', "{$web}/{$name}"]);
+            }
+            array_push($args, ')', '-prune', '-o');
+        }
+        return $args;
+    }
+
     private function web(array $site): string
     {
-        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        return Subfolder::webRoot($site, $this->guard);
     }
 }

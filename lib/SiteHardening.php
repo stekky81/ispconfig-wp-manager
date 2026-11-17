@@ -182,7 +182,7 @@ final class SiteHardening
 
     private function htaccess(array $site, string $measure): string
     {
-        $web = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        $web = Subfolder::webRoot($site, $this->guard);
         if ($measure !== 'uploads_php') {
             return $web . '/.htaccess';
         }
@@ -207,8 +207,6 @@ final class SiteHardening
 
     private function wp(array $site): WpCli
     {
-        $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
-        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
+        return WpCli::forSite($this->config, $this->guard, $site);
     }
 }

@@ -191,6 +191,20 @@ if (isset($_POST['reveal']) && $formAction !== 'ssh_keys') {
 foreach (['domain', 'status', 'origin', 'access_type', 'access_user', 'wp_admin_user', 'wp_version', 'db_name', 'db_user', 'document_root', 'system_user'] as $field) {
     $app->tpl->setVar($field, $escape($site[$field]));
 }
+// A site in a folder: named with its folder, and without users of its own, so the page names those of the website.
+$subfolder = (string)($site['subfolder'] ?? '');
+$app->tpl->setVar('subfolder', $escape($subfolder));
+if ($subfolder !== '') {
+    $app->tpl->setVar('domain', $escape(\WpManager\Subfolder::label($site)));
+    $app->tpl->setVar('document_root', $escape(rtrim((string)$site['document_root'], '/') . '/web/' . $subfolder));
+    $users = [];
+    foreach (['shell_user' => 'SFTP', 'ftp_user' => 'FTP'] as $table => $kind) {
+        foreach ($app->db->queryAllRecords("SELECT username FROM {$table} WHERE parent_domain_id = ? ORDER BY username", (int)$site['domain_id']) ?: [] as $user) {
+            $users[] = "{$kind}: {$user['username']}";
+        }
+    }
+    $app->tpl->setVar('website_users', $escape($users === [] ? '-' : implode(', ', $users)));
+}
 $app->tpl->setVar('id', $id);
 $stagingSite = $app->db->queryOneRecord('SELECT wpm_site_id, domain FROM wpm_site WHERE staging_of = ?', $id);
 $production = (int)$site['staging_of'] > 0 ? wpm_site($app, (int)$site['staging_of'], 'r') : null;
@@ -200,10 +214,12 @@ $app->tpl->setVar('staging_id', $stagingVisible ? (int)$stagingSite['wpm_site_id
 $app->tpl->setVar('staging_domain', $stagingVisible ? $escape($stagingSite['domain']) : '');
 $app->tpl->setVar('production_id', is_array($production) ? (int)$production['wpm_site_id'] : 0);
 $app->tpl->setVar('production_domain', is_array($production) ? $escape($production['domain']) : '');
-$app->tpl->setVar('can_stage', $site['status'] === 'installed' && (int)$site['staging_of'] === 0 && !is_array($stagingSite) ? 1 : 0);
+// No clone or staging of a site in a folder yet (decided on 2026-11-17).
+$app->tpl->setVar('can_clone', $site['status'] === 'installed' && $subfolder === '' ? 1 : 0);
+$app->tpl->setVar('can_stage', $site['status'] === 'installed' && $subfolder === '' && (int)$site['staging_of'] === 0 && !is_array($stagingSite) ? 1 : 0);
 $app->tpl->setVar('can_remove', wpm_is_admin() || wpm_site($app, $id, 'd') !== null ? 1 : 0);
 $app->tpl->setVar('is_admin', wpm_is_admin() ? 1 : 0);
-$app->tpl->setVar('site_url', $escape($site['site_url'] ?: 'http://' . $site['domain']));
+$app->tpl->setVar('site_url', $escape(\WpManager\Subfolder::siteUrl($site)));
 $app->tpl->setVar('status_message', $escape($site['status_message'] ?? ''));
 $app->tpl->setVar('can_reveal', $credentials->canReveal($site) ? 1 : 0);
 $app->tpl->setVar('credentials_expired', \WpManager\SiteCredentials::hasExpired($site) ? 1 : 0);
@@ -245,7 +261,7 @@ $app->tpl->setVar('maintenance_on', !empty($report['maintenance']) ? 1 : 0);
 $app->tpl->setVar('debug_until', $escape($site['debug_until'] ?? ''));
 $app->tpl->setVar('debug_elsewhere', empty($site['debug_until']) && !empty($report['debug']) ? 1 : 0);
 $app->tpl->setVar('debug_tail', $escape($site['debug_tail'] ?? ''));
-$app->tpl->setVar('debug_log_path', $escape(rtrim((string)$site['document_root'], '/') . '/' . \WpManager\WpDebug::LOG));
+$app->tpl->setVar('debug_log_path', $escape(rtrim((string)$site['document_root'], '/') . '/' . \WpManager\WpDebug::log($site)));
 $app->tpl->setVar('site_is_http', str_starts_with((string)($site['site_url'] ?: 'http://'), 'http://') ? 1 : 0);
 $app->tpl->setVar('login_active', $escape($site['login_user'] !== '' ? $site['login_until'] : ''));
 $app->tpl->setVar('unused_minutes', \WpManager\SiteUsers::UNUSED_MINUTES);

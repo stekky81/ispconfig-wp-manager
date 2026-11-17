@@ -73,14 +73,19 @@ final class WpDebug
         if (!is_dir($private) || is_link($private)) {
             throw new \RuntimeException("{$private} does not exist: the debug log stays outside the web root, there");
         }
-        return $siteRoot . '/' . self::LOG;
+        return $siteRoot . '/' . self::log($site);
+    }
+
+    /** The log, from the folder of the website: a site in a subfolder has its own. */
+    public static function log(array $site): string
+    {
+        $name = Subfolder::of($site);
+        return $name === '' ? self::LOG : 'private/wp-debug-' . $name . '.log';
     }
 
     private function wp(array $site): WpCli
     {
-        $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
         // These commands do not load WordPress, but a wp-cli.yml of the site can still require PHP.
-        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
+        return WpCli::forSite($this->config, $this->guard, $site);
     }
 }

@@ -28,6 +28,8 @@ final class SiteRequest
     public readonly array $sshKeys;
     /** MB of web space, -1 = unlimited; null = the default of the settings */
     public readonly ?int $hdQuota;
+    /** A folder of an existing website (example.com/blog); '' for a new website */
+    public readonly string $subfolder;
 
     public function __construct(
         string $domain,
@@ -43,6 +45,7 @@ final class SiteRequest
         mixed $phpVersionId = null,
         string $sshKeys = '',
         ?int $hdQuota = null,
+        string $subfolder = '',
     ) {
         $this->domain = Validator::domain($domain);
         $this->clientId = Validator::positiveId($clientId);
@@ -64,6 +67,10 @@ final class SiteRequest
             throw new ValidationException('Invalid web space: ' . $hdQuota);
         }
         $this->hdQuota = $hdQuota;
+        $this->subfolder = $subfolder === '' ? '' : Subfolder::forNewSite($subfolder);
+        if ($this->subfolder !== '' && ($this->sshKeys !== [] || $hdQuota !== null)) {
+            throw new ValidationException('A site in a folder uses the users and the web space of its website');
+        }
         if ($this->sshKeys !== [] && $this->accessType !== 'sftp') {
             throw new ValidationException('SSH keys work with SFTP only, not with FTP');
         }

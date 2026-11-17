@@ -19,6 +19,8 @@ Everything below works in the test environment: ISPConfig 3.3, Ubuntu 24.04, Apa
 - **New WordPress site**: website, database, database user, SFTP or FTP user and WordPress in one form, with
   per-site PHP version, language, plugins and theme, and a settings page for the defaults.
 - **Existing sites**: WordPress installs already on the node are detected and added to the list.
+- **Sites in folders**: WordPress in `example.com/blog` of an existing website, with its own database, kept apart from
+  the backups and restores of the site in `web/`.
 - **Update overview**: core, plugin and theme updates of every site, per node and per site.
 - **Safe updates**: a health check, a backup and an automatic rollback around every update, with a separate
   button for a new major version of WordPress.
@@ -54,8 +56,8 @@ Everything below works in the test environment: ISPConfig 3.3, Ubuntu 24.04, Apa
 
 ## Status / roadmap
 
-Milestones 0.1 to 0.5 are done, and most of 1.0. What is left before 1.0: an optional install in a subfolder of an
-existing website, and the first pilot on production servers. The detailed list is in [ROADMAP.md](ROADMAP.md).
+Milestones 0.1 to 0.5 are done, and so is the code of 1.0. What is left before 1.0 is the first pilot on production
+servers. The detailed list is in [ROADMAP.md](ROADMAP.md).
 
 ## How it works
 

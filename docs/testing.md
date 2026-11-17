@@ -241,6 +241,18 @@ Run each case first with `dry_run = true` (check the calls listed on the form), 
 - [x] A reseller sees the sites of its clients and may choose them in the new site form; it cannot remove them
       when ISPConfig gives its group only `ru` on their websites, as in the Sites module
 
+### Sites in subfolders
+
+- [x] The form refuses capitals, reserved names and a folder already managed; a site in `blog` of a website with
+      WordPress in `web/` installs with its own database, as the site user, at the address of the website
+- [x] Its page names the users of the website, has no clone, staging or SSH keys, and shows the WordPress password once
+- [x] A backup of the site in `web/` leaves the blog out, and its restore leaves a file added to the blog after the backup
+- [x] Backups, maintenance mode, debug and hardening of the blog stay in its folder
+- [x] The site in `web/` cannot be removed while the blog exists; removing the blog deletes its folder, backups,
+      database and user, and the site in `web/` keeps working
+- [x] The same on a second node
+- [x] An install found in a folder of a website is added by the scan, with the address of its folder
+
 ### Security
 
 - [x] Panel user cannot change `config.php`; the worker refuses one that others own or can write

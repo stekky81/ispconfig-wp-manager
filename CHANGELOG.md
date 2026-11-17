@@ -60,3 +60,7 @@
   stagings within the limits of their package, checked by the panel
 - Integration tests of `lib/` with real users, MariaDB, WP-CLI and WordPress, in the CI on every push
 - Documentation: administrator guide, client guide and compatibility matrix
+- WordPress in a folder of an existing website (`example.com/blog`): only a database and its user are created, the
+  folder must be new or empty; backups, restores, clones and stagings of the site in `web/` leave such folders out;
+  removal deletes the folder, its database and its user only; the scan finds installs one level below `web/`
+- CI: the integration job installs the MariaDB client, and failed tests appear as annotations of the run

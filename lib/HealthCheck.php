@@ -89,7 +89,7 @@ final class HealthCheck
 
     public static function baseUrl(array $site): string
     {
-        return rtrim((string)($site['site_url'] ?? '') ?: 'http://' . $site['domain'], '/');
+        return Subfolder::siteUrl($site);
     }
 
     private function check(string $name, string $url): bool

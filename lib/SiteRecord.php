@@ -32,8 +32,12 @@ final class SiteRecord
                 return "its {$field} differs from the one of the website in ISPConfig";
             }
         }
+        $subfolder = (string)($site['subfolder'] ?? '');
+        if ($subfolder !== '' && !Subfolder::isValid($subfolder)) {
+            return 'its subfolder is not a valid folder name';
+        }
         if ($records > 1) {
-            return 'more than one site in the list points to the same website';
+            return 'more than one site in the list points to the same website and folder';
         }
         return '';
     }

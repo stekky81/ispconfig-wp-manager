@@ -75,6 +75,6 @@ final class MaintenanceMode
 
     private function path(array $site): string
     {
-        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web') . '/' . self::FILE;
+        return Subfolder::webRoot($site, $this->guard) . '/' . self::FILE;
     }
 }

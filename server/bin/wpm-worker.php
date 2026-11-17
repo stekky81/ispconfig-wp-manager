@@ -45,6 +45,7 @@ use WpManager\MaintenanceMode;
 use WpManager\Notifications;
 use WpManager\PathGuard;
 use WpManager\RetryPolicy;
+use WpManager\Runner;
 use WpManager\Settings;
 use WpManager\SiteActions;
 use WpManager\SiteBackup;
@@ -56,10 +57,12 @@ use WpManager\SitePermissions;
 use WpManager\VulnerabilityFeed;
 use WpManager\SiteInventory;
 use WpManager\SiteRecord;
+use WpManager\SiteRemoval;
 use WpManager\SiteTransfer;
 use WpManager\MysqlTransferStore;
 use WpManager\TransferAuthorization;
 use WpManager\SiteScanner;
+use WpManager\Subfolder;
 use WpManager\SiteSync;
 use WpManager\SiteUpdater;
 use WpManager\SiteUsers;
@@ -170,7 +173,7 @@ $event = static function (array $site, string $kind, string $outcome, string $me
             'INSERT INTO wpm_event (wpm_site_id, server_id, domain, kind, outcome, message) VALUES (?, ?, ?, ?, ?, ?)',
             (int)$site['wpm_site_id'],
             (int)$conf['server_id'],
-            (string)$site['domain'],
+            Subfolder::label($site),
             $kind,
             $outcome,
             mb_substr($message, 0, 1000),
@@ -189,7 +192,12 @@ $distrust = static function (array $site, ?int $serverId = null) use ($app, $con
         'SELECT domain_id, server_id, domain, document_root, system_user FROM web_domain WHERE domain_id = ?',
         (int)($site['domain_id'] ?? 0),
     );
-    $count = $app->dbmaster->queryOneRecord('SELECT COUNT(*) AS n FROM wpm_site WHERE domain_id = ?', (int)($site['domain_id'] ?? 0));
+    // One record per website and folder: sites in subfolders share the website of the site in web/.
+    $count = $app->dbmaster->queryOneRecord(
+        'SELECT COUNT(*) AS n FROM wpm_site WHERE domain_id = ? AND subfolder = ?',
+        (int)($site['domain_id'] ?? 0),
+        (string)($site['subfolder'] ?? ''),
+    );
     $reason = SiteRecord::mismatch($site, is_array($web) ? $web : null, $serverId ?? (int)$conf['server_id'], (int)($count['n'] ?? 1));
     if ($reason !== '') {
         error_log("wpmanager: site {$site['domain']} refused: {$reason}");
@@ -358,7 +366,7 @@ foreach ($queue->pending() as $name) {
                     $on ? 1 : 0,
                     $siteId,
                 );
-                $finish('done', $on ? 'Debug mode on for ' . WpDebug::HOURS . ' hours, log in ' . WpDebug::LOG . '.' : 'Debug mode off.');
+                $finish('done', $on ? 'Debug mode on for ' . WpDebug::HOURS . ' hours, log in ' . WpDebug::log($record) . '.' : 'Debug mode off.');
             } elseif ($job['type'] === 'debuglog') {
                 $tail = $debug->tail($record);
                 $app->dbmaster->query('UPDATE wpm_site SET debug_tail = ? WHERE wpm_site_id = ?', $tail, $siteId);
@@ -389,6 +397,14 @@ foreach ($queue->pending() as $name) {
                 $result = $hardening->set($record, $measure, $state === 'on');
                 $finish($result['outcome'], $result['message']);
                 $app->dbmaster->query('UPDATE wpm_site SET last_check = NULL WHERE wpm_site_id = ?', $siteId);
+            } elseif ($job['type'] === 'remove_folder') {
+                // The panel deleted the database already. Only web/<folder> of the website goes, with its backups.
+                $runner = new Runner($config->isDryRun(), [], 3600);
+                foreach (SiteRemoval::folderCommands($record, new PathGuard($config->get('web_root_base')), $backups) as $command) {
+                    $runner->mustRun($command);
+                }
+                $finish('done', 'Folder web/' . Subfolder::of($record) . ' removed.');
+                $app->dbmaster->query("UPDATE wpm_site SET status = 'removed' WHERE wpm_site_id = ?", $siteId);
             } elseif ($job['type'] === 'fix_permissions') {
                 $result = $permissions->fix($record);
                 $finish($result['outcome'], $result['message']);
@@ -436,11 +452,9 @@ foreach ($queue->pending() as $name) {
     // spool, which only root can change, and is set when an attempt found the web root empty and left
     // it not empty.
     $resume = (bool)($job['resume'] ?? false);
-    $webRoot = rtrim((string)$site['document_root'], '/') . '/web';
-    $guard = new PathGuard($config->get('web_root_base'));
-    $isEmpty = static function () use ($guard, $webRoot): bool {
+    $isEmpty = static function () use ($installer, $site): bool {
         try {
-            return $guard->isPristineWebRoot($webRoot);
+            return $installer->isTargetEmpty($site);
         } catch (\Throwable) {
             return false;
         }
@@ -530,8 +544,8 @@ foreach ($queue->pending() as $name) {
 // SiteCredentials::EXPIRY_DAYS they are deleted. Direct updates, like the database password above.
 if (!$config->isDryRun()) {
     $stored = $app->dbmaster->queryAllRecords(
-        "SELECT wpm_site_id, status, secret_access, UNIX_TIMESTAMP(secret_since) AS secret_since, UNIX_TIMESTAMP() AS now FROM wpm_site
-         WHERE server_id = ? AND secret_access IS NOT NULL AND secret_access != ''",
+        "SELECT wpm_site_id, status, secret_access, secret_wp, UNIX_TIMESTAMP(secret_since) AS secret_since, UNIX_TIMESTAMP() AS now FROM wpm_site
+         WHERE server_id = ? AND ((secret_access IS NOT NULL AND secret_access != '') OR (secret_wp IS NOT NULL AND secret_wp != ''))",
         $conf['server_id'],
     );
     foreach ($stored ?: [] as $site) {
@@ -610,7 +624,12 @@ $scanStamp = $config->get('spool_dir') . '/.last-scan';
 if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INTERVAL) {
     touch($scanStamp);
     $guard = new PathGuard($config->get('web_root_base'));
-    foreach ((new SiteScanner($guard, $config->get('web_root_base')))->scan() as $documentRoot) {
+    $scanner = new SiteScanner($guard, $config->get('web_root_base'));
+    $installs = array_merge(
+        array_map(static fn(string $root): array => [$root, ''], $scanner->scan()),
+        $scanner->scanSubfolders(),
+    );
+    foreach ($installs as [$documentRoot, $subfolder]) {
         try {
             $domain = $app->dbmaster->queryOneRecord(
                 "SELECT * FROM web_domain WHERE document_root = ? AND server_id = ? AND type = 'vhost'",
@@ -621,20 +640,22 @@ if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INT
                 continue;
             }
             $known = $app->dbmaster->queryOneRecord(
-                'SELECT wpm_site_id FROM wpm_site WHERE domain_id = ? OR domain = ?',
+                'SELECT wpm_site_id FROM wpm_site WHERE (domain_id = ? OR domain = ?) AND subfolder = ?',
                 $domain['domain_id'],
                 $domain['domain'],
+                $subfolder,
             );
             if (is_array($known)) {
                 continue;
             }
             $group = $app->dbmaster->queryOneRecord('SELECT client_id FROM sys_group WHERE groupid = ?', $domain['sys_groupid']);
-            $record = SiteScanner::recordFor($domain, (int)($group['client_id'] ?? 0), $installer->installedVersion($domain));
+            $version = $installer->installedVersion($domain + ['subfolder' => $subfolder]);
+            $record = SiteScanner::recordFor($domain, (int)($group['client_id'] ?? 0), $version, $subfolder);
             $columns = implode(', ', array_map(static fn(string $c): string => "`{$c}`", array_keys($record)));
             $marks = implode(', ', array_fill(0, count($record), '?'));
             $app->dbmaster->query("INSERT INTO wpm_site ({$columns}) VALUES ({$marks})", ...array_values($record));
         } catch (\Throwable $e) {
-            $app->log("wpmanager: cannot register {$documentRoot}: " . $e->getMessage(), LOGLEVEL_WARN);
+            $app->log("wpmanager: cannot register {$documentRoot}/web/{$subfolder}: " . $e->getMessage(), LOGLEVEL_WARN);
         }
     }
 }
@@ -643,7 +664,7 @@ if (!$config->isDryRun() && time() - (int)@filemtime($scanStamp) >= WPM_SCAN_INT
 if (!$config->isDryRun()) {
     $inventory = new SiteInventory($config, new PathGuard($config->get('web_root_base')));
     $due = $app->dbmaster->queryAllRecords(
-        "SELECT s.wpm_site_id, s.domain_id, s.server_id, s.domain, s.document_root, s.system_user FROM wpm_site s
+        "SELECT s.wpm_site_id, s.domain_id, s.server_id, s.domain, s.subfolder, s.document_root, s.system_user FROM wpm_site s
          INNER JOIN web_domain d ON d.domain_id = s.domain_id AND d.active = 'y'
          WHERE s.server_id = ? AND s.status = 'installed'
            AND (s.last_check IS NULL OR s.last_check < NOW() - INTERVAL " . WPM_CHECK_INTERVAL . ' SECOND)
@@ -811,7 +832,7 @@ if (!$config->isDryRun()) {
         $app->dbmaster->query('INSERT IGNORE INTO wpm_notice (notice) VALUES (?)', $key);
         if ($app->dbmaster->affectedRows() === 1) {
             $sites = $app->dbmaster->queryAllRecords(
-                'SELECT domain, status, status_message, action_status, action_message, updates_count, vulns_count, vulns_fixable FROM wpm_site ORDER BY domain',
+                "SELECT IF(subfolder = '', domain, CONCAT(domain, '/', subfolder)) AS domain, status, status_message, action_status, action_message, updates_count, vulns_count, vulns_fixable FROM wpm_site ORDER BY domain, subfolder",
             );
             $events = $app->dbmaster->queryAllRecords(
                 'SELECT domain, kind, outcome, message, created FROM wpm_event WHERE created >= FROM_UNIXTIME(?) ORDER BY created',

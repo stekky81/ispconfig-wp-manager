@@ -34,12 +34,39 @@ final class SiteScanner
     }
 
     /**
+     * WordPress installs one level below web/ (example.com/blog), found the same way. Folders with names the module
+     * does not accept, and links, are left out.
+     *
+     * @return list<array{0:string, 1:string}> document root and folder, sorted
+     */
+    public function scanSubfolders(): array
+    {
+        $found = [];
+        foreach (glob($this->root . '/client*/web*/web/*/wp-config.php') ?: [] as $config) {
+            $folder = dirname($config);
+            $web = dirname($folder);
+            $name = basename($folder);
+            if (!Subfolder::isValid($name) || is_link($config) || is_link($folder) || is_link($web) || !is_file($config)) {
+                continue;
+            }
+            $found[] = [$this->guard->assertInside(dirname($web)), $name];
+        }
+        sort($found);
+        return array_values(array_unique($found, SORT_REGULAR));
+    }
+
+    /**
      * @param array $domain the web_domain record of the site
      * @return array<string, mixed> the wpm_site record: no secrets, this module did not create them
      */
-    public static function recordFor(array $domain, int $clientId, string $wpVersion): array
+    public static function recordFor(array $domain, int $clientId, string $wpVersion, string $subfolder = ''): array
     {
-        return [
+        $extra = $subfolder === '' ? [] : [
+            'subfolder' => Subfolder::name($subfolder),
+            // Without it the checks would ask the address of the website, which is another site.
+            'site_url' => Subfolder::url(Subfolder::scheme($domain) . '://' . $domain['domain'], $subfolder),
+        ];
+        return $extra + [
             'sys_userid' => (int)$domain['sys_userid'],
             'sys_groupid' => (int)$domain['sys_groupid'],
             'sys_perm_user' => (string)$domain['sys_perm_user'],

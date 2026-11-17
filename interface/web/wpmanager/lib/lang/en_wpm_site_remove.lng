@@ -21,3 +21,6 @@ $wb['table_web_folder_txt'] = 'Protected folder';
 $wb['table_web_backup_txt'] = 'ISPConfig backup record';
 $wb['table_web_database_txt'] = 'Database';
 $wb['table_web_database_user_txt'] = 'Database user';
+$wb['folder_warning_txt'] = 'This deletes the folder of the site with all its files, its backups, its database and the database users nobody else uses. This module keeps no backup: after this, only the backups of ISPConfig or external ones bring the site back.';
+$wb['folder_kept_txt'] = 'The website, its users and everything else in it stay, also the other sites in its folders.';
+$wb['table_folder_txt'] = 'Folder of the site';

@@ -1,0 +1,18 @@
+<?php
+$wb['head_txt'] = 'Nuovo sito WordPress in una cartella';
+$wb['desc_txt'] = 'WordPress in una cartella di un sito web esistente, per esempio example.com/blog. Vengono creati solo un database e il suo utente. Il sito usa gli utenti SFTP o FTP, la versione di PHP e lo spazio web del sito web. La cartella deve essere nuova o vuota. Quello che c\'è già nel sito web resta com\'è, e i suoi backup e ripristini lasciano fuori questa cartella.';
+$wb['website_txt'] = 'Sito web';
+$wb['subfolder_txt'] = 'Cartella';
+$wb['subfolder_help_txt'] = 'Un nome di lettere minuscole, cifre e trattini, senza /. Il sito sarà all\'indirizzo del sito web seguito da /cartella.';
+$wb['wp_title_txt'] = 'Titolo del sito';
+$wb['wp_admin_user_txt'] = 'Utente amministratore di WordPress';
+$wb['wp_admin_email_txt'] = 'Email dell\'amministratore di WordPress';
+$wb['wp_locale_txt'] = 'Lingua di WordPress';
+$wb['wp_plugins_txt'] = 'Plugin da installare';
+$wb['wp_plugins_help_txt'] = 'Nomi di wordpress.org, separati da virgole.';
+$wb['wp_theme_txt'] = 'Tema da installare';
+$wb['save_txt'] = 'Crea';
+$wb['cancel_txt'] = 'Annulla';
+$wb['website_invalid_txt'] = 'Scegli un sito web che puoi modificare.';
+$wb['folder_taken_txt'] = 'Questa cartella del sito web è già gestita dal modulo WordPress.';
+$wb['no_websites_txt'] = 'Non c\'è nessun sito web che puoi modificare. Crea invece un nuovo sito WordPress.';

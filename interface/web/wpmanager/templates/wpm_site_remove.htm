@@ -9,7 +9,7 @@
     <tmpl_if name="refusal">
         <div class="alert alert-warning" id="remove_refused">{tmpl_var name='refused_txt'}: {tmpl_var name='refusal'}.</div>
     <tmpl_else>
-        <div class="alert alert-danger" id="remove_warning">{tmpl_var name='warning_txt'}</div>
+        <div class="alert alert-danger" id="remove_warning"><tmpl_if name="in_folder">{tmpl_var name='folder_warning_txt'}<tmpl_else>{tmpl_var name='warning_txt'}</tmpl_if></div>
         <p>{tmpl_var name='list_txt'}</p>
         <table class="table" id="remove_plan">
             <tbody>
@@ -19,7 +19,7 @@
             </tbody>
         </table>
         <tmpl_if name="not_attached"><div class="alert alert-info" id="remove_not_attached">{tmpl_var name='not_attached_txt'} <code>{tmpl_var name='not_attached'}</code></div></tmpl_if>
-        <p class="fieldDescription">{tmpl_var name='kept_txt'}</p>
+        <p class="fieldDescription"><tmpl_if name="in_folder">{tmpl_var name='folder_kept_txt'}<tmpl_else>{tmpl_var name='kept_txt'}</tmpl_if></p>
 
         <div class="form-group">
             <label for="confirm_domain" class="col-sm-3 control-label">{tmpl_var name='confirm_txt'} <strong>{tmpl_var name='domain'}</strong></label>

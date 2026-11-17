@@ -1,0 +1,18 @@
+<?php
+$wb['head_txt'] = 'New WordPress site in a folder';
+$wb['desc_txt'] = 'WordPress in a folder of an existing website, such as example.com/blog. Only a database and its user are created. The site uses the SFTP or FTP users, the PHP version and the web space of the website. The folder must be new or empty. Whatever is already in the website stays as it is, and its backups and restores leave this folder out.';
+$wb['website_txt'] = 'Website';
+$wb['subfolder_txt'] = 'Folder';
+$wb['subfolder_help_txt'] = 'One name of lowercase letters, digits and hyphens, without /. The site will be at the address of the website followed by /folder.';
+$wb['wp_title_txt'] = 'Site title';
+$wb['wp_admin_user_txt'] = 'WordPress admin user';
+$wb['wp_admin_email_txt'] = 'WordPress admin email';
+$wb['wp_locale_txt'] = 'WordPress language';
+$wb['wp_plugins_txt'] = 'Plugins to install';
+$wb['wp_plugins_help_txt'] = 'wordpress.org names, separated by commas.';
+$wb['wp_theme_txt'] = 'Theme to install';
+$wb['save_txt'] = 'Create';
+$wb['cancel_txt'] = 'Cancel';
+$wb['website_invalid_txt'] = 'Choose a website you may change.';
+$wb['folder_taken_txt'] = 'This folder of the website is already managed by the WordPress module.';
+$wb['no_websites_txt'] = 'There is no website you may change. Create a new WordPress site instead.';

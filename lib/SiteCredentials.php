@@ -24,7 +24,7 @@ final class SiteCredentials
      */
     public static function housekeeping(array $site, int $now): string
     {
-        if (!in_array($site['status'] ?? '', ['installed', 'error'], true) || (string)($site['secret_access'] ?? '') === '') {
+        if (!in_array($site['status'] ?? '', ['installed', 'error'], true) || !self::stored($site)) {
             return '';
         }
         if ((string)($site['secret_since'] ?? '') === '') {
@@ -36,7 +36,16 @@ final class SiteCredentials
     /** Deleted by the worker, not shown: a reveal also clears `secret_since`. */
     public static function hasExpired(array $site): bool
     {
-        return (string)($site['secret_access'] ?? '') === '' && (string)($site['secret_since'] ?? '') !== '';
+        return !self::stored($site) && (string)($site['secret_since'] ?? '') !== '';
+    }
+
+    /**
+     * A password is still stored: of the SFTP or FTP user, of WordPress, or both. A clone has no WordPress password
+     * of its own, a site in a folder no user of its own.
+     */
+    public static function stored(array $site): bool
+    {
+        return (string)($site['secret_access'] ?? '') !== '' || (string)($site['secret_wp'] ?? '') !== '';
     }
 
     public function __construct(private readonly Crypto $crypto)
@@ -45,8 +54,7 @@ final class SiteCredentials
 
     public function canReveal(array $site): bool
     {
-        return in_array($site['status'] ?? '', ['installed', 'error'], true)
-            && (string)($site['secret_access'] ?? '') !== '';
+        return in_array($site['status'] ?? '', ['installed', 'error'], true) && self::stored($site);
     }
 
     /** @return array{wp_admin_user:string, wp_password:string, access_type:string, access_user:string, access_password:string} */
@@ -61,7 +69,7 @@ final class SiteCredentials
             'wp_password' => (string)($site['secret_wp'] ?? '') === '' ? '' : $this->crypto->decrypt((string)$site['secret_wp']),
             'access_type' => (string)$site['access_type'],
             'access_user' => (string)$site['access_user'],
-            'access_password' => $this->crypto->decrypt((string)$site['secret_access']),
+            'access_password' => (string)($site['secret_access'] ?? '') === '' ? '' : $this->crypto->decrypt((string)$site['secret_access']),
         ];
     }
 }

@@ -23,3 +23,4 @@ $wb['ssh_keys_txt'] = 'SSH public keys';
 $wb['ssh_keys_help_txt'] = 'Optional, SFTP only: one public key per line (the content of a .pub file). The generated password stays as the way in if a key is lost.';
 $wb['hd_quota_txt'] = 'Web space (MB)';
 $wb['hd_quota_help_txt'] = 'At most the space left in your package; a new WordPress site needs about 400 MB, so at least 500.';
+$wb['folder_link_txt'] = 'Or install WordPress in a folder of an existing website (example.com/blog) →';

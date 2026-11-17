@@ -40,9 +40,37 @@ $read = static function () use ($app, $id): array {
     $web = is_array($web) ? $web : null;
     $stagings = $app->db->queryOneRecord('SELECT COUNT(*) AS n FROM wpm_site WHERE staging_of = ?', $id);
     $clones = $app->db->queryOneRecord("SELECT COUNT(*) AS n FROM wpm_site WHERE clone_of = ? AND status IN ('queued', 'installing')", $id);
-    $refusal = SiteRemoval::refusal($site, $web, (int)$stagings['n'], (int)$clones['n']);
+    $folders = $app->db->queryOneRecord("SELECT COUNT(*) AS n FROM wpm_site WHERE domain_id = ? AND subfolder != '' AND status != 'removed'", $domainId);
+    $refusal = SiteRemoval::refusal($site, $web, (int)$stagings['n'], (int)$clones['n'], (int)$folders['n']);
     if ($refusal !== '') {
         return [$site, $web, $refusal, [], []];
+    }
+
+    // A site in a folder: its database, its users and its cron job here; the folder by its node. The website stays.
+    if ((string)$site['subfolder'] !== '') {
+        $databases = $app->db->queryAllRecords('SELECT database_id, database_name, database_user_id, database_ro_user_id FROM web_database WHERE parent_domain_id = ?', $domainId) ?: [];
+        $own = SiteRemoval::ownDatabase($site, $databases);
+        $users = [];
+        $elsewhere = [];
+        foreach (SiteRemoval::databaseUsers($own) as $userId) {
+            $user = $app->db->queryOneRecord('SELECT database_user_id, database_user FROM web_database_user WHERE database_user_id = ?', $userId);
+            if (is_array($user)) {
+                $users[] = $user;
+            }
+            $other = $app->db->queryOneRecord(
+                'SELECT COUNT(*) AS n FROM web_database WHERE (database_user_id = ? OR database_ro_user_id = ?) AND database_id != ?',
+                $userId,
+                $userId,
+                (int)$own[0]['database_id'],
+            );
+            if ((int)$other['n'] > 0) {
+                $elsewhere[] = $userId;
+            }
+        }
+        $cron = (int)$site['cron_job_id'] > 0
+            ? $app->db->queryOneRecord('SELECT id, command FROM cron WHERE id = ? AND parent_domain_id = ?', (int)$site['cron_job_id'], $domainId)
+            : null;
+        return [$site, $web, '', SiteRemoval::folderPlan($site, $databases, $users, $elsewhere, is_array($cron) ? $cron : null), SiteRemoval::notAttached($site, $databases)];
     }
 
     $children = [];
@@ -86,7 +114,7 @@ if (!is_array($site)) {
 
 if (isset($_POST['confirm_domain'])) {
     $app->auth->csrf_token_check();
-    if (trim((string)$_POST['confirm_domain']) !== (string)$site['domain'] || ($_POST['confirm_no_backup'] ?? '') !== 'y') {
+    if (trim((string)$_POST['confirm_domain']) !== \WpManager\Subfolder::label($site) || ($_POST['confirm_no_backup'] ?? '') !== 'y') {
         $app->tpl->setVar('error_msg', $escape($wb['confirm_error_txt']));
     } elseif ($refusal === '') {
         foreach ($plan as $item) {
@@ -102,27 +130,38 @@ if (isset($_POST['confirm_domain'])) {
                 $app->db->datalogDelete($item['table'], $item['key'], $item['id']);
             }
         }
-        $app->db->datalogDelete('wpm_site', 'wpm_site_id', $id);
+        $inFolder = (string)$site['subfolder'] !== '';
+        if ($inFolder) {
+            // The node deletes the folder, then marks the record, which the list drops (wpm_site_list.php).
+            $app->db->datalogUpdate('wpm_site', ['action_request' => 'remove_folder', 'action_param' => '', 'action_status' => 'requested', 'action_message' => ''], 'wpm_site_id', $id);
+            $plan[] = ['table' => 'folder', 'label' => 'web/' . $site['subfolder']];
+        } else {
+            $app->db->datalogDelete('wpm_site', 'wpm_site_id', $id);
+        }
         $summary = implode(', ', array_map(static fn(array $item): string => "{$item['table']} {$item['label']}", $plan));
         wpm_audit($app, $site, 'remove', '', $summary);
         $app->db->query(
             "INSERT INTO wpm_event (wpm_site_id, server_id, domain, kind, outcome, message) VALUES (?, ?, ?, 'remove', 'done', ?)",
             $id,
             (int)$site['server_id'],
-            (string)$site['domain'],
-            mb_substr('Removed by ' . $_SESSION['s']['user']['username'] . ': ' . $summary, 0, 1000),
+            \WpManager\Subfolder::label($site),
+            mb_substr(($inFolder ? 'Removal asked by ' : 'Removed by ') . $_SESSION['s']['user']['username'] . ': ' . $summary, 0, 1000),
         );
-        header('Location: wpm_site_list.php');
+        header('Location: ' . ($inFolder ? 'wpm_site_view.php?id=' . $id : 'wpm_site_list.php'));
         exit;
     }
 }
 
 $labels = [];
+if ((string)$site['subfolder'] !== '' && $refusal === '') {
+    $labels[] = ['what' => $escape($wb['table_folder_txt']), 'name' => $escape(rtrim((string)$site['document_root'], '/') . '/web/' . $site['subfolder'])];
+}
 foreach ($plan as $item) {
     $labels[] = ['what' => $escape($wb['table_' . $item['table'] . '_txt'] ?? $item['table']), 'name' => $escape($item['label'])];
 }
 $app->tpl->setVar('id', $id);
-$app->tpl->setVar('domain', $escape($site['domain']));
+$app->tpl->setVar('domain', $escape(\WpManager\Subfolder::label($site)));
+$app->tpl->setVar('in_folder', (string)$site['subfolder'] !== '' ? 1 : 0);
 $app->tpl->setVar('refusal', $escape($refusal));
 $app->tpl->setLoop('plan', $labels);
 $app->tpl->setVar('not_attached', $escape(implode(', ', $notAttached)));

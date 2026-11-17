@@ -34,7 +34,7 @@ final class AuditLog
             'username' => self::clean($username, 64),
             'ip' => filter_var($ip, FILTER_VALIDATE_IP) !== false ? $ip : '',
             'wpm_site_id' => (int)($site['wpm_site_id'] ?? 0),
-            'domain' => self::clean((string)($site['domain'] ?? ''), 255),
+            'domain' => self::clean(Subfolder::label($site ?? []), 255),
             'action' => self::clean($action, 32),
             'param' => self::clean($param, 255),
             'detail' => self::clean($detail, 1000),

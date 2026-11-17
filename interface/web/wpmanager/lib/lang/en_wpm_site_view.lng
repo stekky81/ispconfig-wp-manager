@@ -132,3 +132,4 @@ $wb['ssh_desc_txt'] = 'One public key per line (the content of a .pub file). Sav
 $wb['ssh_save_txt'] = 'Save the keys';
 $wb['ssh_saved_txt'] = 'Keys saved: ISPConfig writes them on the server within a minute.';
 $wb['no_permission_txt'] = 'You may look at this site, but not change it.';
+$wb['website_users_txt'] = 'File access (users of the website)';

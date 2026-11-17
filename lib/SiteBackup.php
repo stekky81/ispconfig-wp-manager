@@ -27,9 +27,12 @@ final class SiteBackup implements SiteBackups
     ) {
     }
 
+    /** A site in a subfolder keeps its backups apart: each site keeps its own last three. */
     public function directory(array $site): string
     {
-        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/tmp') . '/wpmanager-backups';
+        $name = Subfolder::of($site);
+        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/tmp') . '/wpmanager-backups'
+            . ($name === '' ? '' : '/subfolder-' . $name);
     }
 
     /** @return string the id of the new backup */
@@ -45,7 +48,8 @@ final class SiteBackup implements SiteBackups
         $this->database()->dump($site, "{$dir}/db.sql", $runner);
         $runner->mustRun(new Command(['gzip', '--', "{$dir}/db.sql"], $user));
         $withoutUploads = ($site['backup_uploads'] ?? 'y') === 'n';
-        $exclude = $withoutUploads ? ['--exclude=./wp-content/uploads'] : [];
+        // Sites in subfolders have their own backups: a restore of this one must not touch them.
+        $exclude = array_merge($withoutUploads ? ['--exclude=./wp-content/uploads'] : [], Subfolder::excludes(Subfolder::nested($site, $this->guard), 'tar'));
         $runner->mustRun(new Command(array_merge(['tar', '-czf', "{$dir}/" . self::FILES], $exclude, ['-C', $web, '.']), $user));
         $this->verify($dir, $user, $runner);
         if ($withoutUploads) {
@@ -113,7 +117,11 @@ final class SiteBackup implements SiteBackups
             $runner->mustRun(new Command(['gzip', '-dkf', '--', "{$dir}/" . self::DATABASE], $user));
 
             // Without this, --delete would remove uploads that this backup does not hold.
-            $keep = is_file("{$dir}/" . self::NO_UPLOADS) ? ['--exclude=/wp-content/uploads'] : [];
+            // Sites in subfolders stay as they are, also when an older backup holds a copy of them.
+            $keep = array_merge(
+                is_file("{$dir}/" . self::NO_UPLOADS) ? ['--exclude=/wp-content/uploads'] : [],
+                Subfolder::excludes(Subfolder::nested($site, $this->guard), 'rsync'),
+            );
             $runner->mustRun(new Command(array_merge(['rsync', '-a', '--delete'], $keep, ['--', "{$staging}/", "{$web}/"]), $user));
             // After the files: the settings of the restored wp-config.php are the right ones.
             $this->database()->load($site, "{$dir}/db.sql", $runner);
@@ -152,7 +160,7 @@ final class SiteBackup implements SiteBackups
 
     private function webRoot(array $site): string
     {
-        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        return Subfolder::webRoot($site, $this->guard);
     }
 
     private function database(): SiteDatabase

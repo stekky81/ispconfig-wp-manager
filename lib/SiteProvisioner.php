@@ -153,6 +153,100 @@ final class SiteProvisioner
         ];
     }
 
+    /**
+     * A site in a folder of an existing website: only a database and its user, attached to that website. The website,
+     * its users and its PHP version stay as they are; the folder is created by the node.
+     *
+     * @param array $website the web_domain row of the website, read by the panel
+     * @return array<string, mixed> the values to store in the wpm_site record
+     */
+    public function provisionInFolder(SiteRequest $req, array $website): array
+    {
+        if ($req->subfolder === '') {
+            throw new \InvalidArgumentException('No folder given');
+        }
+        if (($website['type'] ?? '') !== 'vhost' || strtolower((string)($website['domain'] ?? '')) !== $req->domain
+            || (int)($website['server_id'] ?? 0) !== $req->serverId) {
+            throw new ValidationException('The website does not match the request');
+        }
+        $this->created = [];
+        $d = $this->config->get('site_defaults');
+        $wp = $this->config->get('wordpress');
+        $domainId = (int)$website['domain_id'];
+        $systemUser = Validator::systemUser((string)($website['system_user'] ?? ''));
+        $documentRoot = (string)($website['document_root'] ?? '');
+        if ($domainId < 1 || $documentRoot === '') {
+            throw new ValidationException('The website has no document root');
+        }
+        $dbPassword = Crypto::randomPassword();
+        $wpPassword = Crypto::randomPassword();
+        $prefix = str_replace('[CLIENT_ID]', (string)$req->clientId, (string)$d['db_prefix']);
+        $base = self::folderBase($req->domain, $req->subfolder);
+        $dbName = Validator::dbName(substr($prefix . $base, 0, 32));
+        $dbUser = Validator::dbName(substr($prefix . $base, 0, 30) . 'u');
+        $dbServerId = $d['database_server_id'] ?? $req->serverId;
+        $this->assertNamesAreFree($req, $dbServerId, $dbName, $dbUser, null);
+        try {
+            $dbUserId = (int)$this->step('sites_database_user_add', 'sites_database_user_delete', [
+                'client_id' => $req->clientId,
+                'params' => ['server_id' => $dbServerId, 'database_user' => $dbUser, 'database_password' => $dbPassword],
+            ]);
+            $this->step('sites_database_add', 'sites_database_delete', [
+                'client_id' => $req->clientId,
+                'params' => [
+                    'server_id' => $dbServerId,
+                    'parent_domain_id' => $domainId,
+                    'type' => 'mysql',
+                    'database_name' => $dbName,
+                    'database_user_id' => $dbUserId,
+                    'database_ro_user_id' => 0,
+                    'database_charset' => 'utf8mb4',
+                    'remote_access' => 'n',
+                    'remote_ips' => '',
+                    'backup_interval' => 'none',
+                    'backup_copies' => 1,
+                    'active' => 'y',
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            throw new ProvisioningException($e->getMessage(), $this->rollback(), $e);
+        }
+        $scheme = Subfolder::scheme($website);
+        return [
+            'domain' => $req->domain,
+            'subfolder' => $req->subfolder,
+            'site_url' => Subfolder::url($scheme . '://' . $req->domain, $req->subfolder),
+            'server_id' => $req->serverId,
+            'client_id' => $req->clientId,
+            'domain_id' => $domainId,
+            'system_user' => $systemUser,
+            'document_root' => $documentRoot,
+            'db_name' => $dbName,
+            'db_user' => $dbUser,
+            'db_host' => $d['db_host'],
+            'access_user' => '',
+            'wp_title' => $req->title,
+            'wp_admin_user' => $req->adminUser,
+            'wp_admin_email' => $req->adminEmail,
+            'wp_locale' => $req->locale ?? $wp['locale'],
+            'wp_plugins' => implode(',', $req->plugins ?? $wp['plugins']),
+            'wp_theme' => $req->theme ?? (string)$wp['theme'],
+            'secret_db' => $this->crypto->encrypt($dbPassword),
+            'secret_wp' => $this->crypto->encrypt($wpPassword),
+            'status' => 'queued',
+        ];
+    }
+
+    /** The database names of a site in a folder: those of the domain, then the folder, never longer than for a domain. */
+    public static function folderBase(string $domain, string $folder): string
+    {
+        $base = Validator::dbNameFromDomain($domain) . '_' . trim((string)preg_replace('/[^a-z0-9]+/', '_', strtolower($folder)), '_');
+        if (strlen($base) > 24) {
+            $base = rtrim(substr($base, 0, 17), '_') . '_' . substr(sha1($domain . '/' . $folder), 0, 6);
+        }
+        return Validator::dbName($base);
+    }
+
     /** Password login only for now: SFTP keys are on the roadmap. */
     private function addAccessUser(
         SiteRequest $req,
@@ -203,16 +297,18 @@ final class SiteProvisioner
     }
 
     /** ISPConfig would refuse these too, but only after the website was created. */
-    private function assertNamesAreFree(SiteRequest $req, mixed $dbServerId, string $dbName, string $dbUser, string $accessUser): void
+    private function assertNamesAreFree(SiteRequest $req, mixed $dbServerId, string $dbName, string $dbUser, ?string $accessUser): void
     {
         $filter = fn(string $field, string $value, array $more = []): array => ['primary_id' => [$field => $value] + $more];
         $checks = [
             ["database {$dbName}", 'sites_database_get', $filter('database_name', $dbName, ['server_id' => $dbServerId])],
             ["database user {$dbUser}", 'sites_database_user_get', $filter('database_user', $dbUser)],
-            $req->accessType === 'ftp'
-                ? ["FTP user {$accessUser}", 'sites_ftp_user_get', $filter('username', $accessUser)]
-                : ["SFTP user {$accessUser}", 'sites_shell_user_get', $filter('username', $accessUser)],
         ];
+        if ($accessUser !== null) {
+            $checks[] = $req->accessType === 'ftp'
+                ? ["FTP user {$accessUser}", 'sites_ftp_user_get', $filter('username', $accessUser)]
+                : ["SFTP user {$accessUser}", 'sites_shell_user_get', $filter('username', $accessUser)];
+        }
         foreach ($checks as [$label, $method, $params]) {
             if (!empty($this->api->call($method, $params))) {
                 throw new ValidationException("The {$label} already exists in ISPConfig");

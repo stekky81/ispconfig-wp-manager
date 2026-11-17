@@ -31,7 +31,7 @@ final class WpCli
      * This limits PHP, it is not a jail. disable_functions alone is not enough: FFI calls libc
      * directly, and putenv(LD_PRELOAD) with anything that runs sendmail loads a library of the site.
      */
-    public static function sandboxed(string $wpBinary, string $phpBinary, string $siteRoot, string $systemUser): self
+    public static function sandboxed(string $wpBinary, string $phpBinary, string $siteRoot, string $systemUser, ?string $webRoot = null): self
     {
         $options = [
             'open_basedir' => "{$siteRoot}:{$wpBinary}",
@@ -48,7 +48,19 @@ final class WpCli
         foreach ($options as $name => $value) {
             array_push($arguments, '-d', "{$name}={$value}");
         }
-        return new self($wpBinary, $siteRoot . '/web', $systemUser, $phpBinary, $arguments);
+        return new self($wpBinary, $webRoot ?? $siteRoot . '/web', $systemUser, $phpBinary, $arguments);
+    }
+
+    /** The sandboxed WP-CLI of a record of wpm_site, in web/ or in its subfolder. */
+    public static function forSite(Config $config, PathGuard $guard, array $site): self
+    {
+        return self::sandboxed(
+            $config->get('wp_cli'),
+            $config->get('php_cli'),
+            $guard->assertInside((string)$site['document_root']),
+            (string)$site['system_user'],
+            Subfolder::webRoot($site, $guard),
+        );
     }
 
     /** @param array{exit:int, stdout:string, stderr:string} $result of `wp config get NAME`: false when it is missing */

@@ -31,22 +31,23 @@ final class WordPressInstaller
      */
     public function install(array $site, ?Runner $runner = null, bool $resume = false): array
     {
-        $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        if (!$resume && !$this->guard->isPristineWebRoot($webRoot)) {
-            throw new \RuntimeException("Refusing to install: {$webRoot} is not empty: the module never installs over existing files");
+        if (!$resume && !$this->isTargetEmpty($site)) {
+            $folder = rtrim((string)$site['document_root'], '/') . '/web' . (Subfolder::of($site) === '' ? '' : '/' . Subfolder::of($site));
+            throw new \RuntimeException("Refusing to install: {$folder} is not empty: the module never installs over existing files");
         }
 
         $dbPassword = $this->crypto->decrypt((string)$site['secret_db']);
         $wpPassword = $this->crypto->decrypt((string)$site['secret_wp']);
         $runner ??= new Runner($this->config->isDryRun(), [$dbPassword, $wpPassword]);
 
-        $wp = $this->wp($site);
+        $webRoot = $this->target($site, $runner);
+        $wp = $this->wp($site, $webRoot);
         $wpCfg = $this->config->get('wordpress');
         $domain = Validator::domain((string)$site['domain']);
-        $url = (string)($site['site_url'] ?? '') ?: $this->siteScheme() . '://' . $domain;
+        $url = (string)($site['site_url'] ?? '') ?: Subfolder::url($this->siteScheme() . '://' . $domain, Subfolder::of($site));
 
-        // ISPConfig placeholder pages: they could shadow index.php and must not stay public
-        foreach (['index.html', 'standard_index.html'] as $placeholder) {
+        // ISPConfig placeholder pages: they could shadow index.php and must not stay public. A subfolder has none.
+        foreach (Subfolder::of($site) === '' ? ['index.html', 'standard_index.html'] : [] as $placeholder) {
             if (is_file($webRoot . '/' . $placeholder)) {
                 $runner->mustRun(new Command(['rm', '-f', '--', $webRoot . '/' . $placeholder], (string)$site['system_user']));
             }
@@ -98,18 +99,51 @@ final class WordPressInstaller
         return array_merge($warnings, $runner->log());
     }
 
+    /**
+     * The folder WordPress goes into holds nothing yet: web/ with only the files of ISPConfig, or a subfolder of web/
+     * that is missing or empty. Anything else is a site or data of somebody.
+     */
+    public function isTargetEmpty(array $site): bool
+    {
+        $name = Subfolder::of($site);
+        $web = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        if ($name === '') {
+            return $this->guard->isPristineWebRoot($web);
+        }
+        $folder = "{$web}/{$name}";
+        if (is_link($folder)) {
+            return false;
+        }
+        return !file_exists($folder) || (is_dir($folder) && array_diff(scandir($folder) ?: ['?'], ['.', '..']) === []);
+    }
+
+    /** The folder of WordPress; a missing subfolder is created by the site user. */
+    private function target(array $site, Runner $runner): string
+    {
+        $name = Subfolder::of($site);
+        if ($name !== '') {
+            $folder = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web') . '/' . $name;
+            if (!file_exists($folder) && !is_link($folder)) {
+                $runner->mustRun(new Command(['mkdir', '-m', '0755', '--', $folder], (string)$site['system_user']));
+                if ($runner->isDryRun()) {
+                    return $folder;
+                }
+            }
+        }
+        return Subfolder::webRoot($site, $this->guard);
+    }
+
     /** WP-CLI in the sandbox of the site: plugins and themes installed here run their code too. */
-    private function wp(array $site): WpCli
+    private function wp(array $site, ?string $webRoot = null): WpCli
     {
         $siteRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/'));
-        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
+        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user'], $webRoot ?? Subfolder::webRoot($site, $this->guard));
     }
 
     /** The installed version, or '' when it cannot be read: a finished install must not fail for this. */
     public function installedVersion(array $site, ?Runner $runner = null): string
     {
         $runner ??= new Runner($this->config->isDryRun());
-        $webRoot = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
         $wp = $this->wp($site);
         try {
             $result = $runner->run($wp->coreVersion());

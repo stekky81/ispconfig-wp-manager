@@ -67,7 +67,7 @@ final class Notifications
      */
     public static function installed(array $site, string $outcome, string $message): array
     {
-        $domain = (string)$site['domain'];
+        $domain = Subfolder::label($site);
         $what = (int)($site['clone_of'] ?? 0) > 0 ? 'clone' : 'site';
         if ($outcome === 'error') {
             return [
@@ -95,7 +95,7 @@ final class Notifications
      */
     public static function alert(array $site, string $kind, string $outcome, string $message): array
     {
-        $domain = (string)$site['domain'];
+        $domain = Subfolder::label($site);
         $what = self::KINDS[$kind] ?? $kind;
         $state = match ($outcome) {
             'rolled_back' => 'was rolled back',
@@ -146,7 +146,7 @@ final class Notifications
         $updates = [];
         $vulnerable = [];
         foreach ($sites as $site) {
-            $domain = (string)$site['domain'];
+            $domain = Subfolder::label($site);
             if (($site['status'] ?? '') === 'error') {
                 $problems[$domain] = "{$domain}: not installed. " . self::line((string)($site['status_message'] ?? ''));
             } elseif (($site['action_status'] ?? '') === 'rollback_failed') {
@@ -212,7 +212,7 @@ final class Notifications
      */
     public static function vulnerabilities(array $site, array $vulnerabilities, string $attribution, bool $autoUpdate): array
     {
-        $domain = (string)$site['domain'];
+        $domain = Subfolder::label($site);
         $lines = [];
         $fixable = 0;
         foreach ($vulnerabilities as $v) {
@@ -260,7 +260,7 @@ final class Notifications
 
     private static function siteUrl(array $site): string
     {
-        return (string)($site['site_url'] ?? '') ?: 'http://' . $site['domain'];
+        return Subfolder::siteUrl($site);
     }
 
     /** Text of a site or of a command, as it goes into an email: no control characters, not too long. */

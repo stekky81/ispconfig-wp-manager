@@ -61,9 +61,23 @@ before the certificate can be issued.
 set a new password for the SFTP or FTP user in the Sites module of ISPConfig, and use "New password" on the site page
 for WordPress.
 
+## Sites in folders
+
+The new site form links to **in a folder of an existing website**: WordPress in `example.com/blog`, next to whatever the
+website already has, often another WordPress in `web/`. Choose the website and a folder name (lowercase letters,
+digits, hyphens). The folder must not exist yet, or be empty.
+
+- Only a database and its user are created. The site uses the SFTP or FTP users, the PHP version and the web space of
+  the website: its page names those users. Its passwords section shows only the WordPress password.
+- Updates, backups, tools and security work as for any site. Clone and staging are not available for it yet.
+- The site in `web/` leaves its folders alone: its backups do not hold them, and a restore, a clone or a push of its
+  staging neither deletes nor changes them. "No XML-RPC" on the site in `web/` also closes `xmlrpc.php` of the folders.
+- **Delete the site** on a site in a folder deletes only the folder, its backups, its database and its database user.
+  The site in `web/` can be deleted only after the sites in its folders.
+
 ## Existing sites
 
-Once an hour every node looks for WordPress in the websites of ISPConfig and adds what it finds to the list, with
+Once an hour every node looks for WordPress in the websites of ISPConfig, in `web/` and one folder below it, and adds what it finds to the list, with
 origin "detected". It reads the version and changes nothing, but from then on **automatic updates apply to them** too,
 like every other site. Turn them off on the page of a site that must not change.
 

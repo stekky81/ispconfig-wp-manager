@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   -- A staging site points to its production site, which has at most one
   `staging_of` int(11) unsigned NOT NULL DEFAULT 0,
   `domain` varchar(255) NOT NULL DEFAULT '',
+  -- A site in a folder of the website (example.com/blog); empty for a site in web/
+  `subfolder` varchar(64) NOT NULL DEFAULT '',
   `site_url` varchar(255) NOT NULL DEFAULT '',
   `system_user` varchar(64) NOT NULL DEFAULT '',
   `document_root` varchar(255) NOT NULL DEFAULT '',
@@ -37,7 +39,8 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `secret_access` text,
   -- When the generated passwords became available: they expire after a week if nobody looks at them
   `secret_since` datetime DEFAULT NULL,
-  `status` enum('queued','installing','installed','error') NOT NULL DEFAULT 'queued',
+  -- removed: a site in a subfolder whose folder the node deleted; the panel then drops the record
+  `status` enum('queued','installing','installed','error','removed') NOT NULL DEFAULT 'queued',
   `status_message` text,
   `wp_version` varchar(20) NOT NULL DEFAULT '',
   `updates_json` mediumtext,
@@ -72,7 +75,7 @@ CREATE TABLE IF NOT EXISTS `wpm_site` (
   `vulns_count` int(11) unsigned NOT NULL DEFAULT 0,
   `vulns_fixable` int(11) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`wpm_site_id`),
-  UNIQUE KEY `domain` (`domain`),
+  UNIQUE KEY `domain` (`domain`, `subfolder`),
   KEY `server_id` (`server_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -355,6 +358,37 @@ SET @wpm_sql = (
        ADD `vulns_fixable` int(11) unsigned NOT NULL DEFAULT 0')
   FROM information_schema.COLUMNS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'vulns_json'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+-- Upgrade from the versions without sites in subfolders: one site per domain and folder.
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` ADD `subfolder` varchar(64) NOT NULL DEFAULT \'\' AFTER `domain`')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'subfolder'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` DROP INDEX `domain`, ADD UNIQUE KEY `domain` (`domain`, `subfolder`)')
+  FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND INDEX_NAME = 'domain' AND COLUMN_NAME = 'subfolder'
+);
+PREPARE wpm_stmt FROM @wpm_sql;
+EXECUTE wpm_stmt;
+DEALLOCATE PREPARE wpm_stmt;
+
+SET @wpm_sql = (
+  SELECT IF(COUNT(*) > 0, 'DO 0',
+    'ALTER TABLE `wpm_site` MODIFY `status` enum(\'queued\',\'installing\',\'installed\',\'error\',\'removed\') NOT NULL DEFAULT \'queued\'')
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'wpm_site' AND COLUMN_NAME = 'status' AND COLUMN_TYPE LIKE '%removed%'
 );
 PREPARE wpm_stmt FROM @wpm_sql;
 EXECUTE wpm_stmt;

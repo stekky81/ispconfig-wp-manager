@@ -136,6 +136,11 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
     in double quotes expands `$` too (`"$6$rounds..."`): hash passwords with `openssl passwd -6 -stdin`.
 21. Panel users are in `sys_user`, password column `passwort`. To test as a client, back up `sys_user` and `client`
     with mysqldump first and restore them after.
+22. When Let's Encrypt fails, ISPConfig turns `ssl_letsencrypt` off but leaves `ssl = 'y'`, and nothing answers on 443:
+    https only with `ssl_letsencrypt = 'y'` or an own `ssl_cert` (`Subfolder::scheme`). Every VM website is like that.
+23. PHP caches `stat()`: a test that checks a file after a command changed it needs `clearstatcache()` first.
+24. The GitHub runner ships the MySQL 8 client, whose `mysqldump` fails against MariaDB; the CI installs `mariadb-client`.
+    Job logs need a login, annotations do not: failed integration tests are written as annotations.
 
 
 ## Current status (2026-11-16)
@@ -147,9 +152,9 @@ multipass exec ispc-master -- sudo <command>   # run anything in the VM
   messages with retries that resume; objects of plugin classes and page caches in clones; multiserver, with its
   security review; emails; clone to another node; every WP-CLI command in the sandbox; maintenance tools (maintenance mode, one-click login, password reset, debug,
   plugins and themes); full removal of a site; audit log; known vulnerabilities (Wordfence Intelligence), file permissions,
-  hardening; SSH keys for SFTP; clients and resellers. The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
+  hardening; SSH keys for SFTP; clients and resellers; sites in subfolders (`lib/Subfolder.php`). The master `config.php` has a Wordfence key: never print it or copy it into the repository. See [ROADMAP.md](ROADMAP.md) and the ticked items
   in `docs/testing.md`.
-- **Next**: the optional subfolder install (ROADMAP.md), one decision at a time with Stefano; the production pilot comes last.
+- **Next**: the production pilot (ROADMAP.md), one decision at a time with Stefano.
   User docs: `docs/admin-guide.md`, `docs/client-guide.md`, `docs/compatibility.md`: keep them in step with features.
   Security review done: see `docs/security.md`, including what remains open.
 - Automatic updates are on by default and start as soon as `dry_run` is off: turn them off in the settings

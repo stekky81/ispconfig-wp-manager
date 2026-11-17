@@ -3,7 +3,7 @@
 Planned work, by milestone. Tick items as they land (with the commit or PR).
 Pre-release: no milestone is considered done until it has passed `docs/testing.md` in the test VM.
 
-**Next:** the optional install in a subfolder, then the first pilot on production. See
+**Next:** the first pilot on production. See
 [docs/security.md](docs/security.md) for the security review and what it left open.
 
 ## 0.1 — Skeleton
@@ -80,8 +80,8 @@ Pre-release: no milestone is considered done until it has passed `docs/testing.m
       file permission check, hardening for existing sites
 - [x] Clients and resellers can use the module, with quota checks (the Remote API does not enforce them);
       a clone to another client stays admin only
-- [ ] Optional: install in a subfolder of an existing website (`example.com/blog`); the subfolder must
-      be new or empty, the rest of the web root stays untouched
+- [x] Optional: install in a subfolder of an existing website (`example.com/blog`); the subfolder must
+      be new or empty, the rest of the web root stays untouched (no clone or staging of such a site yet)
 - [x] Full site removal (website, DB, users) with double confirmation; no backup of the module (decided 2026-11-16:
       the backups of ISPConfig or external ones bring a site back)
 - [x] Audit log (who did what, when) and notifications (install done, update failed); notifications of

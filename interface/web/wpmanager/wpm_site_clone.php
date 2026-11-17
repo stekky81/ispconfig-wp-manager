@@ -30,6 +30,10 @@ $source = wpm_site($app, $id, 'u');
 if (!is_array($source) || $source['status'] !== 'installed') {
     $app->error($wb['source_not_found_txt']);
 }
+// Not yet for a site in a folder (decided on 2026-11-17): the worker would refuse it after the website was created.
+if ((string)($source['subfolder'] ?? '') !== '') {
+    $app->error($wb['source_not_found_txt']);
+}
 $owner = $app->db->queryOneRecord('SELECT g.client_id FROM web_domain d INNER JOIN sys_group g ON g.groupid = d.sys_groupid WHERE d.domain_id = ?', $source['domain_id']);
 if (!wpm_is_admin()) {
     $_POST['client_id'] = (int)($owner['client_id'] ?? -1);

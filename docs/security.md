@@ -37,6 +37,10 @@ penetration test, and multiserver setups were not covered. Please report problem
 - **Maintenance tools**: the one-click login creates a temporary administrator, deleted after 15 minutes if unused and
   2 hours after the login; only users with its form of name are ever deleted. Its password and the one of a reset are
   shown once and expire; the debug log stays outside the web root and debug turns itself off after 24 hours.
+- **Sites in folders**: the name of the folder is checked in the panel and again by the worker in every record, which
+  nodes can write: one level below `web/`, never `..`, never hidden, never a folder of ISPConfig or WordPress. A folder
+  that is a link is refused, so a site owner cannot send the worker into another site. The node deletes only
+  `web/<folder>`, its backups and its debug log, as the site user, and never a website.
 - **Emails**: recipients are checked one by one (no line breaks, no headers can be added through them); text from a
   site or a command is stripped of control characters and cut before it goes into a message.
 

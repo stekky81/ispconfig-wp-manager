@@ -144,13 +144,18 @@ final class SiteSync
         try {
             $runner->mustRun(new Command(['rm', '-rf', '--', $incoming], $toUser));
             $runner->mustRun(new Command(['mkdir', '-m', '0700', '--', $incoming], $toUser));
-            $exclude = array_map(static fn(string $path): string => '--exclude=.' . $path, array_merge(self::KEPT, self::DROPPED));
+            // Sites in subfolders of either side are not part of the copy, and stay where they are.
+            $nested = array_merge(Subfolder::nested($from, $this->guard), Subfolder::nested($to, $this->guard));
+            $exclude = array_merge(
+                array_map(static fn(string $path): string => '--exclude=.' . $path, array_merge(self::KEPT, self::DROPPED)),
+                Subfolder::excludes($nested, 'tar'),
+            );
             $runner->pipe(
                 new Command(array_merge(['tar', '-cz'], $exclude, ['-C', $fromWeb, '.']), $fromUser),
                 new Command(['tar', '-xz', '-C', $incoming], $toUser),
             );
             // Excluded paths are also safe from --delete.
-            $keep = array_map(static fn(string $path): string => '--exclude=' . $path, self::KEPT);
+            $keep = array_merge(array_map(static fn(string $path): string => '--exclude=' . $path, self::KEPT), Subfolder::excludes($nested, 'rsync'));
             $runner->mustRun(new Command(array_merge(['rsync', '-a', '--delete'], $keep, ['--', "{$incoming}/", "{$toWeb}/"]), $toUser));
         } finally {
             $runner->run(new Command(['rm', '-rf', '--', $incoming], $toUser));
@@ -208,13 +213,12 @@ final class SiteSync
     /** Everything WP-CLI does here runs in the sandbox: the code of a site is not trusted. */
     private function wp(array $site): WpCli
     {
-        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
-        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
+        return WpCli::forSite($this->config, $this->guard, $site);
     }
 
     private function webRoot(array $site): string
     {
-        return $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        return Subfolder::webRoot($site, $this->guard);
     }
 
     private function runner(): Runner

@@ -4,7 +4,8 @@
 # Environment for the integration tests of lib/ (tests/Integration): real users, folders, MariaDB databases,
 # WP-CLI and WordPress, without ISPConfig. Used by the CI and by the test VM. Run as root.
 #
-#   dev/integration.sh setup      # two sites of one client under $WPM_IT_BASE, a database for the module tables
+#   dev/integration.sh setup      # two sites of one client under $WPM_IT_BASE, a database for a site in a folder
+#                                 # and one for the module tables
 #   dev/integration.sh teardown   # removes all of it
 #
 # Then: set -a; . /etc/wpm-it.env; set +a; vendor/bin/phpunit --testsuite integration
@@ -56,6 +57,17 @@ setup() {
         printf 'WPM_IT_DB_PASSWORD_%s=%s\n' "$n" "$password" >> "$ENV_FILE.new"
     done
 
+    # A second WordPress in the folder web901/web/blog, installed by the tests: its own database.
+    password=$(head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
+    sql "CREATE DATABASE IF NOT EXISTS wpmit_blog901 CHARACTER SET utf8mb4;
+         CREATE USER IF NOT EXISTS 'wpmit_blog901'@'%' IDENTIFIED BY '$password';
+         ALTER USER 'wpmit_blog901'@'%' IDENTIFIED BY '$password';
+         CREATE USER IF NOT EXISTS 'wpmit_blog901'@'localhost' IDENTIFIED BY '$password';
+         ALTER USER 'wpmit_blog901'@'localhost' IDENTIFIED BY '$password';
+         GRANT ALL ON wpmit_blog901.* TO 'wpmit_blog901'@'%';
+         GRANT ALL ON wpmit_blog901.* TO 'wpmit_blog901'@'localhost';"
+    printf 'WPM_IT_DB_PASSWORD_BLOG=%s\n' "$password" >> "$ENV_FILE.new"
+
     info "WordPress in web901"
     local web=$BASE/$GROUP/web901/web
     if [[ ! -f $web/wp-config.php ]]; then
@@ -96,6 +108,7 @@ teardown() {
         sql "DROP DATABASE IF EXISTS wpmit_web$n; DROP USER IF EXISTS 'wpmit_web$n'@'%'; DROP USER IF EXISTS 'wpmit_web$n'@'localhost';"
         id "web$n" >/dev/null 2>&1 && userdel "web$n"
     done
+    sql "DROP DATABASE IF EXISTS wpmit_blog901; DROP USER IF EXISTS 'wpmit_blog901'@'%'; DROP USER IF EXISTS 'wpmit_blog901'@'localhost';"
     sql "DROP DATABASE IF EXISTS wpmit_module; DROP USER IF EXISTS 'wpmit_module'@'%'; DROP USER IF EXISTS 'wpmit_module'@'localhost';"
     getent group "$GROUP" >/dev/null && groupdel "$GROUP"
     rm -rf -- "$BASE" "$ENV_FILE"
@@ -105,5 +118,5 @@ teardown() {
 case "${1:-}" in
     setup) setup ;;
     teardown) teardown ;;
-    *) sed -n '3,15p' "$0"; exit 2 ;;
+    *) sed -n '3,17p' "$0"; exit 2 ;;
 esac

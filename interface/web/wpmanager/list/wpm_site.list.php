@@ -36,5 +36,6 @@ $liste['item'][] = [
         'installing' => 'installing',
         'installed' => 'installed',
         'error' => 'error',
+        'removed' => 'removed',
     ],
 ];

@@ -21,3 +21,6 @@ $wb['table_web_folder_txt'] = 'Cartella protetta';
 $wb['table_web_backup_txt'] = 'Record di backup di ISPConfig';
 $wb['table_web_database_txt'] = 'Database';
 $wb['table_web_database_user_txt'] = 'Utente database';
+$wb['folder_warning_txt'] = 'Questo cancella la cartella del sito con tutti i suoi file, i suoi backup, il suo database e gli utenti database che nessun altro usa. Questo modulo non tiene backup: dopo, solo i backup di ISPConfig o quelli esterni riportano indietro il sito.';
+$wb['folder_kept_txt'] = 'Il sito web, i suoi utenti e tutto il resto che contiene restano, anche gli altri siti nelle sue cartelle.';
+$wb['table_folder_txt'] = 'Cartella del sito';

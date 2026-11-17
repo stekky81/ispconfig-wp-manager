@@ -73,9 +73,10 @@ final class SiteCloner
         }
 
         $untar = new Command(['tar', '-xz', '-C', $targetWeb], $targetUser);
+        $nested = $remote === null ? Subfolder::nested($source, $this->guard) : [];
         $step('Copy of the files', static fn() => $remote !== null
             ? $remote->receiveStream($runner, $untar, SiteTransfer::FILES)
-            : $runner->pipe(self::tarOf($sourceWeb, $sourceUser), $untar));
+            : $runner->pipe(self::tarOf($sourceWeb, $sourceUser, $nested), $untar));
 
         $step('Creation of wp-config.php', static function () use ($runner, $to, $target, $dbPassword, $prefix, $resume, $targetWeb, $targetUser): void {
             $runner->mustRun($to->configCreate((string)$target['db_name'], (string)$target['db_user'], $dbPassword, (string)$target['db_host'], $prefix, $resume));
@@ -128,6 +129,9 @@ final class SiteCloner
         if (($source['status'] ?? '') !== 'installed') {
             throw new \RuntimeException("{$source['domain']} is not installed");
         }
+        if (Subfolder::of($source) !== '') {
+            throw new \RuntimeException('A site in a subfolder cannot be cloned yet');
+        }
         $runner ??= new Runner($this->config->isDryRun(), [], 3600);
         $sourceRoot = rtrim((string)$source['document_root'], '/');
         $sourceWeb = $this->guard->assertInside($sourceRoot . '/web');
@@ -137,7 +141,7 @@ final class SiteCloner
         $user = (string)$source['system_user'];
         $settings = self::settingsOf($this->wp($sourceRoot, $user), $runner);
         $out->sendMeta(['home' => trim($settings['home']), 'prefix' => trim($settings['prefix'])]);
-        $out->sendStream($runner, self::tarOf($sourceWeb, $user), SiteTransfer::FILES);
+        $out->sendStream($runner, self::tarOf($sourceWeb, $user, Subfolder::nested($source, $this->guard)), SiteTransfer::FILES);
         $out->sendStream($runner, (new SiteDatabase($this->config, $this->guard))->exportCommand($source, $runner), SiteTransfer::DATABASE);
         $out->finish();
     }
@@ -239,9 +243,10 @@ final class SiteCloner
         return ['home' => $runner->mustRun($wp->optionGet('home')), 'prefix' => $runner->mustRun($wp->configGet('table_prefix'))];
     }
 
-    private static function tarOf(string $web, string $user): Command
+    /** @param list<string> $nested folders of other sites below the web root, which are not part of this one */
+    private static function tarOf(string $web, string $user, array $nested = []): Command
     {
-        $exclude = array_map(static fn(string $path): string => "--exclude={$path}", self::NOT_COPIED);
+        $exclude = array_merge(array_map(static fn(string $path): string => "--exclude={$path}", self::NOT_COPIED), Subfolder::excludes($nested, 'tar'));
         return new Command(array_merge(['tar', '-cz'], $exclude, ['-C', $web, '.']), $user);
     }
 
@@ -262,6 +267,10 @@ final class SiteCloner
         // Another node sends its sites through a transfer, never by its folder.
         if (((int)$source['server_id'] !== (int)$target['server_id']) !== $remote) {
             throw new \RuntimeException($remote ? "{$source['domain']} is on this node" : "{$source['domain']} is on another node");
+        }
+        // Decided on 2026-11-17: no clone or staging of a site in a subfolder, and none into a subfolder, for now.
+        if (Subfolder::of($source) !== '' || Subfolder::of($target) !== '') {
+            throw new \RuntimeException('A site in a subfolder cannot be cloned yet');
         }
         if ((string)$source['db_name'] !== '' && (string)$source['db_name'] === (string)$target['db_name']) {
             throw new \RuntimeException('Source and clone have the same database');

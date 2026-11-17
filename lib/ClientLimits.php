@@ -26,6 +26,12 @@ final class ClientLimits
         ];
     }
 
+    /** A site in a folder of an existing website: only its database and database user. */
+    public static function needInFolder(): array
+    {
+        return ['database' => 1, 'database_user' => 1];
+    }
+
     /**
      * What does not fit, in words for the form; [] when everything fits.
      *

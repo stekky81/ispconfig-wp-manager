@@ -15,6 +15,8 @@ final class SiteActions
         'backup', 'restore', 'update', 'wpcron', 'refresh', 'push',
         'maintenance', 'debug', 'debuglog', 'login', 'password', 'harden', 'fix_permissions',
         ...SiteExtensions::ACTIONS,
+        // Asked by the removal page of a site in a subfolder, after its database: see SiteRemoval.
+        'remove_folder',
     ];
 
     /** The actions of the site page, with a parameter checked against allowedParams(). */

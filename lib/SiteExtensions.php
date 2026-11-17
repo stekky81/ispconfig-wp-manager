@@ -151,7 +151,7 @@ final class SiteExtensions
      */
     public function pluginFiles(array $site, string $slug, string $mainFile): string
     {
-        $web = $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
+        $web = Subfolder::webRoot($site, $this->guard);
         if ($mainFile === '') {
             // A dry run reads nothing: the usual place.
             return "{$web}/wp-content/plugins/{$slug}";
@@ -208,8 +208,6 @@ final class SiteExtensions
 
     private function wp(array $site): WpCli
     {
-        $this->guard->assertInside(rtrim((string)$site['document_root'], '/') . '/web');
-        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
-        return WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
+        return WpCli::forSite($this->config, $this->guard, $site);
     }
 }

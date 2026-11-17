@@ -1,0 +1,56 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<div class='page-header'>
+    <h1>{tmpl_var name='head_txt'}</h1>
+</div>
+<p class="fieldDescription">{tmpl_var name='desc_txt'}</p>
+
+<tmpl_if name="error_msg"><div class="alert alert-danger" id="folder_error">{tmpl_var name='error_msg'}</div></tmpl_if>
+
+<tmpl_if name="no_websites">
+<div class="alert alert-info">{tmpl_var name='no_websites_txt'}</div>
+<tmpl_else>
+<div class="panel" style="padding:20px;">
+    <div class="form-group">
+        <label for="domain_id" class="col-sm-3 control-label">{tmpl_var name='website_txt'}</label>
+        <div class="col-sm-9"><select name="domain_id" id="domain_id" class="form-control">{tmpl_var name='website_options'}</select></div>
+    </div>
+    <div class="form-group">
+        <label for="subfolder" class="col-sm-3 control-label">{tmpl_var name='subfolder_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="subfolder" id="subfolder" value="{tmpl_var name='subfolder'}" class="form-control" placeholder="blog" /><p class="help-block">{tmpl_var name='subfolder_help_txt'}</p></div>
+    </div>
+    <div class="form-group">
+        <label for="wp_title" class="col-sm-3 control-label">{tmpl_var name='wp_title_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="wp_title" id="wp_title" value="{tmpl_var name='wp_title'}" class="form-control" /></div>
+    </div>
+    <div class="form-group">
+        <label for="wp_admin_user" class="col-sm-3 control-label">{tmpl_var name='wp_admin_user_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="wp_admin_user" id="wp_admin_user" value="{tmpl_var name='wp_admin_user'}" class="form-control" /></div>
+    </div>
+    <div class="form-group">
+        <label for="wp_admin_email" class="col-sm-3 control-label">{tmpl_var name='wp_admin_email_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="wp_admin_email" id="wp_admin_email" value="{tmpl_var name='wp_admin_email'}" class="form-control" /></div>
+    </div>
+    <div class="form-group">
+        <label for="wp_locale" class="col-sm-3 control-label">{tmpl_var name='wp_locale_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="wp_locale" id="wp_locale" value="{tmpl_var name='wp_locale'}" class="form-control" /></div>
+    </div>
+    <div class="form-group">
+        <label for="wp_plugins" class="col-sm-3 control-label">{tmpl_var name='wp_plugins_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="wp_plugins" id="wp_plugins" value="{tmpl_var name='wp_plugins'}" class="form-control" /><p class="help-block">{tmpl_var name='wp_plugins_help_txt'}</p></div>
+    </div>
+    <div class="form-group">
+        <label for="wp_theme" class="col-sm-3 control-label">{tmpl_var name='wp_theme_txt'}</label>
+        <div class="col-sm-9"><input type="text" name="wp_theme" id="wp_theme" value="{tmpl_var name='wp_theme'}" class="form-control" /></div>
+    </div>
+
+    <input type="hidden" name="_csrf_id" value="{tmpl_var name='_csrf_id'}" />
+    <input type="hidden" name="_csrf_key" value="{tmpl_var name='_csrf_key'}" />
+
+    <div class="clear">
+        <div class="right">
+            <button class="btn btn-default formbutton-success" type="button" data-submit-form="pageForm" data-form-action="wpmanager/wpm_site_folder.php">{tmpl_var name='save_txt'}</button>
+            <button class="btn btn-default formbutton-default" type="button" data-load-content="wpmanager/wpm_site_list.php">{tmpl_var name='cancel_txt'}</button>
+        </div>
+    </div>
+</div>
+</tmpl_if>

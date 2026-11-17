@@ -66,7 +66,8 @@ final class SiteCredentialsTest extends TestCase
     {
         $credentials = new SiteCredentials($this->crypto);
 
-        self::assertFalse($credentials->canReveal($this->site(['secret_access' => ''])));
+        // The panel and the worker always clear both.
+        self::assertFalse($credentials->canReveal($this->site(['secret_access' => '', 'secret_wp' => ''])));
     }
 
     public function testRevealRefusesWhatCanNotBeRevealed(): void
@@ -100,7 +101,7 @@ final class SiteCredentialsTest extends TestCase
     {
         $now = 1_800_000_000;
 
-        self::assertSame('', SiteCredentials::housekeeping($this->site(['secret_access' => null, 'secret_since' => $now - 30 * 86400]), $now));
+        self::assertSame('', SiteCredentials::housekeeping($this->site(['secret_access' => null, 'secret_wp' => null, 'secret_since' => $now - 30 * 86400]), $now));
         // Detected sites never had any.
         self::assertSame('', SiteCredentials::housekeeping(['status' => 'installed', 'secret_access' => null, 'secret_since' => null], $now));
     }

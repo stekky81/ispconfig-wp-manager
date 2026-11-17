@@ -132,3 +132,4 @@ $wb['ssh_desc_txt'] = 'Una chiave pubblica per riga (il contenuto di un file .pu
 $wb['ssh_save_txt'] = 'Salva le chiavi';
 $wb['ssh_saved_txt'] = 'Chiavi salvate: ISPConfig le scrive sul server entro un minuto.';
 $wb['no_permission_txt'] = 'Puoi vedere questo sito, ma non modificarlo.';
+$wb['website_users_txt'] = 'Accesso ai file (utenti del sito web)';

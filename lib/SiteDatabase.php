@@ -202,8 +202,7 @@ final class SiteDatabase
     /** @return array{name:string, user:string, password:string, host:string, charset:string} */
     private function settings(array $site, Runner $runner): array
     {
-        $siteRoot = $this->guard->assertInside((string)$site['document_root']);
-        $wp = WpCli::sandboxed($this->config->get('wp_cli'), $this->config->get('php_cli'), $siteRoot, (string)$site['system_user']);
+        $wp = WpCli::forSite($this->config, $this->guard, $site);
         $output = $runner->mustRun($wp->configList());
         return $runner->isDryRun() ? self::DRY_RUN : self::parseSettings($output);
     }

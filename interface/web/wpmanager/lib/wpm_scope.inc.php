@@ -147,6 +147,39 @@ function wpm_limits_for_new_site($app, int $clientId, string $accessType, int $d
     return ['quota' => $quota, 'problems' => array_values(array_unique($problems))];
 }
 
+/** What does not fit for a new site in a folder of a website of this client: a database and its user. */
+function wpm_limits_for_folder($app, int $clientId): array
+{
+    if (wpm_is_admin()) {
+        return [];
+    }
+    $holders = wpm_limit_holders($app, $clientId);
+    if ($holders === []) {
+        return ['Unknown client'];
+    }
+    $problems = [];
+    foreach ($holders as $holder) {
+        $problems = array_merge($problems, ClientLimits::problems($holder['limits'], $holder['used'], ClientLimits::needInFolder(), $holder['who']));
+    }
+    return array_values(array_unique($problems));
+}
+
+/**
+ * Websites this user may change, as in the Sites module, for a new site in one of their folders.
+ *
+ * @return list<array> web_domain rows, with the client that owns each
+ */
+function wpm_websites($app, ?int $domainId = null): array
+{
+    $app->uses('tform');
+    $auth = wpm_is_admin() ? '1 = 1' : $app->tform->getAuthSQL('u', 'd');
+    $only = $domainId === null ? '' : ' AND d.domain_id = ' . (int)$domainId;
+    return $app->db->queryAllRecords(
+        "SELECT d.*, g.client_id FROM web_domain d INNER JOIN sys_group g ON g.groupid = d.sys_groupid
+         WHERE d.type = 'vhost' AND {$auth}{$only} ORDER BY d.domain",
+    ) ?: [];
+}
+
 /** The owner of a website in ISPConfig, for the record of the module: the same user and group. */
 function wpm_owner($app, int $domainId): array
 {
