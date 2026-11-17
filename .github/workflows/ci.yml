@@ -55,6 +55,13 @@ jobs:
           curl -sSfL -o /tmp/wp https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
           sudo install -m 0755 /tmp/wp /usr/local/bin/wp
           wp --version
+      # The runner ships the MySQL 8.0 client, whose mysqldump fails against MariaDB (COLUMN_STATISTICS):
+      # nodes have the client of their own server.
+      - name: MariaDB client
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mariadb-client
+          mysqldump --version
       - name: Users, folders, databases and WordPress
         run: sudo -E bash dev/integration.sh setup
         env:
@@ -62,4 +69,16 @@ jobs:
           MYSQL_PWD: root
           WPM_IT_DB_HOST: 127.0.0.1
       - name: Integration tests, as root
-        run: sudo bash -c 'set -a; . /etc/wpm-it.env; set +a; php vendor/bin/phpunit --testsuite integration'
+        run: sudo bash -c 'set -a; . /etc/wpm-it.env; set +a; php vendor/bin/phpunit --testsuite integration --log-junit /tmp/integration.xml'
+      # Annotations can be read without logging in to GitHub, the log of a job cannot.
+      - name: Failed tests as annotations
+        if: failure()
+        run: |
+          sudo cat /tmp/integration.xml | python3 -c '
+          import sys, xml.etree.ElementTree as ET
+          for case in ET.parse(sys.stdin).iter("testcase"):
+              for problem in list(case.findall("failure")) + list(case.findall("error")):
+                  text = (problem.text or problem.get("message") or "")[:3000]
+                  text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+                  print("::error title=" + case.get("class", "") + "::" + case.get("name", "") + "%0A" + text)
+          '
